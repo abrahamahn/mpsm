@@ -21,6 +21,8 @@ from src.core.logger import get_logger
 from src.core.exceptions import MPSMException, RegistryException
 from src.scanner.file_scanner import FileScanner
 from src.scanner.metadata_extractor import MetadataExtractor
+from src.scanner.application_scanner import ApplicationScanner
+from src.scanner.folder_scanner import FolderScanner
 from src.models.plugin import Plugin, PluginType, PluginCategory
 from src.models.scan_result import ComprehensiveScanResult
 from src.registry.registry_reader import RegistryReader
@@ -77,9 +79,14 @@ def init(path):
 @click.option('--config', default='config.yaml', help='Config file path')
 @click.option('--output', default='data', help='Output directory for results')
 @click.option('--format', type=click.Choice(['csv', 'excel', 'both']), default='both', help='Export format')
-def scan(config, output, format):
-    """Scan system for music production software."""
-    console.print("[bold cyan]MPSM Scanner[/bold cyan]")
+@click.option('--skip-plugins', is_flag=True, help='Skip plugin file scanning')
+@click.option('--skip-apps', is_flag=True, help='Skip application scanning')
+@click.option('--skip-folders', is_flag=True, help='Skip data folder scanning')
+@click.option('--skip-registry', is_flag=True, help='Skip registry scanning')
+@click.option('--skip-licenses', is_flag=True, help='Skip license scanning')
+def scan(config, output, format, skip_plugins, skip_apps, skip_folders, skip_registry, skip_licenses):
+    """Comprehensive scan for music production software, plugins, DAWs, and data."""
+    console.print("[bold cyan]MPSM Comprehensive Scanner[/bold cyan]")
     console.print("="*50)
 
     try:
@@ -103,76 +110,159 @@ def scan(config, output, format):
             log_to_file=config_manager.get('logging.log_to_file', True),
         )
 
-        # Initialize scanner
-        console.print(f"\n[bold]Initializing scanner...[/bold]")
-        scanner = FileScanner(
-            exclude_paths=config_manager.get_exclude_paths(),
-            max_workers=config_manager.get('scan.max_workers', 4),
-            verbose=True
-        )
-
-        metadata_extractor = MetadataExtractor()
-
         # Get scan paths
         scan_paths = config_manager.get_scan_paths()
-        console.print(f"[green]✓[/green] Scanner initialized")
-        console.print(f"Scan paths: {', '.join(scan_paths)}")
-
-        # Get plugin extensions
-        vst2_ext = config_manager.get('scan.extensions.plugins.vst2', ['.dll'])
-        vst3_ext = config_manager.get('scan.extensions.plugins.vst3', ['.vst3'])
-        all_extensions = vst2_ext + vst3_ext
-
-        console.print(f"Extensions: {', '.join(all_extensions)}")
-
-        # Start scan
-        console.print(f"\n[bold]Scanning for plugins...[/bold]")
-        start_time = datetime.now()
-
-        # Scan for plugins
-        plugin_files = scanner.scan_parallel(scan_paths, all_extensions)
 
         # Create scan result
+        start_time = datetime.now()
         scan_result = ComprehensiveScanResult(
             scan_id=str(uuid.uuid4()),
             scan_date=datetime.now(),
-            scan_duration=(datetime.now() - start_time).total_seconds(),
         )
 
-        console.print(f"\n[green]✓[/green] Found {len(plugin_files)} plugin files")
+        console.print(f"\nScan paths: {', '.join(scan_paths)}")
 
-        # Extract metadata and create plugin objects
-        console.print(f"\n[bold]Extracting metadata...[/bold]")
+        # ============================================================
+        # 1. SCAN FOR PLUGIN FILES (VST2, VST3, AAX, CLAP)
+        # ============================================================
+        if not skip_plugins:
+            console.print(f"\n[bold cyan]1. Scanning for plugin files...[/bold cyan]")
 
-        for file_path in plugin_files:
+            scanner = FileScanner(
+                exclude_paths=config_manager.get_exclude_paths(),
+                max_workers=config_manager.get('scan.max_workers', 4),
+                verbose=False
+            )
+            metadata_extractor = MetadataExtractor()
+
+            # Get all plugin extensions
+            vst2_ext = config_manager.get('scan.extensions.plugins.vst2', ['.dll'])
+            vst3_ext = config_manager.get('scan.extensions.plugins.vst3', ['.vst3'])
+            aax_ext = config_manager.get('scan.extensions.plugins.aax', ['.aax'])
+            clap_ext = config_manager.get('scan.extensions.plugins.clap', ['.clap'])
+            all_extensions = vst2_ext + vst3_ext + aax_ext + clap_ext
+
+            console.print(f"   Extensions: {', '.join(all_extensions)}")
+
+            # Scan for plugins
+            plugin_files = scanner.scan_parallel(scan_paths, all_extensions)
+            console.print(f"   [green]✓[/green] Found {len(plugin_files)} plugin files")
+
+            # Extract metadata
+            console.print(f"   Extracting metadata...")
+            for i, file_path in enumerate(plugin_files):
+                try:
+                    metadata = metadata_extractor.extract_file_metadata(file_path)
+                    plugin_type = metadata_extractor.detect_plugin_type(file_path)
+                    publisher = metadata_extractor.identify_publisher(file_path)
+                    product_name = metadata_extractor.get_product_name(file_path)
+
+                    plugin = Plugin(
+                        name=product_name,
+                        publisher=publisher,
+                        plugin_type=plugin_type,
+                        file_path=file_path,
+                        file_size=metadata['file_size'],
+                        file_hash=metadata['file_hash'],
+                    )
+                    scan_result.plugins.append(plugin)
+
+                    if (i + 1) % 50 == 0:
+                        console.print(f"   Processed {i + 1}/{len(plugin_files)} files...", end='\r')
+
+                except Exception as e:
+                    logger.warning(f"Failed to extract metadata from {file_path}: {e}")
+
+            scan_result.total_files_scanned = scanner.files_scanned
+            console.print(f"   [green]✓[/green] Processed {len(scan_result.plugins)} plugins")
+
+        # ============================================================
+        # 2. SCAN FOR APPLICATIONS (DAWs, Plugin Managers, Standalone)
+        # ============================================================
+        if not skip_apps:
+            console.print(f"\n[bold cyan]2. Scanning for applications (DAWs, plugin managers)...[/bold cyan]")
+
+            app_scanner = ApplicationScanner(config=config_manager)
+            applications = app_scanner.scan_for_applications()
+            scan_result.applications = applications
+
+            console.print(f"   [green]✓[/green] Found {len(applications)} applications")
+
+            # Show breakdown
+            daws = app_scanner.find_daws()
+            managers = app_scanner.find_plugin_managers()
+            standalone = app_scanner.find_standalone_plugins()
+
+            console.print(f"      - DAWs: {len(daws)}")
+            console.print(f"      - Plugin Managers: {len(managers)}")
+            console.print(f"      - Standalone Plugins: {len(standalone)}")
+
+        # ============================================================
+        # 3. SCAN FOR DATA FOLDERS (Presets, Samples, Libraries)
+        # ============================================================
+        if not skip_folders:
+            console.print(f"\n[bold cyan]3. Scanning for data folders (presets, samples, libraries)...[/bold cyan]")
+
+            folder_scanner = FolderScanner(config=config_manager)
+            data_folders = folder_scanner.scan_for_data_folders()
+            scan_result.data_folders = data_folders
+
+            console.print(f"   [green]✓[/green] Found {len(data_folders)} data folders")
+
+            # Show breakdown
+            presets = folder_scanner.find_preset_folders()
+            samples = folder_scanner.find_sample_folders()
+            libraries = folder_scanner.find_library_folders()
+
+            console.print(f"      - Presets: {len(presets)}")
+            console.print(f"      - Samples: {len(samples)}")
+            console.print(f"      - Libraries: {len(libraries)}")
+
+        # ============================================================
+        # 4. SCAN REGISTRY (Windows only)
+        # ============================================================
+        if not skip_registry:
+            console.print(f"\n[bold cyan]4. Scanning Windows Registry...[/bold cyan]")
+
             try:
-                # Extract metadata
-                metadata = metadata_extractor.extract_file_metadata(file_path)
-                plugin_type = metadata_extractor.detect_plugin_type(file_path)
-                publisher = metadata_extractor.identify_publisher(file_path)
-                product_name = metadata_extractor.get_product_name(file_path)
+                registry_reader = RegistryReader()
+                registry_entries = registry_reader.scan_all_music_production_keys()
+                scan_result.total_registry_entries = sum(len(entries) for entries in registry_entries.values())
 
-                # Create plugin object
-                plugin = Plugin(
-                    name=product_name,
-                    publisher=publisher,
-                    plugin_type=plugin_type,
-                    file_path=file_path,
-                    file_size=metadata['file_size'],
-                    file_hash=metadata['file_hash'],
-                )
-
-                scan_result.plugins.append(plugin)
-
+                console.print(f"   [green]✓[/green] Found {len(registry_entries)} registry keys with {scan_result.total_registry_entries} entries")
             except Exception as e:
-                logger.warning(f"Failed to extract metadata from {file_path}: {e}")
+                console.print(f"   [yellow]⚠[/yellow] Registry scanning skipped: {e}")
 
-        # Update statistics
-        scan_result.total_files_scanned = scanner.files_scanned
+        # ============================================================
+        # 5. SCAN FOR LICENSES
+        # ============================================================
+        if not skip_licenses:
+            console.print(f"\n[bold cyan]5. Scanning for licenses...[/bold cyan]")
+
+            try:
+                license_scanner = LicenseScanner(config=config_manager)
+                license_result = license_scanner.scan_for_licenses()
+                scan_result.licenses = license_result.licenses
+
+                console.print(f"   [green]✓[/green] Found {len(license_result.licenses)} licenses")
+
+                # Show breakdown by format
+                if license_result.licenses_by_format:
+                    for fmt, count in license_result.licenses_by_format.items():
+                        console.print(f"      - {fmt.value}: {count}")
+            except Exception as e:
+                console.print(f"   [yellow]⚠[/yellow] License scanning skipped: {e}")
+
+        # ============================================================
+        # FINALIZE SCAN
+        # ============================================================
+        scan_result.scan_duration = (datetime.now() - start_time).total_seconds()
         scan_result.calculate_statistics()
 
-        # Display summary
-        console.print(f"\n[bold green]Scan Complete![/bold green]")
+        # Display comprehensive summary
+        console.print(f"\n[bold green]{'='*50}[/bold green]")
+        console.print(f"[bold green]Scan Complete![/bold green]")
+        console.print(f"[bold green]{'='*50}[/bold green]")
         console.print(scan_result.generate_summary())
 
         # Export results
@@ -190,28 +280,18 @@ def scan(config, output, format):
             scan_result.export_excel(excel_path)
             console.print(f"[green]✓[/green] Exported Excel file to {excel_path}")
 
-        # Display sample plugins
-        if scan_result.plugins:
-            console.print(f"\n[bold]Sample Plugins (showing first 10):[/bold]")
+        # Save scan result as JSON for later use
+        import json
+        json_path = output_dir / f"scan_result_{scan_result.scan_id[:8]}.json"
+        with open(json_path, 'w') as f:
+            json.dump(scan_result.get_summary_dict(), f, indent=2)
+        console.print(f"[green]✓[/green] Saved scan metadata to {json_path}")
 
-            table = Table(show_header=True, header_style="bold magenta")
-            table.add_column("Name", style="cyan")
-            table.add_column("Publisher", style="yellow")
-            table.add_column("Type", style="green")
-            table.add_column("Size", style="blue")
+        # Display sample results
+        _display_scan_samples(scan_result)
 
-            for plugin in scan_result.plugins[:10]:
-                size_mb = round(plugin.file_size / (1024 * 1024), 2)
-                table.add_row(
-                    plugin.name,
-                    plugin.publisher,
-                    plugin.plugin_type.value,
-                    f"{size_mb} MB"
-                )
-
-            console.print(table)
-
-        console.print(f"\n[bold green]✓ Scan completed successfully![/bold green]")
+        console.print(f"\n[bold green]✓ Comprehensive scan completed successfully![/bold green]")
+        console.print(f"[dim]Duration: {scan_result.scan_duration:.2f}s[/dim]")
 
     except MPSMException as e:
         console.print(f"\n[red]Error:[/red] {e}")
@@ -221,6 +301,66 @@ def scan(config, output, format):
         import traceback
         traceback.print_exc()
         sys.exit(1)
+
+
+def _display_scan_samples(scan_result: ComprehensiveScanResult):
+    """Display sample results from scan."""
+
+    # Sample plugins
+    if scan_result.plugins:
+        console.print(f"\n[bold]Sample Plugins (showing first 10):[/bold]")
+        table = Table(show_header=True, header_style="bold magenta")
+        table.add_column("Name", style="cyan")
+        table.add_column("Publisher", style="yellow")
+        table.add_column("Type", style="green")
+        table.add_column("Size", style="blue")
+
+        for plugin in scan_result.plugins[:10]:
+            size_mb = round(plugin.file_size / (1024 * 1024), 2)
+            table.add_row(
+                plugin.name[:40],
+                plugin.publisher[:20],
+                plugin.plugin_type.value,
+                f"{size_mb} MB"
+            )
+        console.print(table)
+
+    # Sample applications
+    if scan_result.applications:
+        console.print(f"\n[bold]Sample Applications (showing first 10):[/bold]")
+        table = Table(show_header=True, header_style="bold magenta")
+        table.add_column("Name", style="cyan")
+        table.add_column("Publisher", style="yellow")
+        table.add_column("Type", style="green")
+        table.add_column("Version", style="blue")
+
+        for app in scan_result.applications[:10]:
+            table.add_row(
+                app.name[:40],
+                app.publisher[:20],
+                app.app_type.value,
+                app.version or "N/A"
+            )
+        console.print(table)
+
+    # Sample data folders
+    if scan_result.data_folders:
+        console.print(f"\n[bold]Sample Data Folders (showing first 10):[/bold]")
+        table = Table(show_header=True, header_style="bold magenta")
+        table.add_column("Name", style="cyan")
+        table.add_column("Owner", style="yellow")
+        table.add_column("Type", style="green")
+        table.add_column("Size", style="blue")
+
+        for folder in scan_result.data_folders[:10]:
+            size_gb = round(folder.total_size / (1024 ** 3), 2)
+            table.add_row(
+                folder.name[:40],
+                folder.owner[:20],
+                folder.folder_type.value,
+                f"{size_gb} GB"
+            )
+        console.print(table)
 
 
 @cli.command()
