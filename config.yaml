@@ -1,0 +1,64 @@
+# MPSM Configuration File
+# Music Production Software Manager Settings
+
+# Root path for organized music production files
+root_path: C:\MusicProduction
+
+# Custom paths (relative to root_path)
+custom_paths:
+  vst2: Plugins\VST2
+  vst3: Plugins\VST3
+  aax: Plugins\AAX
+  managers: Plugins\Managers
+  daw_fl: DAWs\FLStudio
+  daw_ableton: DAWs\Ableton
+  libraries: Libraries
+  licenses: Licenses
+  temp: Temp
+
+# DAWs to scan and manage
+daws:
+  - FLStudio
+  - AbletonLive
+
+# Auto-update settings
+auto_update: true
+auto_update_time: "02:00"  # 24-hour format
+
+# Safety settings
+dry_run: true  # Set to false to actually execute operations
+backup_enabled: true
+backup_retention_days: 30
+
+# Scan settings
+scan_exclude_paths:
+  - C:\Windows
+  - C:\Windows\System32
+  - C:\ProgramData\Microsoft
+  - C:\Users\*\AppData\Local\Microsoft
+
+# Plugin file extensions to scan
+plugin_extensions:
+  vst2: [".dll"]
+  vst3: [".vst3"]
+  aax: [".aaxplugin"]
+
+# License file extensions
+license_extensions: [".lic", ".key", ".license"]
+
+# Logging
+log_level: INFO  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+log_to_file: true
+log_to_console: true
+
+# Registry backup
+registry_backup: true
+registry_backup_path: backups\registry
+
+# Vendor update check URLs (placeholder - to be implemented)
+vendor_urls:
+  waves: https://www.waves.com
+  izotope: https://www.izotope.com
+  fabfilter: https://www.fabfilter.com
+  native_instruments: https://www.native-instruments.com
+  xfer: https://xferrecords.com
