@@ -197,7 +197,7 @@ class ConfigManager:
                     'C:\\Program Files (x86)\\VSTPlugins',
                     'C:\\Program Files (x86)\\Steinberg\\VstPlugins',
                     'C:\\Program Files (x86)\\Common Files\\VST3',
-                    # Known vendor plugin directories
+                    # Known vendor plugin directories in Program Files
                     'C:\\Program Files\\Waves\\Plug-Ins V12',
                     'C:\\Program Files\\Waves\\Plug-Ins V13',
                     'C:\\Program Files\\Waves\\Plug-Ins V14',
@@ -219,6 +219,17 @@ class ConfigManager:
                     'C:\\Program Files\\Ableton\\Live\\Plug-Ins',
                     'C:\\Program Files\\Avid\\Pro Tools\\Plug-Ins',
                     'C:\\Program Files\\PreSonus\\Studio One\\Plug-Ins',
+                    # TARGETED AppData\Roaming vendor directories (plugins only)
+                    f'C:\\Users\\{username}\\AppData\\Roaming\\Ableton\\Live',
+                    f'C:\\Users\\{username}\\AppData\\Roaming\\Steinberg',
+                    f'C:\\Users\\{username}\\AppData\\Roaming\\Image-Line',
+                    # TARGETED AppData\Local vendor directories (plugins only)
+                    f'C:\\Users\\{username}\\AppData\\Local\\Ableton\\Live',
+                    f'C:\\Users\\{username}\\AppData\\Local\\Image-Line',
+                    f'C:\\Users\\{username}\\AppData\\Local\\FL Studio',
+                    # ProgramData vendor directories (plugins only)
+                    'C:\\ProgramData\\Ableton\\Live',
+                    'C:\\ProgramData\\Steinberg',
                     # Custom organized directory
                     'C:\\Production\\Applications',
                 ],
@@ -248,15 +259,48 @@ class ConfigManager:
                     '**/Native Access/Cache/**',
                     '**/iZotope Product Portal/Cache/**',
                     '**/Splice/Cache/**',
-                    # Development tools
+                    # Microsoft directories (NOT music-related)
                     '**/Microsoft/**',
+                    '**/Microsoft Corporation/**',
+                    '**/MicrosoftEdge/**',
+                    '**/OneDrive/**',
+                    '**/Windows Mail/**',
+                    '**/WindowsApps/**',
+                    # Development tools (NOT music-related)
                     '**/VisualStudio/**',
+                    '**/Visual Studio Code/**',
                     '**/Node.js/**',
                     '**/Python/**',
+                    '**/npm/**',
+                    '**/pip/**',
+                    '**/conda/**',
+                    # Communication apps (NOT music-related)
                     '**/Discord/**',
-                    # Resource DLLs
+                    '**/Slack/**',
+                    '**/Zoom/**',
+                    '**/Microsoft Teams/**',
+                    '**/Skype/**',
+                    # Browsers (NOT music-related)
+                    '**/Google/Chrome/**',
+                    '**/Mozilla Firefox/**',
+                    '**/Opera/**',
+                    '**/Brave/**',
+                    # Gaming platforms (NOT music-related)
+                    '**/Steam/**',
+                    '**/Epic Games/**',
+                    '**/Battle.net/**',
+                    # Cloud storage (NOT music-related)
+                    '**/Dropbox/**',
+                    '**/Google Drive/**',
+                    '**/Box/**',
+                    # Generic non-music apps
+                    '**/Adobe/Acrobat/**',
+                    '**/Notepad++/**',
+                    '**/VLC/**',
+                    '**/WinRAR/**',
+                    '**/7-Zip/**',
+                    # Resource DLLs and artifacts
                     '**/*.resources.dll',
-                    # Build artifacts
                     '**/node_modules/**',
                     '**/__pycache__/**',
                     '**/bin/**',
