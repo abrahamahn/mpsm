@@ -164,11 +164,14 @@ class ConfigManager:
 
     def create_default_config(self, output_path: Optional[Path] = None) -> None:
         """
-        Create default configuration file.
+        Create default configuration file with OPTIMIZED targeted scan paths.
 
         Args:
             output_path: Where to save config. If None, uses self.config_path
         """
+        # Get current Windows username for user paths
+        username = os.getenv('USERNAME', 'YOUR_USERNAME')
+
         default_config = {
             'version': '1.0',
             'root_path': 'C:\\MusicProduction',
@@ -176,15 +179,49 @@ class ConfigManager:
                 'vst2': 'Plugins\\VST2',
                 'vst3': 'Plugins\\VST3',
                 'aax': 'Plugins\\AAX',
+                'clap': 'Plugins\\CLAP',
             },
             'scan': {
-                'scan_paths': ['C:\\'],
+                # TARGETED scan paths (10-100x faster than scanning entire C:\)
+                'scan_paths': [
+                    # Plugin installation directories
+                    'C:\\Program Files\\VSTPlugins',
+                    'C:\\Program Files\\Steinberg',
+                    'C:\\Program Files\\Common Files\\VST3',
+                    'C:\\Program Files\\Common Files\\Avid',
+                    'C:\\Program Files (x86)\\VSTPlugins',
+                    'C:\\Program Files (x86)\\Steinberg',
+                    'C:\\Program Files (x86)\\Common Files\\VST3',
+                    # DAW installations
+                    'C:\\Program Files\\Image-Line',
+                    'C:\\Program Files\\Ableton',
+                    'C:\\Program Files\\Avid',
+                    'C:\\Program Files\\PreSonus',
+                    # Vendor-specific
+                    'C:\\Program Files\\Native Instruments',
+                    'C:\\Program Files\\Spectrasonics',
+                    'C:\\Program Files\\Waves',
+                    'C:\\Program Files\\iZotope',
+                    'C:\\Program Files\\FabFilter',
+                    # User data
+                    f'C:\\Users\\{username}\\Documents',
+                    f'C:\\Users\\{username}\\AppData\\Roaming',
+                    f'C:\\Users\\{username}\\AppData\\Local',
+                    'C:\\ProgramData',
+                    # Custom organized directory (user may have this)
+                    'C:\\Production\\Applications',
+                ],
                 'exclude_paths': [
                     'C:\\Windows',
                     'C:\\Windows\\System32',
+                    'C:\\Windows\\SysWOW64',
+                    'C:\\Windows\\WinSxS',
+                    '**/AppData/Local/Temp',
+                    '**/AppData/Local/Microsoft',
                 ],
                 'parallel': True,
                 'max_workers': 4,
+                'max_depth': 5,
             },
             'logging': {
                 'level': 'INFO',
