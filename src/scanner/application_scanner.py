@@ -355,9 +355,19 @@ class ApplicationScanner:
 
         # Check for common publisher names in path
         common_publishers = [
+            # DAWs and Major Vendors
             'Steinberg', 'Image-Line', 'Ableton', 'Avid', 'Native Instruments',
             'Waves', 'iZotope', 'FabFilter', 'Plugin Alliance', 'Arturia',
-            'Spectrasonics', 'Xfer', 'Cockos', 'PreSonus', 'Bitwig'
+            'Spectrasonics', 'Xfer', 'Cockos', 'PreSonus', 'Bitwig',
+            # Additional Vendors (from user's custom installation)
+            'Zynaptiq', 'Air Music Technology', 'Baby Audio', 'DeviousMachines',
+            'discoDSP', 'Eventide', 'Fielding DSP', 'FL Cloud Plugins',
+            'HOFA', 'Klanghelm', 'Klevgrand', 'KORG', 'KV331 Audio',
+            'LenndarDigital', 'Newfangled Audio', 'Ohm Force', 'Plugin Boutique',
+            'Press Play', 'Propellerhead', 'reFX', 'Softube', 'Sonarworks',
+            'Sonic Charge', 'Sonnox', 'Sononym', 'Tokyo Dawn Labs', 'u-he',
+            'Vital', 'Voxengo', 'XLN Audio', 'Youlean', 'Softube Central',
+            'FAW', 'FlexASIO', 'ASIO4ALL'
         ]
 
         for part in path_parts:

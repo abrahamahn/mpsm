@@ -66,6 +66,38 @@ class FolderScanner:
             'Image-Line',
             'FL Studio',
         ],
+        # Additional vendors from user's installation
+        'Zynaptiq': ['Zynaptiq'],
+        'Air Music Technology': ['Air Music Technology'],
+        'Baby Audio': ['Baby Audio'],
+        'DeviousMachines': ['DeviousMachines'],
+        'discoDSP': ['discoDSP'],
+        'Eventide': ['Eventide'],
+        'Fielding DSP': ['Fielding DSP'],
+        'HOFA': ['HOFA'],
+        'Klanghelm': ['Klanghelm'],
+        'Klevgrand': ['Klevgrand'],
+        'KORG': ['KORG'],
+        'KV331 Audio': ['KV331 Audio'],
+        'LenndarDigital': ['LenndarDigital'],
+        'Newfangled Audio': ['Newfangled Audio'],
+        'Ohm Force': ['Ohm Force'],
+        'Plugin Alliance': ['Plugin Alliance'],
+        'Plugin Boutique': ['Plugin Boutique'],
+        'Press Play': ['Press Play'],
+        'Propellerhead': ['Propellerhead'],
+        'reFX': ['reFX'],
+        'Softube': ['Softube', 'Softube Central'],
+        'Sonarworks': ['Sonarworks'],
+        'Sonic Charge': ['Sonic Charge'],
+        'Sonnox': ['Sonnox'],
+        'Sononym': ['Sononym'],
+        'Tokyo Dawn Labs': ['Tokyo Dawn Labs'],
+        'u-he': ['u-he'],
+        'Vital': ['Vital'],
+        'Voxengo': ['Voxengo'],
+        'XLN Audio': ['XLN Audio'],
+        'Youlean': ['Youlean'],
     }
 
     def __init__(
@@ -308,9 +340,18 @@ class FolderScanner:
 
         # Check for common vendor names in path
         vendors = [
+            # Original vendors
             'Native Instruments', 'Spectrasonics', 'Waves', 'iZotope',
             'FabFilter', 'Arturia', 'Image-Line', 'Steinberg', 'Ableton',
             'Avid', 'Xfer', 'Serum', 'Kontakt', 'Omnisphere',
+            # Additional vendors from user's installation
+            'Zynaptiq', 'Air Music Technology', 'Baby Audio', 'DeviousMachines',
+            'discoDSP', 'Eventide', 'Fielding DSP', 'HOFA', 'Klanghelm',
+            'Klevgrand', 'KORG', 'KV331 Audio', 'LenndarDigital', 'Newfangled Audio',
+            'Ohm Force', 'Plugin Alliance', 'Plugin Boutique', 'Press Play',
+            'Propellerhead', 'reFX', 'Softube', 'Sonarworks', 'Sonic Charge',
+            'Sonnox', 'Sononym', 'Tokyo Dawn Labs', 'u-he', 'Vital',
+            'Voxengo', 'XLN Audio', 'Youlean', 'FL Cloud Plugins',
         ]
 
         for vendor in vendors:

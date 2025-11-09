@@ -62,7 +62,11 @@ scan:
     - "C:\\Users\\YOUR_USERNAME\\AppData\\Local"
     - "C:\\ProgramData"
 
-    # Custom installation directory (if you have one)
+    # CUSTOM: User's organized production directory
+    # This user has moved all applications to a custom organized structure
+    - "C:\\Production\\Applications"
+
+    # Add any additional custom directories here
     # - "D:\\Audio\\Plugins"
     # - "D:\\Sample Libraries"
 

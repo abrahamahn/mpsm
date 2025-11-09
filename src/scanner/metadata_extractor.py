@@ -250,8 +250,9 @@ class MetadataExtractor:
         """
         path_str = str(file_path).lower()
 
-        # Known publishers
+        # Known publishers (keyword -> publisher name mapping)
         publishers = {
+            # Major vendors
             'waves': 'Waves',
             'izotope': 'iZotope',
             'fabfilter': 'FabFilter',
@@ -265,6 +266,44 @@ class MetadataExtractor:
             'kontakt': 'Native Instruments',
             'omnisphere': 'Spectrasonics',
             'keyscape': 'Spectrasonics',
+            'spectrasonics': 'Spectrasonics',
+            # Additional vendors from user's installation
+            'zynaptiq': 'Zynaptiq',
+            'air music': 'Air Music Technology',
+            'baby audio': 'Baby Audio',
+            'devious': 'DeviousMachines',
+            'discodsp': 'discoDSP',
+            'eventide': 'Eventide',
+            'fielding': 'Fielding DSP',
+            'hofa': 'HOFA',
+            'klanghelm': 'Klanghelm',
+            'klevgrand': 'Klevgrand',
+            'korg': 'KORG',
+            'kv331': 'KV331 Audio',
+            'lennardigital': 'LenndarDigital',
+            'newfangled': 'Newfangled Audio',
+            'ohm force': 'Ohm Force',
+            'plugin boutique': 'Plugin Boutique',
+            'press play': 'Press Play',
+            'propellerhead': 'Propellerhead',
+            'refx': 'reFX',
+            'softube': 'Softube',
+            'sonarworks': 'Sonarworks',
+            'sonic charge': 'Sonic Charge',
+            'sonnox': 'Sonnox',
+            'sononym': 'Sononym',
+            'tokyo dawn': 'Tokyo Dawn Labs',
+            'u-he': 'u-he',
+            'vital': 'Vital',
+            'voxengo': 'Voxengo',
+            'xln audio': 'XLN Audio',
+            'youlean': 'Youlean',
+            'fl cloud': 'FL Cloud Plugins',
+            'image-line': 'Image-Line',
+            'fl studio': 'Image-Line',
+            'ableton': 'Ableton',
+            'steinberg': 'Steinberg',
+            'avid': 'Avid',
         }
 
         for keyword, publisher in publishers.items():
