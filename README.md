@@ -22,7 +22,7 @@
 ## Target Folder Structure (Enforced)
 
 ```
-C:\MusicProduction\                  # Configurable root
+C:\Production\                  # Configurable root
 ├── DAWs\
 │   ├── FLStudio\
 │   │   ├── InstallDir\
