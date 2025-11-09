@@ -52,7 +52,8 @@ def cli():
 
 @cli.command()
 @click.option('--path', default=None, help='Custom config path')
-def init(path):
+@click.option('--auto-detect', is_flag=True, help='Auto-detect existing plugin directories')
+def init(path, auto_detect):
     """Initialize MPSM configuration."""
     try:
         config_path = Path(path) if path else Path('config.yaml')
@@ -66,13 +67,81 @@ def init(path):
         config.create_default_config()
 
         console.print(f"[green]✓[/green] Created configuration file: {config_path}")
+
+        # Auto-detect existing paths if requested
+        if auto_detect:
+            console.print("\n[bold]Auto-detecting existing directories...[/bold]")
+            detected_paths = _auto_detect_scan_paths()
+
+            if detected_paths:
+                console.print(f"[green]✓[/green] Detected {len(detected_paths)} existing directories")
+
+                # Show detected paths
+                for path_str in detected_paths[:10]:
+                    console.print(f"  • {path_str}")
+                if len(detected_paths) > 10:
+                    console.print(f"  ... and {len(detected_paths) - 10} more")
+
+                console.print("\n[dim]Run 'python mpsm.py config optimize' to update config with detected paths[/dim]")
+            else:
+                console.print("[yellow]⚠[/yellow] No standard plugin directories found")
+
         console.print("\n[bold]Next steps:[/bold]")
-        console.print("1. Edit config.yaml to customize settings")
-        console.print("2. Run 'python mpsm.py scan' to scan your system")
+        console.print("1. Edit config.yaml and replace 'YOUR_USERNAME' with your actual username")
+        console.print("2. Add any custom plugin/sample library directories you use")
+        console.print("3. Run 'python mpsm.py scan' to scan your system")
 
     except Exception as e:
         console.print(f"[red]Error:[/red] {e}")
         sys.exit(1)
+
+
+def _auto_detect_scan_paths() -> list:
+    """Auto-detect existing plugin and audio software directories."""
+    import platform
+    import os
+
+    detected = []
+    is_windows = platform.system() == 'Windows'
+
+    # Common plugin directories to check
+    common_paths = [
+        "C:\\Program Files\\VSTPlugins",
+        "C:\\Program Files\\Steinberg",
+        "C:\\Program Files\\Common Files\\VST3",
+        "C:\\Program Files\\Common Files\\Avid",
+        "C:\\Program Files (x86)\\VSTPlugins",
+        "C:\\Program Files (x86)\\Steinberg",
+        "C:\\Program Files (x86)\\Common Files\\VST3",
+        "C:\\Program Files\\Image-Line",
+        "C:\\Program Files\\Ableton",
+        "C:\\Program Files\\Avid",
+        "C:\\Program Files\\PreSonus",
+        "C:\\Program Files\\Native Instruments",
+        "C:\\Program Files\\Spectrasonics",
+        "C:\\Program Files\\Waves",
+        "C:\\Program Files\\iZotope",
+        "C:\\Program Files\\FabFilter",
+        "C:\\Program Files\\Arturia",
+    ]
+
+    # Add user-specific paths
+    if is_windows:
+        username = os.getenv('USERNAME')
+        if username:
+            common_paths.extend([
+                f"C:\\Users\\{username}\\Documents",
+                f"C:\\Users\\{username}\\AppData\\Roaming",
+                f"C:\\Users\\{username}\\AppData\\Local",
+            ])
+
+    # Check which paths exist
+    for path_str in common_paths:
+        path = Path(path_str)
+        if path.exists() and path.is_dir():
+            detected.append(path_str)
+
+    return detected
 
 
 @cli.command()

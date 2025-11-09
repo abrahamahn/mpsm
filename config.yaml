@@ -1,4 +1,12 @@
 # MPSM Configuration File
+#
+# IMPORTANT: Before running a scan, update the scan_paths below:
+# 1. Replace "YOUR_USERNAME" with your actual Windows username
+# 2. Add any custom plugin/sample library directories you use
+# 3. Remove paths that don't exist on your system (won't cause errors, just inefficiency)
+#
+# Performance: Targeted scanning is 10-100x faster than scanning entire C:\ drive!
+#
 version: "1.0"
 
 # Root directory for music production files
@@ -18,17 +26,72 @@ custom_paths:
 
 # Scan configuration
 scan:
-  # Directories to scan
+  # Directories to scan - TARGETED for music production software
+  # These are common installation locations for plugins, DAWs, and audio software
   scan_paths:
-    - "C:\\"
+    # Plugin installation directories
+    - "C:\\Program Files\\VSTPlugins"
+    - "C:\\Program Files\\Steinberg"
+    - "C:\\Program Files\\Common Files\\VST3"
+    - "C:\\Program Files\\Common Files\\Avid"
+    - "C:\\Program Files (x86)\\VSTPlugins"
+    - "C:\\Program Files (x86)\\Steinberg"
+    - "C:\\Program Files (x86)\\Common Files\\VST3"
 
-  # Directories to exclude
+    # DAW installation directories
+    - "C:\\Program Files\\Image-Line"
+    - "C:\\Program Files\\Ableton"
+    - "C:\\Program Files\\Avid"
+    - "C:\\Program Files\\PreSonus"
+    - "C:\\Program Files\\Cakewalk"
+    - "C:\\Program Files (x86)\\Image-Line"
+
+    # Vendor-specific directories
+    - "C:\\Program Files\\Native Instruments"
+    - "C:\\Program Files\\Spectrasonics"
+    - "C:\\Program Files\\Waves"
+    - "C:\\Program Files\\iZotope"
+    - "C:\\Program Files\\FabFilter"
+    - "C:\\Program Files\\Arturia"
+    - "C:\\Program Files\\Xfer"
+    - "C:\\Program Files\\Serum"
+
+    # User data directories (presets, licenses, user content)
+    - "C:\\Users\\YOUR_USERNAME\\Documents"
+    - "C:\\Users\\YOUR_USERNAME\\AppData\\Roaming"
+    - "C:\\Users\\YOUR_USERNAME\\AppData\\Local"
+    - "C:\\ProgramData"
+
+    # Custom installation directory (if you have one)
+    # - "D:\\Audio\\Plugins"
+    # - "D:\\Sample Libraries"
+
+  # Directories to exclude (performance optimization)
   exclude_paths:
+    # System directories (no audio software here)
     - "C:\\Windows"
     - "C:\\Windows\\System32"
+    - "C:\\Windows\\SysWOW64"
     - "C:\\Windows\\WinSxS"
+    - "C:\\Windows\\Temp"
+
+    # Microsoft/Cloud directories
     - "C:\\ProgramData\\Microsoft\\OneDrive"
+    - "C:\\ProgramData\\Microsoft\\Windows"
+
+    # Other
     - "C:\\$Recycle.Bin"
+    - "C:\\System Volume Information"
+
+    # User AppData exclusions (reduce noise)
+    - "**/AppData/Local/Temp"
+    - "**/AppData/Local/Microsoft"
+    - "**/AppData/Local/Google"
+    - "**/AppData/Roaming/Microsoft"
+
+  # Performance tuning
+  max_workers: 4  # Parallel scanning threads (increase for faster scans on multi-core CPUs)
+  max_depth: 5    # Maximum folder depth to scan (prevents infinite recursion)
 
   # Component types to scan
   components:
