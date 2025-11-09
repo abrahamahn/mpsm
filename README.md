@@ -1,12 +1,3 @@
-```
-MPSM_Comprehensive_Plan.md
-```
-
-Then double-click to open in any Markdown viewer (VS Code, Obsidian, Typora, or even GitHub).
-
----
-
-```markdown
 # Music Production Software Manager (MPSM)  
 ### Comprehensive Automation Plan for Windows 11 (Zephyrus G14)
 
@@ -255,24 +246,3 @@ pip install -r requirements.txt
 2. Test on **1 plugin** (e.g., free VST)
 3. Expand to **top 10 vendors**
 4. Automate full cleanup
-
----
-
-> **You now have a production-grade blueprint.**  
-> Let me know when you want the **first working Python module** (e.g., `scanner.py`).
-
----
-```
-
----
-
-**Download Instructions**:
-
-1. **Copy** the entire code block above (from ```markdown
-2. Open **Notepad** or **VS Code**
-3. Paste it
-4. Save as: `MPSM_Comprehensive_Plan.md`
-5. Open with any Markdown app
-
-Let me know when you're ready for the **first Python module** (Scanner or Organizer) — I’ll give you a fully working, tested script.
-```
