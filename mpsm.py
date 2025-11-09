@@ -179,8 +179,9 @@ def scan(config, output, format, skip_plugins, skip_apps, skip_folders, skip_reg
             log_to_file=config_manager.get('logging.log_to_file', True),
         )
 
-        # Get scan paths
-        scan_paths = config_manager.get_scan_paths()
+        # Get scan paths (use new plugin_paths for better accuracy)
+        plugin_paths = config_manager.get_plugin_paths()
+        data_paths = config_manager.get_data_paths()
 
         # Create scan result
         start_time = datetime.now()
@@ -189,13 +190,14 @@ def scan(config, output, format, skip_plugins, skip_apps, skip_folders, skip_reg
             scan_date=datetime.now(),
         )
 
-        console.print(f"\nScan paths: {', '.join(scan_paths)}")
+        console.print(f"\n[bold]Plugin scan paths:[/bold] {len(plugin_paths)} directories")
+        console.print(f"[bold]Data scan paths:[/bold] {len(data_paths)} directories")
 
         # ============================================================
         # 1. SCAN FOR PLUGIN FILES (VST2, VST3, AAX, CLAP)
         # ============================================================
         if not skip_plugins:
-            console.print(f"\n[bold cyan]1. Scanning for plugin files...[/bold cyan]")
+            console.print(f"\n[bold cyan]1. Scanning for plugin files (with validation)...[/bold cyan]")
 
             scanner = FileScanner(
                 exclude_paths=config_manager.get_exclude_paths(),
@@ -213,6 +215,10 @@ def scan(config, output, format, skip_plugins, skip_apps, skip_folders, skip_reg
 
             console.print(f"   Extensions: {', '.join(all_extensions)}")
 
+            # Get validation settings
+            min_size = config_manager.get('scan.validation.min_plugin_size_mb', 0.1)
+            max_size = config_manager.get('scan.validation.max_plugin_size_mb', 500)
+
             # Progress callback for real-time directory display
             def show_scan_progress(directory: str):
                 # Truncate long paths for display
@@ -220,16 +226,24 @@ def scan(config, output, format, skip_plugins, skip_apps, skip_folders, skip_reg
                 sys.stdout.write(f"\r   Scanning: {display_path}")
                 sys.stdout.flush()
 
-            # Scan for plugins
+            # Scan for plugins using ONLY plugin_paths (no AppData/ProgramData)
             console.print(f"   Starting scan...")
-            plugin_files = scanner.scan_parallel(scan_paths, all_extensions, progress_callback=show_scan_progress)
+            plugin_files = scanner.scan_parallel(plugin_paths, all_extensions, progress_callback=show_scan_progress)
             sys.stdout.write("\r" + " " * 100 + "\r")  # Clear progress line
-            console.print(f"   [green]✓[/green] Found {len(plugin_files)} plugin files")
+            console.print(f"   [green]✓[/green] Found {len(plugin_files)} candidate files")
 
-            # Extract metadata
-            console.print(f"   Extracting metadata...")
+            # Validate and extract metadata
+            console.print(f"   Validating and extracting metadata...")
+            validated_count = 0
+            filtered_count = 0
+
             for i, file_path in enumerate(plugin_files):
                 try:
+                    # CRITICAL: Validate file before processing
+                    if not metadata_extractor.is_valid_plugin_file(file_path, min_size, max_size):
+                        filtered_count += 1
+                        continue
+
                     metadata = metadata_extractor.extract_file_metadata(file_path)
                     plugin_type = metadata_extractor.detect_plugin_type(file_path)
                     publisher = metadata_extractor.identify_publisher(file_path)
@@ -246,15 +260,18 @@ def scan(config, output, format, skip_plugins, skip_apps, skip_folders, skip_reg
                         architecture=architecture,
                     )
                     scan_result.plugins.append(plugin)
+                    validated_count += 1
 
-                    if (i + 1) % 50 == 0:
-                        console.print(f"   Processed {i + 1}/{len(plugin_files)} files...", end='\r')
+                    if (validated_count + 1) % 50 == 0:
+                        console.print(f"   Validated {validated_count}/{len(plugin_files)} files...", end='\r')
 
                 except Exception as e:
-                    logger.warning(f"Failed to extract metadata from {file_path}: {e}")
+                    logger.warning(f"Failed to process {file_path}: {e}")
+                    filtered_count += 1
 
             scan_result.total_files_scanned = scanner.files_scanned
-            console.print(f"   [green]✓[/green] Processed {len(scan_result.plugins)} plugins")
+            console.print(f"   [green]✓[/green] Validated {len(scan_result.plugins)} real plugins")
+            console.print(f"   [yellow]⚠[/yellow] Filtered out {filtered_count} non-plugin files (helpers, installers, etc.)")
 
         # ============================================================
         # 2. SCAN FOR APPLICATIONS (DAWs, Plugin Managers, Standalone)

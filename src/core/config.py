@@ -127,10 +127,15 @@ class ConfigManager:
         if 'scan' in self.config:
             scan_config = self.config['scan']
 
-            if 'scan_paths' not in scan_config:
-                errors.append("Missing scan.scan_paths")
-            elif not isinstance(scan_config['scan_paths'], list):
-                errors.append("scan.scan_paths must be a list")
+            # Check for either new plugin_paths or legacy scan_paths
+            has_plugin_paths = 'plugin_paths' in scan_config and scan_config['plugin_paths']
+            has_legacy_paths = 'scan_paths' in scan_config and scan_config['scan_paths']
+
+            if not has_plugin_paths and not has_legacy_paths:
+                errors.append("Missing scan.plugin_paths or scan.scan_paths")
+
+            if 'plugin_paths' in scan_config and not isinstance(scan_config['plugin_paths'], list):
+                errors.append("scan.plugin_paths must be a list")
 
             if 'max_workers' in scan_config:
                 if not isinstance(scan_config['max_workers'], int):
@@ -182,44 +187,87 @@ class ConfigManager:
                 'clap': 'Plugins\\CLAP',
             },
             'scan': {
-                # TARGETED scan paths (10-100x faster than scanning entire C:\)
-                'scan_paths': [
-                    # Plugin installation directories
+                # PLUGIN BINARIES ONLY - Known installation directories
+                # These paths contain actual .dll/.vst3/.aaxplugin files
+                'plugin_paths': [
+                    # Common VST2/VST3/AAX installation directories
                     'C:\\Program Files\\VSTPlugins',
-                    'C:\\Program Files\\Steinberg',
                     'C:\\Program Files\\Common Files\\VST3',
-                    'C:\\Program Files\\Common Files\\Avid',
+                    'C:\\Program Files\\Common Files\\Avid\\Audio\\Plug-Ins',
                     'C:\\Program Files (x86)\\VSTPlugins',
-                    'C:\\Program Files (x86)\\Steinberg',
+                    'C:\\Program Files (x86)\\Steinberg\\VstPlugins',
                     'C:\\Program Files (x86)\\Common Files\\VST3',
-                    # DAW installations
-                    'C:\\Program Files\\Image-Line',
-                    'C:\\Program Files\\Ableton',
-                    'C:\\Program Files\\Avid',
-                    'C:\\Program Files\\PreSonus',
-                    # Vendor-specific
+                    # Known vendor plugin directories
+                    'C:\\Program Files\\Waves\\Plug-Ins V12',
+                    'C:\\Program Files\\Waves\\Plug-Ins V13',
+                    'C:\\Program Files\\Waves\\Plug-Ins V14',
                     'C:\\Program Files\\Native Instruments',
-                    'C:\\Program Files\\Spectrasonics',
-                    'C:\\Program Files\\Waves',
                     'C:\\Program Files\\iZotope',
                     'C:\\Program Files\\FabFilter',
-                    # User data
-                    f'C:\\Users\\{username}\\Documents',
-                    f'C:\\Users\\{username}\\AppData\\Roaming',
-                    f'C:\\Users\\{username}\\AppData\\Local',
-                    'C:\\ProgramData',
-                    # Custom organized directory (user has this)
-                    'C:\\Production',
+                    'C:\\Program Files\\Arturia',
+                    'C:\\Program Files\\Spectrasonics',
+                    'C:\\Program Files\\Xfer',
+                    'C:\\Program Files\\u-he',
+                    'C:\\Program Files\\Output',
+                    'C:\\Program Files\\Soundtoys',
+                    'C:\\Program Files\\Slate Digital',
+                    'C:\\Program Files\\Plugin Alliance',
+                    'C:\\Program Files\\Kilohearts',
+                    'C:\\Program Files\\Steinberg\\VSTPlugins',
+                    # DAW-specific plugin folders
+                    'C:\\Program Files\\Image-Line\\FL Studio\\Plugins',
+                    'C:\\Program Files\\Ableton\\Live\\Plug-Ins',
+                    'C:\\Program Files\\Avid\\Pro Tools\\Plug-Ins',
+                    'C:\\Program Files\\PreSonus\\Studio One\\Plug-Ins',
+                    # Custom organized directory
                     'C:\\Production\\Applications',
                 ],
+                # DATA/PRESETS - Scanned with vendor name filtering only
+                # These contain presets, samples, licenses, NOT plugin binaries
+                'data_paths': [
+                    f'C:\\Users\\{username}\\AppData\\Roaming',
+                    'C:\\ProgramData',
+                    f'C:\\Users\\{username}\\Documents',
+                    'C:\\Production',
+                ],
+                # Backward compatibility - merges plugin_paths + data_paths if no plugin_paths exists
+                'scan_paths': [],  # Deprecated, kept for compatibility
                 'exclude_paths': [
+                    # System directories
                     'C:\\Windows',
                     'C:\\Windows\\System32',
                     'C:\\Windows\\SysWOW64',
                     'C:\\Windows\\WinSxS',
-                    '**/AppData/Local/Temp',
-                    '**/AppData/Local/Microsoft',
+                    # Temp and cache directories (CRITICAL)
+                    '**/AppData/Local/Temp/**',
+                    '**/AppData/Local/Cache/**',
+                    '**/Temp/**',
+                    '**/Cache/**',
+                    # Installer caches (CRITICAL - thousands of false positives)
+                    '**/Waves Audio/instl/**',
+                    '**/Native Access/Cache/**',
+                    '**/iZotope Product Portal/Cache/**',
+                    '**/Splice/Cache/**',
+                    # Development tools
+                    '**/Microsoft/**',
+                    '**/VisualStudio/**',
+                    '**/Node.js/**',
+                    '**/Python/**',
+                    '**/Discord/**',
+                    # Resource DLLs
+                    '**/*.resources.dll',
+                    # Build artifacts
+                    '**/node_modules/**',
+                    '**/__pycache__/**',
+                    '**/bin/**',
+                    '**/obj/**',
                 ],
+                # File validation settings
+                'validation': {
+                    'check_vst2_exports': True,  # Verify VST2 DLLs have VSTPluginMain export
+                    'min_plugin_size_mb': 0.1,  # Skip suspiciously small files
+                    'max_plugin_size_mb': 500,  # Skip suspiciously large files
+                },
                 'parallel': True,
                 'max_workers': 4,
                 'max_depth': 5,
@@ -240,8 +288,35 @@ class ConfigManager:
             yaml.dump(default_config, f, default_flow_style=False, sort_keys=False)
 
     def get_scan_paths(self) -> List[str]:
-        """Get list of paths to scan."""
+        """
+        Get list of paths to scan.
+
+        For backward compatibility, merges plugin_paths + data_paths if no plugin_paths.
+        """
+        plugin_paths = self.get('scan.plugin_paths', [])
+        data_paths = self.get('scan.data_paths', [])
+        legacy_paths = self.get('scan.scan_paths', [])
+
+        # If using new config structure
+        if plugin_paths:
+            return plugin_paths + data_paths
+        # Backward compatibility
+        elif legacy_paths:
+            return legacy_paths
+        else:
+            return []
+
+    def get_plugin_paths(self) -> List[str]:
+        """Get list of paths containing plugin binaries (.dll, .vst3, .aaxplugin)."""
+        plugin_paths = self.get('scan.plugin_paths', [])
+        if plugin_paths:
+            return plugin_paths
+        # Fallback to scan_paths for backward compatibility
         return self.get('scan.scan_paths', [])
+
+    def get_data_paths(self) -> List[str]:
+        """Get list of paths containing presets, samples, licenses (vendor-filtered)."""
+        return self.get('scan.data_paths', [])
 
     def get_exclude_paths(self) -> List[str]:
         """Get list of paths to exclude from scanning."""

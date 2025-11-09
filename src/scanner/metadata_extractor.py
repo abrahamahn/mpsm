@@ -13,6 +13,22 @@ from ..models.plugin import PluginType, Version
 class MetadataExtractor:
     """Extracts metadata from all file types."""
 
+    # Blacklisted DLL patterns (NOT plugins - helper libs, installers, etc.)
+    BLACKLISTED_PATTERNS = [
+        # Waves internal libraries
+        'waveshell', 'waveslib', 'libmmd', 'innerprocess', 'wavesinit',
+        # Microsoft / Visual Studio
+        'microsoft.', 'visualstudio', 'vs_layout', '.resources.dll',
+        # ReWire / bridging
+        'rewire', 'jbridge', 'vst-bridge',
+        # Installers / setup
+        'setup', 'installer', 'unins', 'install',
+        # Temp / cache indicators
+        'cache', 'temp', 'tmp',
+        # Generic helper libs
+        'helper', 'util', 'common.dll', 'shared.dll',
+    ]
+
     def __init__(self):
         """Initialize metadata extractor."""
         self.logger = get_logger()
@@ -259,6 +275,101 @@ class MetadataExtractor:
 
         # Default to x64 for modern plugins
         return 'x64'
+
+    def is_blacklisted(self, file_path: Path) -> bool:
+        """
+        Check if file matches blacklist patterns.
+
+        Args:
+            file_path: Path to check
+
+        Returns:
+            True if file should be excluded
+        """
+        filename_lower = file_path.name.lower()
+        path_str_lower = str(file_path).lower()
+
+        for pattern in self.BLACKLISTED_PATTERNS:
+            if pattern in filename_lower or pattern in path_str_lower:
+                self.logger.debug(f"Blacklisted: {file_path.name} (matches pattern: {pattern})")
+                return True
+
+        return False
+
+    def is_valid_plugin_file(self, file_path: Path, min_size_mb: float = 0.1, max_size_mb: float = 500) -> bool:
+        """
+        Validate if file is likely a real plugin.
+
+        Args:
+            file_path: Path to file
+            min_size_mb: Minimum acceptable size in MB
+            max_size_mb: Maximum acceptable size in MB
+
+        Returns:
+            True if file passes validation checks
+        """
+        # Check blacklist
+        if self.is_blacklisted(file_path):
+            return False
+
+        # Check file size
+        try:
+            file_size_mb = file_path.stat().st_size / (1024 * 1024)
+            if file_size_mb < min_size_mb:
+                self.logger.debug(f"Too small ({file_size_mb:.2f} MB): {file_path.name}")
+                return False
+            if file_size_mb > max_size_mb:
+                self.logger.debug(f"Too large ({file_size_mb:.2f} MB): {file_path.name}")
+                return False
+        except:
+            return False
+
+        # For VST2, optionally check exports
+        if file_path.suffix.lower() == '.dll':
+            # Lightweight check: scan file for VST signatures
+            if not self.has_vst_signature(file_path):
+                return False
+
+        return True
+
+    def has_vst_signature(self, dll_path: Path) -> bool:
+        """
+        Check if DLL contains VST plugin signatures.
+
+        Args:
+            dll_path: Path to DLL file
+
+        Returns:
+            True if VST signatures found
+
+        Note:
+            Looks for common VST-related strings in the file.
+            Not 100% accurate but catches most false positives.
+        """
+        try:
+            with open(dll_path, 'rb') as f:
+                # Read first 8KB for efficiency
+                data = f.read(8192)
+
+                # Check for VST-related signatures
+                vst_signatures = [
+                    b'VSTPluginMain',
+                    b'VstPlugin',
+                    b'VST',
+                    b'VSTXML',
+                    b'AudioEffect',
+                ]
+
+                for sig in vst_signatures:
+                    if sig in data:
+                        return True
+
+            # If no signatures found in first 8KB, likely not a plugin
+            return False
+
+        except Exception as e:
+            self.logger.debug(f"Could not check VST signature for {dll_path}: {e}")
+            return True  # Benefit of the doubt
 
     def identify_publisher(self, file_path: Path) -> str:
         """
