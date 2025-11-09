@@ -1,0 +1,186 @@
+# MPSM Configuration File
+version: "1.0"
+
+# Root directory for music production files
+root_path: "C:\\MusicProduction"
+
+# Custom paths (relative to root_path)
+custom_paths:
+  vst2: "Plugins\\VST2"
+  vst3: "Plugins\\VST3"
+  aax: "Plugins\\AAX"
+  clap: "Plugins\\CLAP"
+  daw_fl: "DAWs\\FLStudio"
+  daw_ableton: "DAWs\\Ableton"
+  libraries: "Libraries"
+  licenses: "Licenses"
+  temp: "Temp"
+
+# Scan configuration
+scan:
+  # Directories to scan
+  scan_paths:
+    - "C:\\"
+
+  # Directories to exclude
+  exclude_paths:
+    - "C:\\Windows"
+    - "C:\\Windows\\System32"
+    - "C:\\Windows\\WinSxS"
+    - "C:\\ProgramData\\Microsoft\\OneDrive"
+    - "C:\\$Recycle.Bin"
+
+  # Component types to scan
+  components:
+    plugin_files: true
+    applications: true
+    folders: true
+    registry: true
+
+  # File extensions to scan
+  extensions:
+    plugins:
+      vst2: [".dll"]
+      vst3: [".vst3"]
+      aax: [".aax"]
+      clap: [".clap"]
+    executables: [".exe"]
+    documents: [".pdf", ".txt", ".rtf"]
+    licenses: [".lic", ".key", ".license"]
+
+  # Folder detection
+  folder_patterns:
+    installation:
+      - "**/Program Files/**"
+      - "**/Program Files (x86)/**"
+      - "**/VSTPlugins/**"
+      - "**/Steinberg/**"
+    presets:
+      - "**/Presets/**"
+      - "**/User Presets/**"
+      - "**/.vstpreset"
+    samples:
+      - "**/Samples/**"
+      - "**/Libraries/**"
+      - "**/Content/**"
+    user_data:
+      - "**/Documents/**/**/Presets/**"
+      - "**/AppData/**/**/Presets/**"
+
+  # Application detection
+  known_applications:
+    plugin_managers:
+      - "Waves Central"
+      - "Native Access"
+      - "iLok License Manager"
+      - "Plugin Alliance"
+      - "Arturia Software Center"
+      - "Splice"
+      - "Output Hub"
+      - "Roland Cloud Manager"
+      - "Komplete Kontrol"
+    daws:
+      - "FL Studio"
+      - "Ableton Live"
+      - "Cubase"
+      - "Studio One"
+      - "Logic Pro"
+      - "Reaper"
+
+  # Registry scan
+  registry_scan:
+    enabled: true
+    depth: "deep"
+    target_keys:
+      - "HKLM\\SOFTWARE\\VST"
+      - "HKLM\\SOFTWARE\\VST3"
+      - "HKCU\\Software\\VST"
+      - "HKCU\\Software\\Image-Line"
+      - "HKCU\\Software\\Ableton"
+      - "HKLM\\SOFTWARE\\Waves"
+      - "HKLM\\SOFTWARE\\iZotope"
+      - "HKLM\\SOFTWARE\\Native Instruments"
+      - "HKLM\\SOFTWARE\\Arturia"
+      - "HKLM\\SOFTWARE\\FabFilter"
+      - "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall"
+    detect_orphans: true
+
+  # Performance
+  parallel: true
+  max_workers: 4
+  max_folder_depth: 10
+  max_file_size_mb: 5000
+  skip_cache_folders: true
+
+# DAW configuration
+daws:
+  enabled:
+    - "FLStudio"
+    - "AbletonLive"
+  fl_studio:
+    exe_path: "C:\\Program Files\\Image-Line\\FL Studio 21\\FL64.exe"
+    plugin_db: "C:\\Users\\{USER}\\Documents\\Image-Line\\FL Studio\\Settings\\Plugin database.xml"
+  ableton:
+    exe_path: "C:\\ProgramData\\Ableton\\Live 12\\Program\\Ableton Live.exe"
+
+# Update configuration
+updates:
+  enabled: true
+  auto_update: false
+  check_frequency: "daily"
+  check_time: "02:00"
+  vendors:
+    - "Waves"
+    - "iZotope"
+    - "FabFilter"
+    - "Native Instruments"
+    - "Arturia"
+    - "Plugin Alliance"
+
+# License configuration
+licenses:
+  centralize: true
+  verify_on_scan: true
+  backup_licenses: true
+  ilok:
+    enabled: true
+    check_cloud: true
+
+# Registry configuration
+registry:
+  backup_enabled: true
+  backup_retention_days: 30
+  verify_after_update: true
+  keys:
+    - "HKEY_LOCAL_MACHINE\\SOFTWARE\\VST"
+    - "HKEY_CURRENT_USER\\Software\\Image-Line\\FL Studio"
+    - "HKEY_CURRENT_USER\\Software\\Ableton"
+
+# Safety configuration
+safety:
+  dry_run: true
+  backup_before_move: true
+  verify_after_move: true
+  rollback_on_error: true
+  max_file_size_mb: 5000
+
+# Logging configuration
+logging:
+  level: "INFO"
+  max_log_size_mb: 100
+  log_retention_days: 90
+  log_to_console: true
+  log_to_file: true
+
+# Export configuration
+export:
+  formats: ["csv", "xlsx"]
+  include_metadata: true
+  compress_exports: false
+
+# Performance configuration
+performance:
+  cache_enabled: true
+  cache_ttl_hours: 24
+  database_type: "sqlite"
+  optimize_scans: true
