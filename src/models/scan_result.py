@@ -9,6 +9,7 @@ import pandas as pd
 from .plugin import Plugin
 from .application import Application
 from .folder import DataFolder, PluginInstallation
+from .license import License
 
 
 @dataclass
@@ -24,8 +25,8 @@ class ComprehensiveScanResult:
     applications: List[Application] = field(default_factory=list)
     data_folders: List[DataFolder] = field(default_factory=list)
     plugin_installations: List[PluginInstallation] = field(default_factory=list)
+    licenses: List[License] = field(default_factory=list)
     # daws: List[DAW] = field(default_factory=list)  # TODO: Implement DAW model
-    # licenses: List[License] = field(default_factory=list)  # TODO: Implement License model
     # registry_entries: List[RegistryEntry] = field(default_factory=list)  # TODO: Implement RegistryEntry model
 
     # Statistics
@@ -33,6 +34,7 @@ class ComprehensiveScanResult:
     total_plugins_found: int = 0
     total_applications_found: int = 0
     total_folders_found: int = 0
+    total_licenses_found: int = 0
     total_size_gb: float = 0.0
     total_registry_entries: int = 0
 
@@ -52,6 +54,7 @@ class ComprehensiveScanResult:
         self.total_plugins_found = len(self.plugins)
         self.total_applications_found = len(self.applications)
         self.total_folders_found = len(self.data_folders)
+        self.total_licenses_found = len(self.licenses)
 
         # Calculate total size
         total_size_bytes = 0
@@ -67,7 +70,7 @@ class ComprehensiveScanResult:
         Convert to pandas DataFrame for export.
 
         Args:
-            item_type: Type of items to export ('plugins', 'applications', 'folders', etc.)
+            item_type: Type of items to export ('plugins', 'applications', 'folders', 'licenses', etc.)
 
         Returns:
             DataFrame with scan results
@@ -80,6 +83,8 @@ class ComprehensiveScanResult:
             return pd.DataFrame([f.to_dict() for f in self.data_folders])
         elif item_type == 'installations':
             return pd.DataFrame([i.to_dict() for i in self.plugin_installations])
+        elif item_type == 'licenses':
+            return pd.DataFrame([l.to_dict() for l in self.licenses])
         else:
             raise ValueError(f"Unknown item type: {item_type}")
 
@@ -112,6 +117,11 @@ class ComprehensiveScanResult:
         if self.plugin_installations:
             installations_df = self.to_dataframe('installations')
             installations_df.to_csv(output_dir / 'installations.csv', index=False)
+
+        # Export licenses
+        if self.licenses:
+            licenses_df = self.to_dataframe('licenses')
+            licenses_df.to_csv(output_dir / 'licenses.csv', index=False)
 
         # Export summary
         summary_df = pd.DataFrame([self.get_summary_dict()])
@@ -156,6 +166,11 @@ class ComprehensiveScanResult:
                 installations_df = self.to_dataframe('installations')
                 installations_df.to_excel(writer, sheet_name='Installations', index=False)
 
+            # Export licenses
+            if self.licenses:
+                licenses_df = self.to_dataframe('licenses')
+                licenses_df.to_excel(writer, sheet_name='Licenses', index=False)
+
             # Export issues
             issues_data = {
                 'Broken Links': [str(p) for p in self.broken_links],
@@ -189,6 +204,7 @@ class ComprehensiveScanResult:
             'total_plugins': self.total_plugins_found,
             'total_applications': self.total_applications_found,
             'total_folders': self.total_folders_found,
+            'total_licenses': self.total_licenses_found,
             'total_installations': len(self.plugin_installations),
             'total_size_gb': self.total_size_gb,
             'total_files_scanned': self.total_files_scanned,
@@ -215,6 +231,7 @@ Components Found:
 - Plugins: {self.total_plugins_found}
 - Applications: {self.total_applications_found}
 - Data Folders: {self.total_folders_found}
+- Licenses: {self.total_licenses_found}
 - Complete Installations: {len(self.plugin_installations)}
 - Registry Entries: {self.total_registry_entries}
 

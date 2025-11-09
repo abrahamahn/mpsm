@@ -29,6 +29,9 @@ from src.registry.validator import PathValidator
 from src.organizer.structure_builder import StructureBuilder
 from src.organizer.file_mover import FileMover
 from src.organizer.consolidator import Consolidator
+from src.license.license_scanner import LicenseScanner
+from src.license.ilok_manager import iLokManager
+from src.license.license_validator import LicenseValidator
 
 console = Console()
 
@@ -616,6 +619,262 @@ def registry_scan(export):
 
     except Exception as e:
         console.print(f"[red]Error:[/red] {e}")
+        sys.exit(1)
+
+
+@cli.group()
+def license():
+    """License management commands."""
+    pass
+
+
+@license.command('scan')
+@click.option('--config', default='config.yaml', help='Config file path')
+@click.option('--output', '-o', default='data/licenses.json', help='Output file path')
+@click.option('--format', type=click.Choice(['json', 'csv', 'excel']), default='json', help='Output format')
+def license_scan(config, output, format):
+    """Scan for license files."""
+    try:
+        console.print("[bold cyan]License Scanner[/bold cyan]")
+        console.print("="*50)
+
+        # Load config
+        config_manager = ConfigManager(Path(config))
+        scanner = LicenseScanner(config=config_manager)
+
+        # Scan for licenses
+        console.print("\n[bold]Scanning for licenses...[/bold]")
+        result = scanner.scan_for_licenses()
+
+        # Display results
+        console.print(f"\n[bold green]Found {result.total_licenses} licenses[/bold green]")
+
+        # Display summary table
+        table = Table(show_header=True, header_style="bold magenta")
+        table.add_column("Owner", style="cyan")
+        table.add_column("Format", style="yellow")
+        table.add_column("Status", style="green")
+        table.add_column("File Path", style="white", overflow="fold")
+
+        for lic in result.licenses[:15]:
+            status_color = "green" if lic.status.value == "active" else "red"
+            table.add_row(
+                lic.owner,
+                lic.license_format.value,
+                f"[{status_color}]{lic.status.value}[/{status_color}]",
+                str(lic.file_path) if lic.file_path else "N/A"
+            )
+
+        console.print(table)
+
+        if result.total_licenses > 15:
+            console.print(f"\n[yellow]... and {result.total_licenses - 15} more licenses[/yellow]")
+
+        # Export
+        output_path = Path(output)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        if format == 'json':
+            import json
+            with open(output_path, 'w') as f:
+                json.dump({
+                    'scan_result': result.to_dict(),
+                    'licenses': [lic.to_dict() for lic in result.licenses]
+                }, f, indent=2)
+            console.print(f"\n[green]✓[/green] Exported to {output_path}")
+
+        elif format == 'csv':
+            import pandas as pd
+            df = pd.DataFrame([lic.to_dict() for lic in result.licenses])
+            df.to_csv(output_path.with_suffix('.csv'), index=False)
+            console.print(f"\n[green]✓[/green] Exported to {output_path.with_suffix('.csv')}")
+
+        elif format == 'excel':
+            import pandas as pd
+            df = pd.DataFrame([lic.to_dict() for lic in result.licenses])
+            df.to_excel(output_path.with_suffix('.xlsx'), index=False)
+            console.print(f"\n[green]✓[/green] Exported to {output_path.with_suffix('.xlsx')}")
+
+    except Exception as e:
+        console.print(f"[red]Error:[/red] {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
+
+
+@license.command('validate')
+@click.argument('license_file', type=click.Path(exists=True))
+def license_validate(license_file):
+    """Validate licenses from scan results."""
+    try:
+        console.print("[bold cyan]License Validator[/bold cyan]")
+        console.print("="*50)
+
+        # Load licenses from file
+        import json
+        with open(license_file, 'r') as f:
+            data = json.load(f)
+            licenses_data = data.get('licenses', [])
+
+        # Convert to License objects
+        from src.models.license import License, LicenseType, LicenseFormat, LicenseStatus
+        licenses = []
+        for lic_data in licenses_data:
+            licenses.append(License(
+                license_id=lic_data['license_id'],
+                name=lic_data['name'],
+                owner=lic_data['owner'],
+                publisher=lic_data['publisher'],
+                license_type=LicenseType(lic_data['license_type']),
+                license_format=LicenseFormat(lic_data['license_format']),
+                status=LicenseStatus(lic_data['status']),
+                file_path=Path(lic_data['file_path']) if lic_data.get('file_path') else None,
+                file_hash=lic_data.get('file_hash'),
+            ))
+
+        console.print(f"\n[bold]Validating {len(licenses)} licenses...[/bold]")
+
+        # Validate
+        validator = LicenseValidator()
+        stats = validator.batch_validate(licenses)
+
+        # Display results
+        console.print(f"\n[bold green]Validation Complete[/bold green]")
+        console.print(f"Valid: [green]{stats['valid']}[/green]")
+        console.print(f"Invalid: [red]{stats['invalid']}[/red]")
+        console.print(f"Expired: [yellow]{stats['expired']}[/yellow]")
+
+        # Find expiring licenses
+        expiring = validator.find_expiring_licenses(licenses, days=30)
+        if expiring:
+            console.print(f"\n[yellow]Warning: {len(expiring)} licenses expiring within 30 days[/yellow]")
+
+        # Generate report
+        report = validator.generate_validation_report(licenses)
+        report_path = Path('data/license_validation_report.json')
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+
+        import json
+        with open(report_path, 'w') as f:
+            json.dump(report, f, indent=2)
+
+        console.print(f"\n[green]✓[/green] Validation report saved to {report_path}")
+
+    except Exception as e:
+        console.print(f"[red]Error:[/red] {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
+
+
+@license.command('ilok')
+@click.option('--export', '-e', type=click.Path(), help='Export to file')
+def license_ilok(export):
+    """Scan for iLok licenses."""
+    try:
+        console.print("[bold cyan]iLok License Scanner[/bold cyan]")
+        console.print("="*50)
+
+        manager = iLokManager()
+
+        # Check if iLok is installed
+        info = manager.get_ilok_info()
+        if not info['installed']:
+            console.print("[yellow]iLok License Manager not found[/yellow]")
+            console.print("Please install iLok License Manager from https://www.ilok.com/")
+            return
+
+        console.print(f"\n[bold]iLok License Manager found[/bold]")
+        console.print(f"Path: {info['installation_path']}")
+
+        # Get iLok licenses
+        console.print("\n[bold]Scanning for iLok licenses...[/bold]")
+        ilok_licenses = manager.get_ilok_licenses()
+
+        console.print(f"\n[bold green]Found {len(ilok_licenses)} iLok licenses[/bold green]")
+
+        # Display table
+        if ilok_licenses:
+            table = Table(show_header=True, header_style="bold magenta")
+            table.add_column("Product", style="cyan")
+            table.add_column("Publisher", style="yellow")
+            table.add_column("Location", style="green")
+            table.add_column("License ID", style="white")
+
+            for lic in ilok_licenses[:20]:
+                table.add_row(
+                    lic.product_name,
+                    lic.publisher,
+                    lic.location,
+                    lic.license_id[:16] + "..." if len(lic.license_id) > 16 else lic.license_id
+                )
+
+            console.print(table)
+
+            if len(ilok_licenses) > 20:
+                console.print(f"\n[yellow]... and {len(ilok_licenses) - 20} more licenses[/yellow]")
+
+        # Export if requested
+        if export:
+            export_path = Path(export)
+            manager.export_ilok_licenses(export_path)
+            console.print(f"\n[green]✓[/green] Exported to {export_path}")
+
+    except Exception as e:
+        console.print(f"[red]Error:[/red] {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
+
+
+@license.command('info')
+@click.argument('license_file', type=click.Path(exists=True))
+@click.argument('license_id')
+def license_info(license_file, license_id):
+    """Show detailed information about a specific license."""
+    try:
+        console.print("[bold cyan]License Information[/bold cyan]")
+        console.print("="*50)
+
+        # Load licenses
+        import json
+        with open(license_file, 'r') as f:
+            data = json.load(f)
+            licenses_data = data.get('licenses', [])
+
+        # Find license
+        license_data = None
+        for lic in licenses_data:
+            if lic['license_id'] == license_id:
+                license_data = lic
+                break
+
+        if not license_data:
+            console.print(f"[red]License not found: {license_id}[/red]")
+            return
+
+        # Display info
+        console.print(f"\n[bold]License: {license_data['name']}[/bold]")
+        console.print(f"ID: {license_data['license_id']}")
+        console.print(f"Owner: {license_data['owner']}")
+        console.print(f"Publisher: {license_data['publisher']}")
+        console.print(f"Type: {license_data['license_type']}")
+        console.print(f"Format: {license_data['license_format']}")
+        console.print(f"Status: {license_data['status']}")
+
+        if license_data.get('file_path'):
+            console.print(f"File: {license_data['file_path']}")
+
+        if license_data.get('expiration_date'):
+            console.print(f"Expires: {license_data['expiration_date']}")
+
+        if license_data.get('installation_date'):
+            console.print(f"Installed: {license_data['installation_date']}")
+
+    except Exception as e:
+        console.print(f"[red]Error:[/red] {e}")
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
 
 
