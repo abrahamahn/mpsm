@@ -234,6 +234,32 @@ class MetadataExtractor:
         # For now, just basic file metadata
         return metadata
 
+    def detect_architecture(self, file_path: Path) -> str:
+        """
+        Detect architecture from file path and PE header.
+
+        Args:
+            file_path: Path to file
+
+        Returns:
+            Architecture string: 'x86', 'x64', 'ARM64', or 'Unknown'
+
+        Note:
+            For DLL files, reads PE header. Otherwise checks path for indicators.
+        """
+        # For DLL files, extract from PE header
+        if file_path.suffix.lower() == '.dll':
+            dll_metadata = self.extract_dll_metadata(file_path)
+            return dll_metadata.get('architecture', 'x64')
+
+        # Check path for 32-bit indicators
+        path_str = str(file_path).lower()
+        if 'program files (x86)' in path_str or 'x86' in path_str:
+            return 'x86'
+
+        # Default to x64 for modern plugins
+        return 'x64'
+
     def identify_publisher(self, file_path: Path) -> str:
         """
         Identify publisher from file path or metadata.
@@ -304,6 +330,48 @@ class MetadataExtractor:
             'ableton': 'Ableton',
             'steinberg': 'Steinberg',
             'avid': 'Avid',
+            # Additional vendors from user's comprehensive plugin list
+            'aberrant dsp': 'Aberrant DSP',
+            'acustica': 'Acustica Audio',
+            'antelope audio': 'Antelope Audio',
+            'audiothing': 'AudioThing',
+            'black rooster': 'Black Rooster Audio',
+            'boz digital': 'Boz Digital Labs',
+            'cableguys': 'Cableguys',
+            'caelum audio': 'Caelum Audio',
+            'd16': 'D16',
+            'dada life': 'Dada Life',
+            'fiedler audio': 'Fiedler Audio',
+            'future audio workshop': 'Future Audio Workshop',
+            'faw': 'Future Audio Workshop',
+            'ignite amps': 'Ignite Amps',
+            'kilohearts': 'Kilohearts',
+            'meldaproduction': 'MeldaProduction',
+            'mixed in key': 'Mixed In Key',
+            'oeksound': 'Oeksound',
+            'output': 'Output',
+            'polyverse': 'Polyverse',
+            'presonus': 'PreSonus',
+            'reason studios': 'Reason Studios',
+            'reveal sound': 'Reveal Sound',
+            'schrammel': 'Schrammel',
+            'serato': 'Serato',
+            'shattered glass': 'Shattered Glass Audio',
+            'slate digital': 'Slate Digital',
+            'sonible': 'Sonible',
+            'sonic academy': 'Sonic Academy',
+            'soundtheory': 'Soundtheory',
+            'soundtoys': 'Soundtoys',
+            'tal': 'TAL',
+            'tokyo dawn records': 'Tokyo Dawn Records',
+            'tdr': 'Tokyo Dawn Records',
+            'united plugins': 'United Plugins',
+            'valhalla': 'Valhalla',
+            'vengeance': 'Vengeance',
+            'wavesfactory': 'Wavesfactory',
+            'wavetracing': 'waveTracing',
+            'reaper': 'Reaper',
+            'cockos': 'Cockos',
         }
 
         for keyword, publisher in publishers.items():

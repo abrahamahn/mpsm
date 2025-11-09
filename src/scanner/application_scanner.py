@@ -367,7 +367,17 @@ class ApplicationScanner:
             'Press Play', 'Propellerhead', 'reFX', 'Softube', 'Sonarworks',
             'Sonic Charge', 'Sonnox', 'Sononym', 'Tokyo Dawn Labs', 'u-he',
             'Vital', 'Voxengo', 'XLN Audio', 'Youlean', 'Softube Central',
-            'FAW', 'FlexASIO', 'ASIO4ALL'
+            'FAW', 'FlexASIO', 'ASIO4ALL',
+            # Additional vendors from user's comprehensive plugin list
+            'Aberrant DSP', 'Acustica Audio', 'Antelope Audio', 'AudioThing',
+            'Black Rooster Audio', 'Boz Digital Labs', 'Cableguys', 'Caelum Audio',
+            'D16', 'Dada Life', 'Fiedler Audio', 'Future Audio Workshop',
+            'Ignite Amps', 'Kilohearts', 'MeldaProduction', 'Mixed In Key',
+            'Oeksound', 'Output', 'Polyverse', 'Reaper', 'Reason Studios',
+            'Reveal Sound', 'Schrammel', 'Serato', 'Shattered Glass Audio',
+            'Slate Digital', 'Sonible', 'Sonic Academy', 'Soundtheory',
+            'Soundtoys', 'TAL', 'Tokyo Dawn Records', 'United Plugins',
+            'Valhalla', 'Vengeance', 'Wavesfactory', 'waveTracing'
         ]
 
         for part in path_parts:

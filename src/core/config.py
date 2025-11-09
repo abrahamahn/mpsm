@@ -208,7 +208,8 @@ class ConfigManager:
                     f'C:\\Users\\{username}\\AppData\\Roaming',
                     f'C:\\Users\\{username}\\AppData\\Local',
                     'C:\\ProgramData',
-                    # Custom organized directory (user may have this)
+                    # Custom organized directory (user has this)
+                    'C:\\Production',
                     'C:\\Production\\Applications',
                 ],
                 'exclude_paths': [

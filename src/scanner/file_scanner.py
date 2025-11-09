@@ -1,9 +1,10 @@
 """Filesystem scanner for music production components."""
 
 import os
+import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Iterator, List, Optional, Set
+from typing import Iterator, List, Optional, Set, Callable
 from tqdm import tqdm
 
 from ..core.logger import get_logger
@@ -66,7 +67,8 @@ class FileScanner:
         self,
         path: str,
         extensions: List[str],
-        recursive: bool = True
+        recursive: bool = True,
+        progress_callback: Optional[Callable[[str], None]] = None
     ) -> List[Path]:
         """
         Scan directory for files with specific extensions.
@@ -75,6 +77,7 @@ class FileScanner:
             path: Directory path to scan
             extensions: List of file extensions to find (e.g., ['.dll', '.vst3'])
             recursive: Whether to scan subdirectories
+            progress_callback: Optional callback function to report current directory being scanned
 
         Returns:
             List of matching file paths
@@ -104,6 +107,10 @@ class FileScanner:
                 # Recursive scan
                 for root, dirs, files in os.walk(path):
                     root_path = Path(root)
+
+                    # Report progress
+                    if progress_callback:
+                        progress_callback(str(root_path))
 
                     # Skip excluded directories
                     if self.should_exclude(root_path):
@@ -157,7 +164,8 @@ class FileScanner:
     def scan_parallel(
         self,
         root_paths: List[str],
-        extensions: List[str]
+        extensions: List[str],
+        progress_callback: Optional[Callable[[str], None]] = None
     ) -> List[Path]:
         """
         Scan multiple root paths in parallel.
@@ -165,6 +173,7 @@ class FileScanner:
         Args:
             root_paths: List of root directories to scan
             extensions: File extensions to find
+            progress_callback: Optional callback function to report current directory being scanned
 
         Returns:
             Combined list of all found files
@@ -180,7 +189,7 @@ class FileScanner:
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             # Submit scan tasks
             future_to_path = {
-                executor.submit(self.scan_directory, path, extensions): path
+                executor.submit(self.scan_directory, path, extensions, True, progress_callback): path
                 for path in root_paths
                 if Path(path).exists()
             }
