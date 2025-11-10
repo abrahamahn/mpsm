@@ -233,17 +233,32 @@ def scan(config, output, format, skip_plugins, skip_apps, skip_folders, skip_reg
             min_size = config_manager.get('scan.validation.min_plugin_size_mb', 0.1)
             max_size = config_manager.get('scan.validation.max_plugin_size_mb', 500)
 
-            # Progress callback for real-time directory display
+            # Progress callback for real-time directory display with file counts
+            import time
+            start_time = time.time()
+            last_count = [0]  # Use list to allow modification in closure
+
             def show_scan_progress(directory: str):
+                # Get current file count from scanner
+                current_count = scanner.files_scanned
+                elapsed = time.time() - start_time
+                files_per_sec = current_count / elapsed if elapsed > 0 else 0
+
                 # Truncate long paths for display
-                display_path = directory if len(directory) <= 65 else f"...{directory[-62:]}"
-                sys.stdout.write(f"\r  🔍 Scanning: [dim]{display_path}[/dim]" + " " * 10)
+                display_path = directory if len(directory) <= 50 else f"...{directory[-47:]}"
+
+                # Show: count | rate | current directory
+                sys.stdout.write(
+                    f"\r  🔍 Found: [cyan]{current_count}[/cyan] files "
+                    f"({files_per_sec:.0f}/s) | {display_path}" + " " * 10
+                )
                 sys.stdout.flush()
+                last_count[0] = current_count
 
             # Scan for plugins
             console.print("  🔍 Scanning directories...")
             plugin_files = scanner.scan_parallel(plugin_paths, all_extensions, progress_callback=show_scan_progress)
-            sys.stdout.write("\r" + " " * 100 + "\r")  # Clear progress line
+            sys.stdout.write("\r" + " " * 120 + "\r")  # Clear progress line
             console.print(f"  ✓ Found [cyan]{len(plugin_files)}[/cyan] candidate files")
 
             # Validate and extract metadata
@@ -253,10 +268,13 @@ def scan(config, output, format, skip_plugins, skip_apps, skip_folders, skip_reg
 
             for i, file_path in enumerate(plugin_files):
                 try:
-                    # Show progress every 100 files
-                    if (i + 1) % 100 == 0:
+                    # Show progress for every file
+                    if len(plugin_files) > 0:
                         percent = int((i + 1) / len(plugin_files) * 100)
-                        sys.stdout.write(f"\r  Progress: {percent}% ({i+1}/{len(plugin_files)})")
+                        sys.stdout.write(
+                            f"\r  Progress: {percent:3d}% ({i+1}/{len(plugin_files)}) | "
+                            f"Valid: {validated_count} | Filtered: {filtered_count}" + " " * 10
+                        )
                         sys.stdout.flush()
 
                     # CRITICAL: Validate file before processing
@@ -308,7 +326,7 @@ def scan(config, output, format, skip_plugins, skip_apps, skip_folders, skip_reg
                 except Exception as e:
                     filtered_count += 1
 
-            sys.stdout.write("\r" + " " * 100 + "\r")  # Clear progress line
+            sys.stdout.write("\r" + " " * 120 + "\r")  # Clear progress line
             scan_result.total_files_scanned = scanner.files_scanned
 
             console.print(f"  ✓ [green bold]{len(scan_result.plugins)} real plugins[/green bold] validated")
