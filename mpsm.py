@@ -246,13 +246,13 @@ def scan(config, output, format, skip_plugins, skip_apps, skip_folders, skip_reg
 
             # Progress callback for real-time directory display with file counts
             import time
-            start_time = time.time()
+            progress_start_time = time.time()  # Renamed to avoid conflict with scan start_time
             last_count = [0]  # Use list to allow modification in closure
 
             def show_scan_progress(directory: str):
                 # Get current file count from scanner
                 current_count = scanner.files_scanned
-                elapsed = time.time() - start_time
+                elapsed = time.time() - progress_start_time
                 files_per_sec = current_count / elapsed if elapsed > 0 else 0
 
                 # Truncate long paths for display
