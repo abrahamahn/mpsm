@@ -29,9 +29,21 @@ class MetadataExtractor:
         'helper', 'util', 'common.dll', 'shared.dll',
     ]
 
-    def __init__(self):
-        """Initialize metadata extractor."""
+    def __init__(self, enable_vst_host: bool = False, enable_registry: bool = True):
+        """
+        Initialize metadata extractor.
+
+        Args:
+            enable_vst_host: Enable VST host for dynamic metadata (slower, riskier)
+            enable_registry: Enable Windows registry scanning
+        """
         self.logger = get_logger()
+        self.enable_vst_host = enable_vst_host
+        self.enable_registry = enable_registry
+
+        # Lazy-load optional components
+        self._vst_host = None
+        self._registry_scanner = None
 
     def extract_file_metadata(self, file_path: Path) -> Dict[str, Any]:
         """
@@ -851,5 +863,143 @@ class MetadataExtractor:
 
         except Exception as e:
             self.logger.debug(f"Could not find registry key for {plugin_name}: {e}")
+
+        return None
+
+    def extract_comprehensive_metadata(
+        self,
+        file_path: Path,
+        plugin_type: PluginType
+    ) -> Dict[str, Any]:
+        """
+        Extract comprehensive metadata using all available methods.
+
+        This combines:
+        - File system metadata (always)
+        - PE header data (if available)
+        - VST host loading (if enabled and safe)
+        - Windows registry (if enabled and Windows)
+
+        Args:
+            file_path: Path to plugin file
+            plugin_type: Plugin type (VST2, VST3, AAX, CLAP)
+
+        Returns:
+            Dictionary with all extracted metadata
+        """
+        # Start with basic file metadata
+        metadata = self.extract_file_metadata(file_path)
+        metadata['plugin_type'] = plugin_type
+
+        # Add PE-based metadata
+        if plugin_type == PluginType.VST2:
+            dll_metadata = self.extract_dll_metadata(file_path)
+            metadata.update(dll_metadata)
+        elif plugin_type == PluginType.VST3:
+            vst3_metadata = self.extract_vst3_metadata(file_path)
+            metadata.update(vst3_metadata)
+        elif plugin_type == PluginType.AAX:
+            aax_metadata = self.extract_aax_metadata(file_path)
+            metadata.update(aax_metadata)
+
+        # Extract version from PE
+        version = self.extract_version_from_pe(file_path)
+        if version:
+            metadata['version'] = version
+
+        # Extract from registry if enabled
+        if self.enable_registry:
+            registry_metadata = self._get_registry_metadata(
+                file_path,
+                metadata.get('file_name', file_path.stem)
+            )
+            if registry_metadata:
+                metadata.update(registry_metadata)
+
+        # Extract from VST host if enabled and is VST2
+        if self.enable_vst_host and plugin_type == PluginType.VST2:
+            vst_metadata = self._get_vst_host_metadata(file_path)
+            if vst_metadata:
+                metadata.update(vst_metadata)
+
+        return metadata
+
+    def _get_registry_scanner(self):
+        """Lazy-load registry scanner."""
+        if self._registry_scanner is None:
+            try:
+                from .registry_metadata import RegistryMetadataScanner
+                self._registry_scanner = RegistryMetadataScanner()
+            except ImportError as e:
+                self.logger.debug(f"Registry scanner not available: {e}")
+                self._registry_scanner = False  # Don't try again
+        return self._registry_scanner if self._registry_scanner is not False else None
+
+    def _get_registry_metadata(
+        self,
+        file_path: Path,
+        plugin_name: str
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Get metadata from Windows registry.
+
+        Args:
+            file_path: Path to plugin
+            plugin_name: Plugin name
+
+        Returns:
+            Metadata dict or None
+        """
+        scanner = self._get_registry_scanner()
+        if not scanner:
+            return None
+
+        try:
+            return scanner.find_plugin_in_registry(file_path, plugin_name)
+        except Exception as e:
+            self.logger.debug(f"Registry metadata extraction failed: {e}")
+            return None
+
+    def _get_vst_host_metadata(self, file_path: Path) -> Optional[Dict[str, Any]]:
+        """
+        Get metadata by loading plugin in VST host.
+
+        WARNING: This loads the DLL and can crash if plugin is unstable.
+
+        Args:
+            file_path: Path to VST2 plugin
+
+        Returns:
+            Metadata dict or None
+        """
+        try:
+            from .vst_host import extract_vst_metadata, format_plugin_id
+
+            vst_data = extract_vst_metadata(file_path, timeout=5)
+
+            if vst_data:
+                # Map VST host data to our metadata format
+                metadata = {}
+
+                if vst_data.get('plugin_id'):
+                    metadata['plugin_id'] = format_plugin_id(vst_data['plugin_id'])
+                    metadata['plugin_id_int'] = vst_data['plugin_id']
+
+                if vst_data.get('name'):
+                    metadata['vst_name'] = vst_data['name']
+
+                if vst_data.get('vendor'):
+                    metadata['vst_vendor'] = vst_data['vendor']
+
+                if vst_data.get('category'):
+                    metadata['vst_category'] = vst_data['category']
+
+                if vst_data.get('version'):
+                    metadata['vst_version'] = vst_data['version']
+
+                return metadata
+
+        except Exception as e:
+            self.logger.debug(f"VST host metadata extraction failed: {e}")
 
         return None
