@@ -1,14 +1,12 @@
 """License validation and verification."""
 
+import hashlib
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import List, Dict, Optional
-import hashlib
+from typing import Dict, List, Optional
 
 from ..core.logger import get_logger
-from ..models.license import (
-    License, LicenseStatus, LicenseFormat, LicenseType
-)
+from ..models.license import License, LicenseFormat, LicenseStatus, LicenseType
 
 
 class LicenseValidator:
@@ -86,8 +84,8 @@ class LicenseValidator:
             Hex digest of hash
         """
         sha256_hash = hashlib.sha256()
-        with open(file_path, 'rb') as f:
-            for chunk in iter(lambda: f.read(8192), b''):
+        with open(file_path, "rb") as f:
+            for chunk in iter(lambda: f.read(8192), b""):
                 sha256_hash.update(chunk)
         return sha256_hash.hexdigest()
 
@@ -115,10 +113,10 @@ class LicenseValidator:
                     invalid_count += 1
 
         stats = {
-            'total': len(licenses),
-            'valid': valid_count,
-            'invalid': invalid_count,
-            'expired': expired_count,
+            "total": len(licenses),
+            "valid": valid_count,
+            "invalid": invalid_count,
+            "expired": expired_count,
         }
 
         self.logger.info(
@@ -128,11 +126,7 @@ class LicenseValidator:
 
         return stats
 
-    def find_expiring_licenses(
-        self,
-        licenses: List[License],
-        days: int = 30
-    ) -> List[License]:
+    def find_expiring_licenses(self, licenses: List[License], days: int = 30) -> List[License]:
         """
         Find licenses expiring within specified days.
 
@@ -209,12 +203,14 @@ class LicenseValidator:
         for license in licenses:
             if license.file_path and license.file_hash:
                 if license.file_hash in file_hashes:
-                    conflicts.append({
-                        'type': 'duplicate',
-                        'license1': license.name,
-                        'license2': file_hashes[license.file_hash].name,
-                        'hash': license.file_hash,
-                    })
+                    conflicts.append(
+                        {
+                            "type": "duplicate",
+                            "license1": license.name,
+                            "license2": file_hashes[license.file_hash].name,
+                            "hash": license.file_hash,
+                        }
+                    )
                 else:
                     file_hashes[license.file_hash] = license
 
@@ -229,20 +225,18 @@ class LicenseValidator:
 
         for product_key, product_licenses in products.items():
             if len(product_licenses) > 1:
-                conflicts.append({
-                    'type': 'multiple_licenses',
-                    'product': product_key[0],
-                    'publisher': product_key[1],
-                    'count': len(product_licenses),
-                })
+                conflicts.append(
+                    {
+                        "type": "multiple_licenses",
+                        "product": product_key[0],
+                        "publisher": product_key[1],
+                        "count": len(product_licenses),
+                    }
+                )
 
         return conflicts
 
-    def verify_license_plugin_match(
-        self,
-        license: License,
-        plugin_path: Path
-    ) -> bool:
+    def verify_license_plugin_match(self, license: License, plugin_path: Path) -> bool:
         """
         Verify that a license matches a plugin.
 
@@ -264,10 +258,7 @@ class LicenseValidator:
 
         return False
 
-    def generate_validation_report(
-        self,
-        licenses: List[License]
-    ) -> Dict[str, any]:
+    def generate_validation_report(self, licenses: List[License]) -> Dict[str, any]:
         """
         Generate comprehensive validation report.
 
@@ -291,14 +282,14 @@ class LicenseValidator:
         conflicts = self.check_license_conflicts(licenses)
 
         report = {
-            'report_date': datetime.now().isoformat(),
-            'total_licenses': len(licenses),
-            'validation_stats': stats,
-            'expiring_30_days': len(expiring_30),
-            'expiring_90_days': len(expiring_90),
-            'expired': len(expired),
-            'conflicts': len(conflicts),
-            'conflict_details': conflicts,
+            "report_date": datetime.now().isoformat(),
+            "total_licenses": len(licenses),
+            "validation_stats": stats,
+            "expiring_30_days": len(expiring_30),
+            "expiring_90_days": len(expiring_90),
+            "expired": len(expired),
+            "conflicts": len(conflicts),
+            "conflict_details": conflicts,
         }
 
         return report

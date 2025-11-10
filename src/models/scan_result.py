@@ -4,12 +4,13 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
+
 import pandas as pd
 
-from .plugin import Plugin
 from .application import Application
 from .folder import DataFolder, PluginInstallation
 from .license import License
+from .plugin import Plugin
 
 
 @dataclass
@@ -63,9 +64,9 @@ class ComprehensiveScanResult:
         for folder in self.data_folders:
             total_size_bytes += folder.total_size
 
-        self.total_size_gb = round(total_size_bytes / (1024 ** 3), 2)
+        self.total_size_gb = round(total_size_bytes / (1024**3), 2)
 
-    def to_dataframe(self, item_type: str = 'plugins') -> pd.DataFrame:
+    def to_dataframe(self, item_type: str = "plugins") -> pd.DataFrame:
         """
         Convert to pandas DataFrame for export.
 
@@ -75,15 +76,15 @@ class ComprehensiveScanResult:
         Returns:
             DataFrame with scan results
         """
-        if item_type == 'plugins':
+        if item_type == "plugins":
             return pd.DataFrame([p.to_dict() for p in self.plugins])
-        elif item_type == 'applications':
+        elif item_type == "applications":
             return pd.DataFrame([a.to_dict() for a in self.applications])
-        elif item_type == 'folders':
+        elif item_type == "folders":
             return pd.DataFrame([f.to_dict() for f in self.data_folders])
-        elif item_type == 'installations':
+        elif item_type == "installations":
             return pd.DataFrame([i.to_dict() for i in self.plugin_installations])
-        elif item_type == 'licenses':
+        elif item_type == "licenses":
             return pd.DataFrame([l.to_dict() for l in self.licenses])
         else:
             raise ValueError(f"Unknown item type: {item_type}")
@@ -100,32 +101,32 @@ class ComprehensiveScanResult:
 
         # Export plugins
         if self.plugins:
-            plugins_df = self.to_dataframe('plugins')
-            plugins_df.to_csv(output_dir / 'plugins.csv', index=False)
+            plugins_df = self.to_dataframe("plugins")
+            plugins_df.to_csv(output_dir / "plugins.csv", index=False)
 
         # Export applications
         if self.applications:
-            apps_df = self.to_dataframe('applications')
-            apps_df.to_csv(output_dir / 'applications.csv', index=False)
+            apps_df = self.to_dataframe("applications")
+            apps_df.to_csv(output_dir / "applications.csv", index=False)
 
         # Export folders
         if self.data_folders:
-            folders_df = self.to_dataframe('folders')
-            folders_df.to_csv(output_dir / 'folders.csv', index=False)
+            folders_df = self.to_dataframe("folders")
+            folders_df.to_csv(output_dir / "folders.csv", index=False)
 
         # Export installations
         if self.plugin_installations:
-            installations_df = self.to_dataframe('installations')
-            installations_df.to_csv(output_dir / 'installations.csv', index=False)
+            installations_df = self.to_dataframe("installations")
+            installations_df.to_csv(output_dir / "installations.csv", index=False)
 
         # Export licenses
         if self.licenses:
-            licenses_df = self.to_dataframe('licenses')
-            licenses_df.to_csv(output_dir / 'licenses.csv', index=False)
+            licenses_df = self.to_dataframe("licenses")
+            licenses_df.to_csv(output_dir / "licenses.csv", index=False)
 
         # Export summary
         summary_df = pd.DataFrame([self.get_summary_dict()])
-        summary_df.to_csv(output_dir / 'summary.csv', index=False)
+        summary_df.to_csv(output_dir / "summary.csv", index=False)
 
     def export_excel(self, output_path: Path) -> None:
         """
@@ -145,50 +146,50 @@ class ComprehensiveScanResult:
         output_path = Path(output_path)
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
+        with pd.ExcelWriter(output_path, engine="openpyxl") as writer:
             # Export plugins
             if self.plugins:
-                plugins_df = self.to_dataframe('plugins')
-                plugins_df.to_excel(writer, sheet_name='Plugins', index=False)
+                plugins_df = self.to_dataframe("plugins")
+                plugins_df.to_excel(writer, sheet_name="Plugins", index=False)
 
             # Export applications
             if self.applications:
-                apps_df = self.to_dataframe('applications')
-                apps_df.to_excel(writer, sheet_name='Applications', index=False)
+                apps_df = self.to_dataframe("applications")
+                apps_df.to_excel(writer, sheet_name="Applications", index=False)
 
             # Export folders
             if self.data_folders:
-                folders_df = self.to_dataframe('folders')
-                folders_df.to_excel(writer, sheet_name='Folders', index=False)
+                folders_df = self.to_dataframe("folders")
+                folders_df.to_excel(writer, sheet_name="Folders", index=False)
 
             # Export installations
             if self.plugin_installations:
-                installations_df = self.to_dataframe('installations')
-                installations_df.to_excel(writer, sheet_name='Installations', index=False)
+                installations_df = self.to_dataframe("installations")
+                installations_df.to_excel(writer, sheet_name="Installations", index=False)
 
             # Export licenses
             if self.licenses:
-                licenses_df = self.to_dataframe('licenses')
-                licenses_df.to_excel(writer, sheet_name='Licenses', index=False)
+                licenses_df = self.to_dataframe("licenses")
+                licenses_df.to_excel(writer, sheet_name="Licenses", index=False)
 
             # Export issues
             issues_data = {
-                'Broken Links': [str(p) for p in self.broken_links],
-                'Missing Licenses': self.missing_licenses,
-                'Orphaned Folders': [str(p) for p in self.orphaned_folders],
-                'Orphaned Registry': self.orphaned_registry,
+                "Broken Links": [str(p) for p in self.broken_links],
+                "Missing Licenses": self.missing_licenses,
+                "Orphaned Folders": [str(p) for p in self.orphaned_folders],
+                "Orphaned Registry": self.orphaned_registry,
             }
             # Pad lists to same length
             max_len = max(len(v) for v in issues_data.values()) if issues_data else 0
             for key in issues_data:
-                issues_data[key] += [''] * (max_len - len(issues_data[key]))
+                issues_data[key] += [""] * (max_len - len(issues_data[key]))
 
             issues_df = pd.DataFrame(issues_data)
-            issues_df.to_excel(writer, sheet_name='Issues', index=False)
+            issues_df.to_excel(writer, sheet_name="Issues", index=False)
 
             # Export statistics
             stats_df = pd.DataFrame([self.get_summary_dict()])
-            stats_df.to_excel(writer, sheet_name='Statistics', index=False)
+            stats_df.to_excel(writer, sheet_name="Statistics", index=False)
 
     def get_summary_dict(self) -> dict:
         """
@@ -198,20 +199,20 @@ class ComprehensiveScanResult:
             Dictionary with scan summary
         """
         return {
-            'scan_id': self.scan_id,
-            'scan_date': self.scan_date.isoformat(),
-            'scan_duration_seconds': round(self.scan_duration, 2),
-            'total_plugins': self.total_plugins_found,
-            'total_applications': self.total_applications_found,
-            'total_folders': self.total_folders_found,
-            'total_licenses': self.total_licenses_found,
-            'total_installations': len(self.plugin_installations),
-            'total_size_gb': self.total_size_gb,
-            'total_files_scanned': self.total_files_scanned,
-            'broken_links_count': len(self.broken_links),
-            'missing_licenses_count': len(self.missing_licenses),
-            'orphaned_folders_count': len(self.orphaned_folders),
-            'orphaned_registry_count': len(self.orphaned_registry),
+            "scan_id": self.scan_id,
+            "scan_date": self.scan_date.isoformat(),
+            "scan_duration_seconds": round(self.scan_duration, 2),
+            "total_plugins": self.total_plugins_found,
+            "total_applications": self.total_applications_found,
+            "total_folders": self.total_folders_found,
+            "total_licenses": self.total_licenses_found,
+            "total_installations": len(self.plugin_installations),
+            "total_size_gb": self.total_size_gb,
+            "total_files_scanned": self.total_files_scanned,
+            "broken_links_count": len(self.broken_links),
+            "missing_licenses_count": len(self.missing_licenses),
+            "orphaned_folders_count": len(self.orphaned_folders),
+            "orphaned_registry_count": len(self.orphaned_registry),
         }
 
     def generate_summary(self) -> str:

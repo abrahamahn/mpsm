@@ -1,7 +1,7 @@
 """Registry path validation."""
 
 from pathlib import Path
-from typing import List, Dict, Tuple
+from typing import Dict, List, Tuple
 
 from ..core.logger import get_logger
 from .registry_reader import RegistryReader
@@ -61,7 +61,7 @@ class PathValidator:
                 return False
 
             # Check file extension
-            valid_extensions = ['.dll', '.vst3', '.aax', '.clap']
+            valid_extensions = [".dll", ".vst3", ".aax", ".clap"]
             if path.suffix.lower() not in valid_extensions:
                 self.logger.warning(f"Invalid plugin extension: {path.suffix}")
                 return False
@@ -97,19 +97,20 @@ class PathValidator:
                 if entry.is_path_value():
                     # Check if path exists
                     if not self.validate_path_exists(entry.value_data):
-                        broken_paths.append({
-                            'key_path': key_path,
-                            'value_name': entry.value_name,
-                            'path': entry.value_data,
-                            'reason': 'Path does not exist',
-                        })
+                        broken_paths.append(
+                            {
+                                "key_path": key_path,
+                                "value_name": entry.value_name,
+                                "path": entry.value_data,
+                                "reason": "Path does not exist",
+                            }
+                        )
 
         self.logger.info(f"Found {len(broken_paths)} broken registry paths")
         return broken_paths
 
     def find_orphaned_registry_entries(
-        self,
-        known_plugin_paths: List[Path]
+        self, known_plugin_paths: List[Path]
     ) -> List[Dict[str, str]]:
         """
         Find registry entries that point to non-existent plugins.
@@ -135,12 +136,14 @@ class PathValidator:
                     if entry_path not in known_paths_set:
                         # Check if file actually exists
                         if not Path(entry_path).exists():
-                            orphaned.append({
-                                'key_path': key_path,
-                                'value_name': entry.value_name,
-                                'path': entry.value_data,
-                                'reason': 'Plugin file not found',
-                            })
+                            orphaned.append(
+                                {
+                                    "key_path": key_path,
+                                    "value_name": entry.value_name,
+                                    "path": entry.value_data,
+                                    "reason": "Plugin file not found",
+                                }
+                            )
 
         self.logger.info(f"Found {len(orphaned)} orphaned registry entries")
         return orphaned
@@ -155,23 +158,21 @@ class PathValidator:
         self.logger.info("Generating validation report...")
 
         report = {
-            'timestamp': str(Path.ctime),
-            'broken_paths': self.validate_registry_paths(),
-            'summary': {},
+            "timestamp": str(Path.ctime),
+            "broken_paths": self.validate_registry_paths(),
+            "summary": {},
         }
 
         # Add summary statistics
-        report['summary'] = {
-            'total_broken_paths': len(report['broken_paths']),
-            'issues_found': len(report['broken_paths']) > 0,
+        report["summary"] = {
+            "total_broken_paths": len(report["broken_paths"]),
+            "issues_found": len(report["broken_paths"]) > 0,
         }
 
         return report
 
     def suggest_path_fixes(
-        self,
-        broken_path: str,
-        known_plugins: List[Path]
+        self, broken_path: str, known_plugins: List[Path]
     ) -> List[Tuple[Path, float]]:
         """
         Suggest possible fixes for broken registry path.
@@ -202,8 +203,9 @@ class PathValidator:
             # Partial match
             elif broken_filename in plugin_filename or plugin_filename in broken_filename:
                 # Calculate simple similarity score
-                score = len(set(broken_filename) & set(plugin_filename)) / \
-                       max(len(broken_filename), len(plugin_filename))
+                score = len(set(broken_filename) & set(plugin_filename)) / max(
+                    len(broken_filename), len(plugin_filename)
+                )
                 suggestions.append((plugin_path, score))
 
         # Sort by confidence score

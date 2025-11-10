@@ -9,6 +9,7 @@ from typing import Optional
 
 class PluginType(Enum):
     """Plugin format types."""
+
     VST2 = "VST2"
     VST3 = "VST3"
     AAX = "AAX"
@@ -19,6 +20,7 @@ class PluginType(Enum):
 
 class PluginCategory(Enum):
     """Plugin vendor categories."""
+
     INDIVIDUAL = "Individual"
     WAVES = "Waves"
     IZOTOPE = "iZotope"
@@ -45,25 +47,37 @@ class Version:
             return f"{self.major}.{self.minor}.{self.patch}.{self.build}"
         return f"{self.major}.{self.minor}.{self.patch}"
 
-    def __gt__(self, other: 'Version') -> bool:
+    def __gt__(self, other: "Version") -> bool:
         """Compare versions (greater than)."""
-        return (self.major, self.minor, self.patch, self.build or 0) > \
-               (other.major, other.minor, other.patch, other.build or 0)
+        return (self.major, self.minor, self.patch, self.build or 0) > (
+            other.major,
+            other.minor,
+            other.patch,
+            other.build or 0,
+        )
 
-    def __lt__(self, other: 'Version') -> bool:
+    def __lt__(self, other: "Version") -> bool:
         """Compare versions (less than)."""
-        return (self.major, self.minor, self.patch, self.build or 0) < \
-               (other.major, other.minor, other.patch, other.build or 0)
+        return (self.major, self.minor, self.patch, self.build or 0) < (
+            other.major,
+            other.minor,
+            other.patch,
+            other.build or 0,
+        )
 
     def __eq__(self, other: object) -> bool:
         """Compare versions (equals)."""
         if not isinstance(other, Version):
             return NotImplemented
-        return (self.major, self.minor, self.patch, self.build or 0) == \
-               (other.major, other.minor, other.patch, other.build or 0)
+        return (self.major, self.minor, self.patch, self.build or 0) == (
+            other.major,
+            other.minor,
+            other.patch,
+            other.build or 0,
+        )
 
     @classmethod
-    def from_string(cls, version_str: str) -> 'Version':
+    def from_string(cls, version_str: str) -> "Version":
         """
         Parse version from string.
 
@@ -77,7 +91,7 @@ class Version:
             >>> Version.from_string("1.2.3")
             Version(major=1, minor=2, patch=3, build=None)
         """
-        parts = version_str.split('.')
+        parts = version_str.split(".")
         if len(parts) < 3:
             raise ValueError(f"Invalid version string: {version_str}")
 
@@ -134,22 +148,22 @@ class Plugin:
             Dictionary representation
         """
         return {
-            'name': self.name,
-            'publisher': self.publisher,
-            'plugin_id': self.plugin_id,
-            'type': self.plugin_type.value,
-            'category': self.category,  # Now a string, not enum
-            'version': str(self.version) if self.version else "Unknown",
-            'file_path': str(self.file_path) if self.file_path else "",
-            'registry_key': self.registry_key or "",
-            'license_status': self.license_status,
-            'license_path': str(self.license_path) if self.license_path else "",
-            'architecture': self.architecture,
-            'file_size_mb': round(self.file_size / (1024 * 1024), 2),
-            'file_hash': self.file_hash,
-            'install_date': self.install_date.isoformat() if self.install_date else "",
-            'description': self.description or "",
-            'website': self.website or "",
+            "name": self.name,
+            "publisher": self.publisher,
+            "plugin_id": self.plugin_id,
+            "type": self.plugin_type.value,
+            "category": self.category,  # Now a string, not enum
+            "version": str(self.version) if self.version else "Unknown",
+            "file_path": str(self.file_path) if self.file_path else "",
+            "registry_key": self.registry_key or "",
+            "license_status": self.license_status,
+            "license_path": str(self.license_path) if self.license_path else "",
+            "architecture": self.architecture,
+            "file_size_mb": round(self.file_size / (1024 * 1024), 2),
+            "file_hash": self.file_hash,
+            "install_date": self.install_date.isoformat() if self.install_date else "",
+            "description": self.description or "",
+            "website": self.website or "",
         }
 
     def get_display_name(self) -> str:

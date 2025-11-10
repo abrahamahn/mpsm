@@ -3,12 +3,12 @@
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from ..core.logger import get_logger
 from ..core.config import ConfigManager
 from ..core.exceptions import ValidationException
-from ..models.plugin import Plugin, PluginType
+from ..core.logger import get_logger
 from ..models.application import Application
 from ..models.folder import DataFolder, FolderType
+from ..models.plugin import Plugin, PluginType
 
 
 class StructureBuilder:
@@ -41,15 +41,15 @@ class StructureBuilder:
         # Get paths from config
         paths_to_create = [
             self.root_path,
-            self.root_path / self.config.get('custom_paths.vst2', 'Plugins/VST2'),
-            self.root_path / self.config.get('custom_paths.vst3', 'Plugins/VST3'),
-            self.root_path / self.config.get('custom_paths.aax', 'Plugins/AAX'),
-            self.root_path / self.config.get('custom_paths.clap', 'Plugins/CLAP'),
-            self.root_path / self.config.get('custom_paths.daw_fl', 'DAWs/FLStudio'),
-            self.root_path / self.config.get('custom_paths.daw_ableton', 'DAWs/Ableton'),
-            self.root_path / self.config.get('custom_paths.libraries', 'Libraries'),
-            self.root_path / self.config.get('custom_paths.licenses', 'Licenses'),
-            self.root_path / self.config.get('custom_paths.temp', 'Temp'),
+            self.root_path / self.config.get("custom_paths.vst2", "Plugins/VST2"),
+            self.root_path / self.config.get("custom_paths.vst3", "Plugins/VST3"),
+            self.root_path / self.config.get("custom_paths.aax", "Plugins/AAX"),
+            self.root_path / self.config.get("custom_paths.clap", "Plugins/CLAP"),
+            self.root_path / self.config.get("custom_paths.daw_fl", "DAWs/FLStudio"),
+            self.root_path / self.config.get("custom_paths.daw_ableton", "DAWs/Ableton"),
+            self.root_path / self.config.get("custom_paths.libraries", "Libraries"),
+            self.root_path / self.config.get("custom_paths.licenses", "Licenses"),
+            self.root_path / self.config.get("custom_paths.temp", "Temp"),
         ]
 
         for path in paths_to_create:
@@ -58,7 +58,9 @@ class StructureBuilder:
                 self.logger.debug(f"Created directory: {path}")
             except Exception as e:
                 self.logger.error(f"Failed to create {path}: {e}")
-                raise ValidationException(f"Could not create directory", {'path': str(path), 'error': str(e)})
+                raise ValidationException(
+                    f"Could not create directory", {"path": str(path), "error": str(e)}
+                )
 
         self.logger.info(f"✓ Folder structure created successfully")
 
@@ -78,14 +80,14 @@ class StructureBuilder:
 
         # Check required subdirectories
         required_paths = [
-            'custom_paths.vst2',
-            'custom_paths.vst3',
-            'custom_paths.libraries',
-            'custom_paths.licenses',
+            "custom_paths.vst2",
+            "custom_paths.vst3",
+            "custom_paths.libraries",
+            "custom_paths.licenses",
         ]
 
         for path_key in required_paths:
-            path = self.root_path / self.config.get(path_key, '')
+            path = self.root_path / self.config.get(path_key, "")
             if not path.exists():
                 errors.append(f"Required path missing: {path}")
 
@@ -107,23 +109,37 @@ class StructureBuilder:
         """
         # Get base path for plugin type
         if plugin.plugin_type == PluginType.VST2:
-            base_path = self.root_path / self.config.get('custom_paths.vst2', 'Plugins/VST2')
+            base_path = self.root_path / self.config.get("custom_paths.vst2", "Plugins/VST2")
         elif plugin.plugin_type == PluginType.VST3:
-            base_path = self.root_path / self.config.get('custom_paths.vst3', 'Plugins/VST3')
+            base_path = self.root_path / self.config.get("custom_paths.vst3", "Plugins/VST3")
         elif plugin.plugin_type == PluginType.AAX:
-            base_path = self.root_path / self.config.get('custom_paths.aax', 'Plugins/AAX')
+            base_path = self.root_path / self.config.get("custom_paths.aax", "Plugins/AAX")
         elif plugin.plugin_type == PluginType.CLAP:
-            base_path = self.root_path / self.config.get('custom_paths.clap', 'Plugins/CLAP')
+            base_path = self.root_path / self.config.get("custom_paths.clap", "Plugins/CLAP")
         else:
-            base_path = self.root_path / 'Plugins' / 'Unknown'
+            base_path = self.root_path / "Plugins" / "Unknown"
 
         # For certain publishers (like Waves), group in vendor folder
-        if plugin.category.value in ['Waves', 'iZotope', 'FabFilter', 'Native Instruments', 'Plugin Alliance']:
+        if plugin.category.value in [
+            "Waves",
+            "iZotope",
+            "FabFilter",
+            "Native Instruments",
+            "Plugin Alliance",
+        ]:
             vendor_path = base_path / plugin.publisher
-            return vendor_path / plugin.file_path.name if plugin.file_path else vendor_path / f"{plugin.name}.dll"
+            return (
+                vendor_path / plugin.file_path.name
+                if plugin.file_path
+                else vendor_path / f"{plugin.name}.dll"
+            )
         else:
             # Individual plugins go in root of type folder
-            return base_path / plugin.file_path.name if plugin.file_path else base_path / f"{plugin.name}.dll"
+            return (
+                base_path / plugin.file_path.name
+                if plugin.file_path
+                else base_path / f"{plugin.name}.dll"
+            )
 
     def map_application_location(self, app: Application) -> Path:
         """
@@ -138,7 +154,7 @@ class StructureBuilder:
         Example:
             C:\MusicProduction\Plugins\Xfer\Serum\Serum.exe
         """
-        base_path = self.root_path / 'Plugins'
+        base_path = self.root_path / "Plugins"
 
         # Create vendor/app folder
         vendor_path = base_path / app.publisher / app.name
@@ -159,20 +175,20 @@ class StructureBuilder:
             C:\MusicProduction\Libraries\Serum\Presets\
             C:\MusicProduction\Libraries\Kontakt\Libraries\
         """
-        base_path = self.root_path / self.config.get('custom_paths.libraries', 'Libraries')
+        base_path = self.root_path / self.config.get("custom_paths.libraries", "Libraries")
 
         # Create plugin folder under Libraries
         plugin_path = base_path / plugin_name
 
         # Map folder type to subdirectory
         if folder.folder_type == FolderType.PRESETS:
-            return plugin_path / 'Presets'
+            return plugin_path / "Presets"
         elif folder.folder_type == FolderType.SAMPLES:
-            return plugin_path / 'Samples'
+            return plugin_path / "Samples"
         elif folder.folder_type == FolderType.USER_DATA:
-            return plugin_path / 'UserData'
+            return plugin_path / "UserData"
         elif folder.folder_type == FolderType.FACTORY_DATA:
-            return plugin_path / 'Factory'
+            return plugin_path / "Factory"
         else:
             return plugin_path / folder.path.name
 
@@ -189,7 +205,7 @@ class StructureBuilder:
         Example:
             C:\MusicProduction\Licenses\Serum\
         """
-        base_path = self.root_path / self.config.get('custom_paths.licenses', 'Licenses')
+        base_path = self.root_path / self.config.get("custom_paths.licenses", "Licenses")
         return base_path / plugin_name
 
     def get_vendor_folder_path(self, vendor: str, plugin_type: PluginType) -> Path:
@@ -204,13 +220,13 @@ class StructureBuilder:
             Path to vendor folder
         """
         if plugin_type == PluginType.VST2:
-            base = self.root_path / self.config.get('custom_paths.vst2', 'Plugins/VST2')
+            base = self.root_path / self.config.get("custom_paths.vst2", "Plugins/VST2")
         elif plugin_type == PluginType.VST3:
-            base = self.root_path / self.config.get('custom_paths.vst3', 'Plugins/VST3')
+            base = self.root_path / self.config.get("custom_paths.vst3", "Plugins/VST3")
         elif plugin_type == PluginType.AAX:
-            base = self.root_path / self.config.get('custom_paths.aax', 'Plugins/AAX')
+            base = self.root_path / self.config.get("custom_paths.aax", "Plugins/AAX")
         else:
-            base = self.root_path / 'Plugins'
+            base = self.root_path / "Plugins"
 
         return base / vendor
 
@@ -227,9 +243,9 @@ class StructureBuilder:
         total_size = 0
 
         for item in items:
-            if hasattr(item, 'file_size'):
+            if hasattr(item, "file_size"):
                 total_size += item.file_size
-            elif hasattr(item, 'total_size'):
+            elif hasattr(item, "total_size"):
                 total_size += item.total_size
 
         return total_size
@@ -292,20 +308,20 @@ class StructureBuilder:
             Dictionary with structure information
         """
         summary = {
-            'root_path': str(self.root_path),
-            'paths': {},
-            'available_space_gb': round(self.get_available_space() / (1024**3), 2),
+            "root_path": str(self.root_path),
+            "paths": {},
+            "available_space_gb": round(self.get_available_space() / (1024**3), 2),
         }
 
         # Add all configured paths
-        for key in ['vst2', 'vst3', 'aax', 'clap', 'libraries', 'licenses']:
-            path_key = f'custom_paths.{key}'
-            rel_path = self.config.get(path_key, '')
+        for key in ["vst2", "vst3", "aax", "clap", "libraries", "licenses"]:
+            path_key = f"custom_paths.{key}"
+            rel_path = self.config.get(path_key, "")
             if rel_path:
                 full_path = self.root_path / rel_path
-                summary['paths'][key] = {
-                    'path': str(full_path),
-                    'exists': full_path.exists(),
+                summary["paths"][key] = {
+                    "path": str(full_path),
+                    "exists": full_path.exists(),
                 }
 
         return summary

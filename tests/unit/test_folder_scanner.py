@@ -1,11 +1,13 @@
 """Unit tests for FolderScanner."""
 
-import pytest
 from pathlib import Path
 from unittest.mock import Mock, patch
-from src.scanner.folder_scanner import FolderScanner
-from src.models.folder import DataFolder, FolderType
+
+import pytest
+
 from src.core.config import ConfigManager
+from src.models.folder import DataFolder, FolderType
+from src.scanner.folder_scanner import FolderScanner
 
 
 class TestFolderScanner:
@@ -34,7 +36,7 @@ class TestFolderScanner:
 class TestGetCommonDataPaths:
     """Test _get_common_data_paths method."""
 
-    @patch('src.scanner.folder_scanner.IS_WINDOWS', True)
+    @patch("src.scanner.folder_scanner.IS_WINDOWS", True)
     def test_windows_paths(self):
         """Test that Windows paths are returned on Windows."""
         scanner = FolderScanner()
@@ -42,12 +44,12 @@ class TestGetCommonDataPaths:
 
         assert len(paths) > 0
         # Check for Windows-specific paths
-        assert any('Documents' in path for path in paths)
-        assert any('AppData' in path for path in paths)
-        assert any('ProgramData' in str(path) for path in paths)
-        assert any('Common Files' in path for path in paths)
+        assert any("Documents" in path for path in paths)
+        assert any("AppData" in path for path in paths)
+        assert any("ProgramData" in str(path) for path in paths)
+        assert any("Common Files" in path for path in paths)
 
-    @patch('src.scanner.folder_scanner.IS_WINDOWS', False)
+    @patch("src.scanner.folder_scanner.IS_WINDOWS", False)
     def test_mac_linux_paths(self):
         """Test that Mac/Linux paths are returned on non-Windows."""
         scanner = FolderScanner()
@@ -55,9 +57,9 @@ class TestGetCommonDataPaths:
 
         assert len(paths) > 0
         # Check for Mac/Linux-specific paths
-        assert any('Library' in path for path in paths)
-        assert any('Application Support' in path for path in paths)
-        assert any('Audio' in path for path in paths)
+        assert any("Library" in path for path in paths)
+        assert any("Application Support" in path for path in paths)
+        assert any("Audio" in path for path in paths)
 
     def test_all_paths_are_strings(self):
         """Test that all returned paths are strings."""
@@ -78,14 +80,14 @@ class TestIdentifyFolderType:
     def test_identify_preset_folder(self, tmp_path):
         """Test identifying preset folders."""
         test_cases = [
-            'Presets',
-            'User Presets',
-            'My Presets',
-            'VST Presets',
-            'FXP Files',
-            'FXB Banks',
-            'Patches',
-            'Sounds',
+            "Presets",
+            "User Presets",
+            "My Presets",
+            "VST Presets",
+            "FXP Files",
+            "FXB Banks",
+            "Patches",
+            "Sounds",
         ]
 
         for folder_name in test_cases:
@@ -97,12 +99,12 @@ class TestIdentifyFolderType:
     def test_identify_sample_folder(self, tmp_path):
         """Test identifying sample folders."""
         test_cases = [
-            'Samples',
-            'Sample Libraries',
-            'Audio Samples',
-            'WAV Files',
-            'Loops',
-            'Drum Samples',
+            "Samples",
+            "Sample Libraries",
+            "Audio Samples",
+            "WAV Files",
+            "Loops",
+            "Drum Samples",
         ]
 
         for folder_name in test_cases:
@@ -115,11 +117,11 @@ class TestIdentifyFolderType:
     def test_identify_library_folder(self, tmp_path):
         """Test identifying library folders."""
         test_cases = [
-            'Libraries',
-            'Library',
-            'Content',
-            'Soundbanks',
-            'Instruments',
+            "Libraries",
+            "Library",
+            "Content",
+            "Soundbanks",
+            "Instruments",
         ]
 
         for folder_name in test_cases:
@@ -133,10 +135,10 @@ class TestIdentifyFolderType:
     def test_identify_project_folder(self, tmp_path):
         """Test identifying project folders."""
         test_cases = [
-            'Projects',
-            'My Projects',
-            'Sessions',
-            'Songs',
+            "Projects",
+            "My Projects",
+            "Sessions",
+            "Songs",
         ]
 
         for folder_name in test_cases:
@@ -156,8 +158,8 @@ class TestIdentifyFolderType:
     def test_case_insensitive_matching(self, tmp_path):
         """Test that folder identification is case-insensitive."""
         test_cases = [
-            ('PRESETS', FolderType.PRESETS),
-            ('samples', FolderType.SAMPLES),
+            ("PRESETS", FolderType.PRESETS),
+            ("samples", FolderType.SAMPLES),
             # Skip LIBRARY and PROJECTS as they don't exist in FolderType enum
         ]
 
@@ -172,9 +174,9 @@ class TestIdentifyFolderType:
         """Test that known vendor folders are recognized."""
         # Create a folder that matches vendor patterns
         vendor_folders = [
-            'Native Instruments',
-            'Arturia',
-            'Spectrasonics',
+            "Native Instruments",
+            "Arturia",
+            "Spectrasonics",
         ]
 
         for vendor_folder in vendor_folders:
@@ -314,10 +316,7 @@ class TestCreateDataFolder:
         nonexistent_folder = tmp_path / "nonexistent"
 
         # Should handle error gracefully
-        data_folder = self.scanner._create_data_folder(
-            nonexistent_folder,
-            FolderType.PRESETS
-        )
+        data_folder = self.scanner._create_data_folder(nonexistent_folder, FolderType.PRESETS)
 
         # Depending on implementation, might return None or raise exception
         # Adjust based on actual behavior
@@ -383,7 +382,7 @@ class TestBackwardCompatibility:
         scanner = FolderScanner()
 
         # Mock the scan method
-        with patch.object(scanner, 'scan', return_value=[]) as mock_scan:
+        with patch.object(scanner, "scan", return_value=[]) as mock_scan:
             result = scanner.scan_for_data_folders()
             mock_scan.assert_called_once_with(None)
             assert result == []
@@ -393,6 +392,6 @@ class TestBackwardCompatibility:
         scanner = FolderScanner()
         custom_paths = ["/path/1", "/path/2"]
 
-        with patch.object(scanner, 'scan', return_value=[]) as mock_scan:
+        with patch.object(scanner, "scan", return_value=[]) as mock_scan:
             scanner.scan_for_data_folders(custom_paths)
             mock_scan.assert_called_once_with(custom_paths)

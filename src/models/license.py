@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Optional, List, Dict
+from typing import Dict, List, Optional
 
 
 class LicenseType(Enum):
@@ -96,30 +96,40 @@ class License:
     def to_dict(self) -> dict:
         """Convert to dictionary representation."""
         return {
-            'license_id': self.license_id,
-            'name': self.name,
-            'owner': self.owner,
-            'publisher': self.publisher,
-            'license_type': self.license_type.value,
-            'license_format': self.license_format.value,
-            'status': self.status.value,
-            'file_path': str(self.file_path) if self.file_path else None,
-            'file_hash': self.file_hash,
-            'key_string': self.key_string[:20] + '...' if self.key_string and len(self.key_string) > 20 else self.key_string,
-            'activation_code': self.activation_code[:20] + '...' if self.activation_code and len(self.activation_code) > 20 else self.activation_code,
-            'registry_key': self.registry_key,
-            'ilok_account': self.ilok_account,
-            'ilok_location': self.ilok_location,
-            'dongle_id': self.dongle_id,
-            'dongle_type': self.dongle_type,
-            'installation_date': self.installation_date.isoformat() if self.installation_date else None,
-            'expiration_date': self.expiration_date.isoformat() if self.expiration_date else None,
-            'last_verified': self.last_verified.isoformat() if self.last_verified else None,
-            'license_server': self.license_server,
-            'version': self.version,
-            'notes': self.notes,
-            'related_plugin': self.related_plugin,
-            'related_application': self.related_application,
+            "license_id": self.license_id,
+            "name": self.name,
+            "owner": self.owner,
+            "publisher": self.publisher,
+            "license_type": self.license_type.value,
+            "license_format": self.license_format.value,
+            "status": self.status.value,
+            "file_path": str(self.file_path) if self.file_path else None,
+            "file_hash": self.file_hash,
+            "key_string": (
+                self.key_string[:20] + "..."
+                if self.key_string and len(self.key_string) > 20
+                else self.key_string
+            ),
+            "activation_code": (
+                self.activation_code[:20] + "..."
+                if self.activation_code and len(self.activation_code) > 20
+                else self.activation_code
+            ),
+            "registry_key": self.registry_key,
+            "ilok_account": self.ilok_account,
+            "ilok_location": self.ilok_location,
+            "dongle_id": self.dongle_id,
+            "dongle_type": self.dongle_type,
+            "installation_date": (
+                self.installation_date.isoformat() if self.installation_date else None
+            ),
+            "expiration_date": self.expiration_date.isoformat() if self.expiration_date else None,
+            "last_verified": self.last_verified.isoformat() if self.last_verified else None,
+            "license_server": self.license_server,
+            "version": self.version,
+            "notes": self.notes,
+            "related_plugin": self.related_plugin,
+            "related_application": self.related_application,
         }
 
     def is_valid(self) -> bool:
@@ -168,15 +178,15 @@ class LicenseScanResult:
     def to_dict(self) -> dict:
         """Convert to dictionary representation."""
         return {
-            'scan_date': self.scan_date.isoformat(),
-            'total_licenses': self.total_licenses,
-            'licenses_by_type': {k.value: v for k, v in self.licenses_by_type.items()},
-            'licenses_by_format': {k.value: v for k, v in self.licenses_by_format.items()},
-            'licenses_by_status': {k.value: v for k, v in self.licenses_by_status.items()},
-            'active_licenses': self.active_licenses,
-            'expired_licenses': self.expired_licenses,
-            'expiring_soon': self.expiring_soon,
-            'scanned_paths': [str(p) for p in self.scanned_paths],
+            "scan_date": self.scan_date.isoformat(),
+            "total_licenses": self.total_licenses,
+            "licenses_by_type": {k.value: v for k, v in self.licenses_by_type.items()},
+            "licenses_by_format": {k.value: v for k, v in self.licenses_by_format.items()},
+            "licenses_by_status": {k.value: v for k, v in self.licenses_by_status.items()},
+            "active_licenses": self.active_licenses,
+            "expired_licenses": self.expired_licenses,
+            "expiring_soon": self.expiring_soon,
+            "scanned_paths": [str(p) for p in self.scanned_paths],
         }
 
     def get_summary(self) -> str:
@@ -218,12 +228,12 @@ class iLokLicense:
     def to_dict(self) -> dict:
         """Convert to dictionary."""
         return {
-            'license_id': self.license_id,
-            'product_name': self.product_name,
-            'publisher': self.publisher,
-            'location': self.location,
-            'license_type': self.license_type,
-            'expiration_date': self.expiration_date.isoformat() if self.expiration_date else None,
+            "license_id": self.license_id,
+            "product_name": self.product_name,
+            "publisher": self.publisher,
+            "location": self.location,
+            "license_type": self.license_type,
+            "expiration_date": self.expiration_date.isoformat() if self.expiration_date else None,
         }
 
 
@@ -240,9 +250,9 @@ class LicenseBackup:
     def to_dict(self) -> dict:
         """Convert to dictionary."""
         return {
-            'backup_id': self.backup_id,
-            'backup_date': self.backup_date.isoformat(),
-            'licenses_count': self.licenses_count,
-            'backup_path': str(self.backup_path),
-            'description': self.description,
+            "backup_id": self.backup_id,
+            "backup_date": self.backup_date.isoformat(),
+            "licenses_count": self.licenses_count,
+            "backup_path": str(self.backup_path),
+            "description": self.description,
         }

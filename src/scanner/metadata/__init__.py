@@ -9,4 +9,4 @@ This package contains modular components for extracting metadata from plugin fil
 
 from .extractor import MetadataExtractor
 
-__all__ = ['MetadataExtractor']
+__all__ = ["MetadataExtractor"]

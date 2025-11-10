@@ -1,7 +1,9 @@
 """Unit tests for VendorRegistry."""
 
-import pytest
 from pathlib import Path
+
+import pytest
+
 from src.data.vendor_registry import VendorRegistry, vendor_registry
 
 
@@ -30,7 +32,7 @@ class TestVendorRegistry:
             "C:/Program Files/Native Instruments/Kontakt/kontakt.dll",
             "C:/Users/test/Documents/Native Instruments/Komplete/",
             "/usr/local/lib/vst/kontakt.so",
-            "D:\\Plugins\\Native Instruments\\Massive.dll"
+            "D:\\Plugins\\Native Instruments\\Massive.dll",
         ]
 
         for test_path in test_cases:
@@ -58,7 +60,7 @@ class TestVendorRegistry:
         test_cases = [
             "C:/Unknown/Vendor/plugin.dll",
             "/usr/local/lib/random_plugin.so",
-            "D:\\Plugins\\UnknownCompany\\plugin.vst3"
+            "D:\\Plugins\\UnknownCompany\\plugin.vst3",
         ]
 
         for test_path in test_cases:
@@ -199,12 +201,12 @@ class TestVendorRegistry:
         registry = VendorRegistry()
 
         # Test getting Native Instruments info
-        info = registry.get_vendor_info('native_instruments')
+        info = registry.get_vendor_info("native_instruments")
         assert info is not None
-        assert info['name'] == 'Native Instruments'
-        assert 'patterns' in info
-        assert 'folders' in info
-        assert 'executables' in info
+        assert info["name"] == "Native Instruments"
+        assert "patterns" in info
+        assert "folders" in info
+        assert "executables" in info
 
     def test_repr(self):
         """Test string representation."""
@@ -223,9 +225,11 @@ class TestVendorRegistryIntegration:
         registry = VendorRegistry()
 
         for vendor_key, vendor_data in registry._vendors.items():
-            assert 'name' in vendor_data, f"Vendor {vendor_key} missing 'name' field"
-            assert 'patterns' in vendor_data, f"Vendor {vendor_key} missing 'patterns' field"
-            assert isinstance(vendor_data['patterns'], list), f"Patterns should be list for {vendor_key}"
+            assert "name" in vendor_data, f"Vendor {vendor_key} missing 'name' field"
+            assert "patterns" in vendor_data, f"Vendor {vendor_key} missing 'patterns' field"
+            assert isinstance(
+                vendor_data["patterns"], list
+            ), f"Patterns should be list for {vendor_key}"
 
     def test_no_duplicate_vendor_names(self):
         """Test that vendor names are unique."""

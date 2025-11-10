@@ -3,9 +3,9 @@
 import logging
 import sys
 from datetime import datetime
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Optional
-from logging.handlers import RotatingFileHandler
 
 
 class MPSMLogger:
@@ -42,7 +42,7 @@ class MPSMLogger:
         self.max_log_size_bytes = max_log_size_mb * 1024 * 1024
 
         # Create logger
-        self.logger = logging.getLogger('mpsm')
+        self.logger = logging.getLogger("mpsm")
         self.logger.setLevel(self.level)
 
         # Remove existing handlers to avoid duplicates
@@ -55,8 +55,7 @@ class MPSMLogger:
         """Configure logging with rotation and formatters."""
         # Create formatter
         formatter = logging.Formatter(
-            fmt='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S'
+            fmt="%(asctime)s - %(name)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
         )
 
         # Console handler
@@ -71,10 +70,7 @@ class MPSMLogger:
             log_file = self.log_dir / f"mpsm_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
 
             file_handler = RotatingFileHandler(
-                filename=log_file,
-                maxBytes=self.max_log_size_bytes,
-                backupCount=5,
-                encoding='utf-8'
+                filename=log_file, maxBytes=self.max_log_size_bytes, backupCount=5, encoding="utf-8"
             )
             file_handler.setLevel(self.level)
             file_handler.setFormatter(formatter)
@@ -108,7 +104,7 @@ class MPSMLogger:
             operation: Operation name
             details: Dictionary of operation details
         """
-        detail_str = ', '.join(f"{k}={v}" for k, v in details.items())
+        detail_str = ", ".join(f"{k}={v}" for k, v in details.items())
         self.logger.info(f"Operation: {operation} | {detail_str}")
 
     def log_error(self, error: Exception, context: dict) -> None:
@@ -119,10 +115,9 @@ class MPSMLogger:
             error: Exception that occurred
             context: Dictionary of context information
         """
-        context_str = ', '.join(f"{k}={v}" for k, v in context.items())
+        context_str = ", ".join(f"{k}={v}" for k, v in context.items())
         self.logger.error(
-            f"Error: {type(error).__name__}: {str(error)} | Context: {context_str}",
-            exc_info=True
+            f"Error: {type(error).__name__}: {str(error)} | Context: {context_str}", exc_info=True
         )
 
     def export_logs(self, start_date: datetime, end_date: datetime, output_path: Path) -> None:
@@ -140,8 +135,8 @@ class MPSMLogger:
         for log_file in self.log_dir.glob("mpsm_*.log*"):
             # Parse timestamp from filename (mpsm_YYYYMMDD_HHMMSS.log)
             try:
-                timestamp_str = log_file.stem.split('_')[1] + '_' + log_file.stem.split('_')[2]
-                log_date = datetime.strptime(timestamp_str, '%Y%m%d_%H%M%S')
+                timestamp_str = log_file.stem.split("_")[1] + "_" + log_file.stem.split("_")[2]
+                log_date = datetime.strptime(timestamp_str, "%Y%m%d_%H%M%S")
 
                 if start_date <= log_date <= end_date:
                     matching_logs.append(log_file)
@@ -150,7 +145,7 @@ class MPSMLogger:
                 continue
 
         # Combine matching logs
-        with open(output_path, 'w', encoding='utf-8') as outfile:
+        with open(output_path, "w", encoding="utf-8") as outfile:
             outfile.write(f"# MPSM Logs Export\n")
             outfile.write(f"# Period: {start_date} to {end_date}\n")
             outfile.write(f"# Files included: {len(matching_logs)}\n\n")
@@ -160,7 +155,7 @@ class MPSMLogger:
                 outfile.write(f"# File: {log_file.name}\n")
                 outfile.write(f"{'='*80}\n\n")
 
-                with open(log_file, 'r', encoding='utf-8') as infile:
+                with open(log_file, "r", encoding="utf-8") as infile:
                     outfile.write(infile.read())
 
         self.logger.info(f"Exported {len(matching_logs)} log files to {output_path}")

@@ -1,9 +1,11 @@
 """Integration tests for refactored scanners."""
 
-import pytest
 from pathlib import Path
-from src.scanner.folder_scanner import FolderScanner
+
+import pytest
+
 from src.scanner.application_scanner import ApplicationScanner
+from src.scanner.folder_scanner import FolderScanner
 
 
 @pytest.mark.integration
@@ -22,20 +24,20 @@ class TestFolderScannerIntegration:
         scanner = FolderScanner()
 
         # Check for BaseScanner methods
-        assert hasattr(scanner, 'scan')
-        assert hasattr(scanner, 'get_items')
-        assert hasattr(scanner, 'item_count')
-        assert hasattr(scanner, 'clear')
-        assert hasattr(scanner, '_get_default_scan_paths')
-        assert hasattr(scanner, '_identify_item')
+        assert hasattr(scanner, "scan")
+        assert hasattr(scanner, "get_items")
+        assert hasattr(scanner, "item_count")
+        assert hasattr(scanner, "clear")
+        assert hasattr(scanner, "_get_default_scan_paths")
+        assert hasattr(scanner, "_identify_item")
 
     def test_folder_scanner_backward_compatibility(self):
         """Test that FolderScanner maintains backward compatibility."""
         scanner = FolderScanner()
 
         # Check for backward compatible API
-        assert hasattr(scanner, 'scan_for_data_folders')
-        assert hasattr(scanner, 'data_folders')
+        assert hasattr(scanner, "scan_for_data_folders")
+        assert hasattr(scanner, "data_folders")
 
         # Test property access
         scanner.data_folders = []
@@ -87,20 +89,20 @@ class TestApplicationScannerIntegration:
         scanner = ApplicationScanner()
 
         # Check for BaseScanner methods
-        assert hasattr(scanner, 'scan')
-        assert hasattr(scanner, 'get_items')
-        assert hasattr(scanner, 'item_count')
-        assert hasattr(scanner, 'clear')
-        assert hasattr(scanner, '_get_default_scan_paths')
-        assert hasattr(scanner, '_identify_item')
+        assert hasattr(scanner, "scan")
+        assert hasattr(scanner, "get_items")
+        assert hasattr(scanner, "item_count")
+        assert hasattr(scanner, "clear")
+        assert hasattr(scanner, "_get_default_scan_paths")
+        assert hasattr(scanner, "_identify_item")
 
     def test_application_scanner_backward_compatibility(self):
         """Test that ApplicationScanner maintains backward compatibility."""
         scanner = ApplicationScanner()
 
         # Check for backward compatible API
-        assert hasattr(scanner, 'scan_for_applications')
-        assert hasattr(scanner, 'applications')
+        assert hasattr(scanner, "scan_for_applications")
+        assert hasattr(scanner, "applications")
 
         # Test property access
         scanner.applications = []
@@ -145,8 +147,8 @@ class TestBaseScannerIntegration:
         assert isinstance(app_scanner, BaseScanner)
 
         # Check they have same base methods
-        assert hasattr(folder_scanner, 'scan')
-        assert hasattr(app_scanner, 'scan')
+        assert hasattr(folder_scanner, "scan")
+        assert hasattr(app_scanner, "scan")
 
     def test_scanners_use_items_list(self):
         """Test that scanners use the items list from BaseScanner."""
@@ -154,8 +156,8 @@ class TestBaseScannerIntegration:
         app_scanner = ApplicationScanner()
 
         # Both should have items attribute from BaseScanner
-        assert hasattr(folder_scanner, 'items')
-        assert hasattr(app_scanner, 'items')
+        assert hasattr(folder_scanner, "items")
+        assert hasattr(app_scanner, "items")
 
         # Both should be lists
         assert isinstance(folder_scanner.items, list)

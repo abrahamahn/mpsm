@@ -1,12 +1,12 @@
 """Registry path updater for file moves."""
 
 from pathlib import Path
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional
 
 from ..core.logger import get_logger
+from ..models.registry import PathUpdate
 from ..registry.manager import RegistryManager
 from ..registry.registry_reader import RegistryReader
-from ..models.registry import PathUpdate
 
 
 class RegistryPathUpdater:
@@ -24,10 +24,7 @@ class RegistryPathUpdater:
         self.registry_reader = RegistryReader()
 
     def create_update_plan_for_move(
-        self,
-        old_path: Path,
-        new_path: Path,
-        plugin_name: Optional[str] = None
+        self, old_path: Path, new_path: Path, plugin_name: Optional[str] = None
     ) -> List[Dict[str, str]]:
         """
         Create registry update plan for a file move.
@@ -61,20 +58,19 @@ class RegistryPathUpdater:
             for entry in entries:
                 # Check if this entry contains the old path
                 if entry.is_path_value() and old_path_str in entry.value_data.lower():
-                    updates.append({
-                        'key_path': key_path,
-                        'value_name': entry.value_name,
-                        'old_path': entry.value_data,
-                        'new_path': entry.value_data.replace(str(old_path), new_path_str),
-                    })
+                    updates.append(
+                        {
+                            "key_path": key_path,
+                            "value_name": entry.value_name,
+                            "old_path": entry.value_data,
+                            "new_path": entry.value_data.replace(str(old_path), new_path_str),
+                        }
+                    )
 
         self.logger.info(f"Found {len(updates)} registry entries to update")
         return updates
 
-    def create_batch_update_plan(
-        self,
-        move_operations: List[tuple]
-    ) -> List[Dict[str, str]]:
+    def create_batch_update_plan(self, move_operations: List[tuple]) -> List[Dict[str, str]]:
         """
         Create registry update plan for batch moves.
 
@@ -87,10 +83,7 @@ class RegistryPathUpdater:
         all_updates = []
 
         for old_path, new_path, is_folder in move_operations:
-            updates = self.create_update_plan_for_move(
-                Path(old_path),
-                Path(new_path)
-            )
+            updates = self.create_update_plan_for_move(Path(old_path), Path(new_path))
             all_updates.extend(updates)
 
         # Remove duplicates (same key and value name)
@@ -98,7 +91,7 @@ class RegistryPathUpdater:
         seen = set()
 
         for update in all_updates:
-            key = (update['key_path'], update['value_name'])
+            key = (update["key_path"], update["value_name"])
             if key not in seen:
                 seen.add(key)
                 unique_updates.append(update)
@@ -107,9 +100,7 @@ class RegistryPathUpdater:
         return unique_updates
 
     def execute_updates(
-        self,
-        updates: List[Dict[str, str]],
-        dry_run: bool = False
+        self, updates: List[Dict[str, str]], dry_run: bool = False
     ) -> Dict[str, PathUpdate]:
         """
         Execute registry updates.
@@ -126,14 +117,10 @@ class RegistryPathUpdater:
             return {}
 
         return self.registry_manager.batch_update(
-            updates,
-            description="File consolidation registry updates"
+            updates, description="File consolidation registry updates"
         )
 
-    def verify_updates(
-        self,
-        updates: List[Dict[str, str]]
-    ) -> List[Dict[str, any]]:
+    def verify_updates(self, updates: List[Dict[str, str]]) -> List[Dict[str, any]]:
         """
         Verify that registry updates were successful.
 
@@ -147,29 +134,27 @@ class RegistryPathUpdater:
 
         for update in updates:
             current_value = self.registry_reader.read_value(
-                update['key_path'],
-                update['value_name']
+                update["key_path"], update["value_name"]
             )
 
-            verified = current_value == update['new_path']
+            verified = current_value == update["new_path"]
 
-            results.append({
-                'key_path': update['key_path'],
-                'value_name': update['value_name'],
-                'expected': update['new_path'],
-                'actual': current_value,
-                'verified': verified,
-            })
+            results.append(
+                {
+                    "key_path": update["key_path"],
+                    "value_name": update["value_name"],
+                    "expected": update["new_path"],
+                    "actual": current_value,
+                    "verified": verified,
+                }
+            )
 
-        verified_count = sum(1 for r in results if r['verified'])
+        verified_count = sum(1 for r in results if r["verified"])
         self.logger.info(f"Verified {verified_count}/{len(results)} registry updates")
 
         return results
 
-    def find_affected_registry_entries(
-        self,
-        file_path: Path
-    ) -> List[Dict[str, str]]:
+    def find_affected_registry_entries(self, file_path: Path) -> List[Dict[str, str]]:
         """
         Find all registry entries that reference a file.
 
@@ -187,19 +172,18 @@ class RegistryPathUpdater:
         for key_path, entries in all_entries.items():
             for entry in entries:
                 if entry.is_path_value() and file_path_str in entry.value_data.lower():
-                    affected.append({
-                        'key_path': key_path,
-                        'value_name': entry.value_name,
-                        'value_data': entry.value_data,
-                    })
+                    affected.append(
+                        {
+                            "key_path": key_path,
+                            "value_name": entry.value_name,
+                            "value_data": entry.value_data,
+                        }
+                    )
 
         return affected
 
     def update_plugin_paths(
-        self,
-        plugin_name: str,
-        old_install_path: Path,
-        new_install_path: Path
+        self, plugin_name: str, old_install_path: Path, new_install_path: Path
     ) -> int:
         """
         Update all registry paths for a plugin installation.
@@ -240,12 +224,14 @@ class RegistryPathUpdater:
                 if entry.is_path_value() and old_path_str in entry.value_data:
                     new_value = entry.value_data.replace(old_path_str, new_path_str)
 
-                    updates.append({
-                        'key_path': key_path,
-                        'value_name': entry.value_name,
-                        'old_path': entry.value_data,
-                        'new_path': new_value,
-                    })
+                    updates.append(
+                        {
+                            "key_path": key_path,
+                            "value_name": entry.value_name,
+                            "old_path": entry.value_data,
+                            "new_path": new_value,
+                        }
+                    )
 
         if updates:
             results = self.registry_manager.batch_update(updates)

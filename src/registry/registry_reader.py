@@ -4,14 +4,14 @@ import platform
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Any
+from typing import Any, Dict, List, Optional
 
-from ..core.logger import get_logger
 from ..core.exceptions import RegistryException
+from ..core.logger import get_logger
 from ..models.registry import RegistryEntry
 
 # Platform-specific imports
-IS_WINDOWS = platform.system() == 'Windows'
+IS_WINDOWS = platform.system() == "Windows"
 
 if IS_WINDOWS:
     try:
@@ -27,21 +27,21 @@ class RegistryReader:
 
     # Registry hives mapping
     HIVES = {
-        'HKLM': 'HKEY_LOCAL_MACHINE',
-        'HKCU': 'HKEY_CURRENT_USER',
-        'HKCR': 'HKEY_CLASSES_ROOT',
-        'HKU': 'HKEY_USERS',
-        'HKCC': 'HKEY_CURRENT_CONFIG',
+        "HKLM": "HKEY_LOCAL_MACHINE",
+        "HKCU": "HKEY_CURRENT_USER",
+        "HKCR": "HKEY_CLASSES_ROOT",
+        "HKU": "HKEY_USERS",
+        "HKCC": "HKEY_CURRENT_CONFIG",
     }
 
     # Windows registry constants (if winreg available)
     if IS_WINDOWS and winreg:
         HIVE_CONSTANTS = {
-            'HKLM': winreg.HKEY_LOCAL_MACHINE,
-            'HKCU': winreg.HKEY_CURRENT_USER,
-            'HKCR': winreg.HKEY_CLASSES_ROOT,
-            'HKU': winreg.HKEY_USERS,
-            'HKCC': winreg.HKEY_CURRENT_CONFIG,
+            "HKLM": winreg.HKEY_LOCAL_MACHINE,
+            "HKCU": winreg.HKEY_CURRENT_USER,
+            "HKCR": winreg.HKEY_CLASSES_ROOT,
+            "HKU": winreg.HKEY_USERS,
+            "HKCC": winreg.HKEY_CURRENT_CONFIG,
         }
     else:
         HIVE_CONSTANTS = {}
@@ -85,7 +85,7 @@ class RegistryReader:
             >>> _parse_key_path("HKLM\\SOFTWARE\\VST")
             ('HKLM', 'SOFTWARE\\VST')
         """
-        parts = key_path.split('\\', 1)
+        parts = key_path.split("\\", 1)
         if len(parts) != 2:
             raise RegistryException(f"Invalid registry path: {key_path}")
 
@@ -189,9 +189,9 @@ class RegistryReader:
             self.logger.debug(f"Registry key not found: {key_path}")
             return []
         except PermissionError as e:
-            raise RegistryException(f"Permission denied reading {key_path}", {'error': str(e)})
+            raise RegistryException(f"Permission denied reading {key_path}", {"error": str(e)})
         except Exception as e:
-            raise RegistryException(f"Failed to read registry key {key_path}", {'error': str(e)})
+            raise RegistryException(f"Failed to read registry key {key_path}", {"error": str(e)})
 
     def read_value(self, key_path: str, value_name: str) -> Optional[str]:
         """
@@ -280,7 +280,7 @@ class RegistryReader:
         for key_path in fl_keys:
             path = self.read_value(key_path, "InstallPath")
             if path:
-                daw_paths['FL Studio'] = path
+                daw_paths["FL Studio"] = path
                 break
 
         # Ableton Live
@@ -291,7 +291,7 @@ class RegistryReader:
         for key_path in ableton_keys:
             path = self.read_value(key_path, "InstallPath")
             if path:
-                daw_paths['Ableton Live'] = path
+                daw_paths["Ableton Live"] = path
                 break
 
         return daw_paths
@@ -324,7 +324,9 @@ class RegistryReader:
 
         return found_keys
 
-    def _search_subkeys(self, key_path: str, search_term: str, max_depth: int = 2, current_depth: int = 0) -> List[str]:
+    def _search_subkeys(
+        self, key_path: str, search_term: str, max_depth: int = 2, current_depth: int = 0
+    ) -> List[str]:
         """
         Recursively search for subkeys containing search term.
 
@@ -361,7 +363,11 @@ class RegistryReader:
                         # Recurse into subkey
                         if current_depth < max_depth - 1:
                             subkey_path = f"{key_path}\\{subkey_name}"
-                            found.extend(self._search_subkeys(subkey_path, search_term, max_depth, current_depth + 1))
+                            found.extend(
+                                self._search_subkeys(
+                                    subkey_path, search_term, max_depth, current_depth + 1
+                                )
+                            )
 
                     except Exception:
                         # Skip keys we can't access
@@ -410,15 +416,17 @@ class RegistryReader:
                             for entry in entries:
                                 app_info[entry.value_name] = entry.value_data
 
-                            if 'DisplayName' in app_info:
-                                uninstallers.append({
-                                    'name': app_info.get('DisplayName', ''),
-                                    'publisher': app_info.get('Publisher', ''),
-                                    'version': app_info.get('DisplayVersion', ''),
-                                    'install_location': app_info.get('InstallLocation', ''),
-                                    'uninstall_string': app_info.get('UninstallString', ''),
-                                    'registry_key': app_key_path,
-                                })
+                            if "DisplayName" in app_info:
+                                uninstallers.append(
+                                    {
+                                        "name": app_info.get("DisplayName", ""),
+                                        "publisher": app_info.get("Publisher", ""),
+                                        "version": app_info.get("DisplayVersion", ""),
+                                        "install_location": app_info.get("InstallLocation", ""),
+                                        "uninstall_string": app_info.get("UninstallString", ""),
+                                        "registry_key": app_key_path,
+                                    }
+                                )
 
                         except Exception:
                             continue
@@ -438,7 +446,7 @@ class RegistryReader:
         all_entries = {}
 
         for base_key in self.KNOWN_KEYS:
-            for hive in ['HKLM', 'HKCU']:
+            for hive in ["HKLM", "HKCU"]:
                 key_path = f"{hive}\\{base_key}"
 
                 if self.key_exists(key_path):
@@ -495,7 +503,7 @@ class RegistryReader:
 
         all_entries = self.scan_all_music_production_keys()
 
-        with open(output_path, 'w', encoding='utf-8') as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             f.write(f"# MPSM Registry Snapshot\n")
             f.write(f"# Date: {datetime.now().isoformat()}\n")
             f.write(f"# Total keys: {len(all_entries)}\n\n")

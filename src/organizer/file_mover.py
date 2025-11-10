@@ -4,13 +4,13 @@ import hashlib
 import shutil
 import time
 import uuid
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional, Dict
-from dataclasses import dataclass
+from typing import Dict, List, Optional
 
+from ..core.exceptions import DiskSpaceException, FileOperationException
 from ..core.logger import get_logger
-from ..core.exceptions import FileOperationException, DiskSpaceException
 
 
 @dataclass
@@ -30,14 +30,14 @@ class MoveOperation:
     def to_dict(self) -> dict:
         """Convert to dictionary."""
         return {
-            'operation_id': self.operation_id,
-            'source': str(self.source),
-            'destination': str(self.destination),
-            'is_folder': self.is_folder,
-            'size_mb': round(self.size_bytes / (1024 * 1024), 2),
-            'completed': self.completed,
-            'backed_up': self.backed_up,
-            'error': self.error or '',
+            "operation_id": self.operation_id,
+            "source": str(self.source),
+            "destination": str(self.destination),
+            "is_folder": self.is_folder,
+            "size_mb": round(self.size_bytes / (1024 * 1024), 2),
+            "completed": self.completed,
+            "backed_up": self.backed_up,
+            "error": self.error or "",
         }
 
 
@@ -55,11 +55,11 @@ class BatchResult:
     def to_dict(self) -> dict:
         """Convert to dictionary."""
         return {
-            'total_operations': self.total_operations,
-            'successful': self.successful,
-            'failed': self.failed,
-            'total_size_mb': round(self.total_size_bytes / (1024 * 1024), 2),
-            'duration_seconds': round(self.duration_seconds, 2),
+            "total_operations": self.total_operations,
+            "successful": self.successful,
+            "failed": self.failed,
+            "total_size_mb": round(self.total_size_bytes / (1024 * 1024), 2),
+            "duration_seconds": round(self.duration_seconds, 2),
         }
 
 
@@ -67,10 +67,7 @@ class FileMover:
     """Safely moves files with backup and verification."""
 
     def __init__(
-        self,
-        backup_dir: Optional[Path] = None,
-        verify_moves: bool = True,
-        dry_run: bool = False
+        self, backup_dir: Optional[Path] = None, verify_moves: bool = True, dry_run: bool = False
     ):
         """
         Initialize file mover.
@@ -94,12 +91,7 @@ class FileMover:
         # Track operations
         self.operations: List[MoveOperation] = []
 
-    def move_file(
-        self,
-        source: Path,
-        destination: Path,
-        backup: bool = True
-    ) -> MoveOperation:
+    def move_file(self, source: Path, destination: Path, backup: bool = True) -> MoveOperation:
         """
         Move a single file with optional backup.
 
@@ -119,7 +111,7 @@ class FileMover:
             source=Path(source),
             destination=Path(destination),
             is_folder=False,
-            size_bytes=source.stat().st_size if source.exists() else 0
+            size_bytes=source.stat().st_size if source.exists() else 0,
         )
 
         try:
@@ -148,7 +140,9 @@ class FileMover:
             operation.destination.parent.mkdir(parents=True, exist_ok=True)
 
             if self.dry_run:
-                self.logger.info(f"[DRY RUN] Would move: {operation.source} -> {operation.destination}")
+                self.logger.info(
+                    f"[DRY RUN] Would move: {operation.source} -> {operation.destination}"
+                )
                 operation.completed = True
             else:
                 # Move file
@@ -175,12 +169,7 @@ class FileMover:
         self.operations.append(operation)
         return operation
 
-    def move_folder(
-        self,
-        source: Path,
-        destination: Path,
-        backup: bool = True
-    ) -> MoveOperation:
+    def move_folder(self, source: Path, destination: Path, backup: bool = True) -> MoveOperation:
         """
         Move an entire folder with optional backup.
 
@@ -197,7 +186,7 @@ class FileMover:
             source=Path(source),
             destination=Path(destination),
             is_folder=True,
-            size_bytes=self._get_folder_size(Path(source))
+            size_bytes=self._get_folder_size(Path(source)),
         )
 
         try:
@@ -223,7 +212,9 @@ class FileMover:
                 operation.backup_path = backup_path
 
             if self.dry_run:
-                self.logger.info(f"[DRY RUN] Would move folder: {operation.source} -> {operation.destination}")
+                self.logger.info(
+                    f"[DRY RUN] Would move folder: {operation.source} -> {operation.destination}"
+                )
                 operation.completed = True
             else:
                 # Move folder
@@ -283,12 +274,11 @@ class FileMover:
             failed=failed,
             operations=results,
             total_size_bytes=total_size,
-            duration_seconds=duration
+            duration_seconds=duration,
         )
 
         self.logger.info(
-            f"Batch move complete: {successful} successful, {failed} failed, "
-            f"{duration:.2f}s"
+            f"Batch move complete: {successful} successful, {failed} failed, " f"{duration:.2f}s"
         )
 
         return batch_result
@@ -367,7 +357,7 @@ class FileMover:
     def _create_file_backup(self, file_path: Path) -> Path:
         """Create backup of a file."""
         backup_id = str(uuid.uuid4())[:8]
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         backup_name = f"{file_path.stem}_{timestamp}_{backup_id}{file_path.suffix}"
         backup_path = self.backup_dir / backup_name
 
@@ -379,7 +369,7 @@ class FileMover:
     def _create_folder_backup(self, folder_path: Path) -> Path:
         """Create backup of a folder."""
         backup_id = str(uuid.uuid4())[:8]
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         backup_name = f"{folder_path.name}_{timestamp}_{backup_id}"
         backup_path = self.backup_dir / backup_name
 
@@ -393,7 +383,7 @@ class FileMover:
         total_size = 0
 
         try:
-            for item in folder_path.rglob('*'):
+            for item in folder_path.rglob("*"):
                 if item.is_file():
                     total_size += item.stat().st_size
         except Exception as e:
@@ -424,10 +414,10 @@ class FileMover:
         total_size = sum(op.size_bytes for op in self.operations)
 
         return {
-            'total_operations': total,
-            'completed': completed,
-            'failed': failed,
-            'total_size_bytes': total_size,
-            'total_size_mb': round(total_size / (1024 * 1024), 2),
-            'total_size_gb': round(total_size / (1024 ** 3), 2),
+            "total_operations": total,
+            "completed": completed,
+            "failed": failed,
+            "total_size_bytes": total_size,
+            "total_size_mb": round(total_size / (1024 * 1024), 2),
+            "total_size_gb": round(total_size / (1024**3), 2),
         }

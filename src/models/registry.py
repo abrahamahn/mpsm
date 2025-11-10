@@ -34,16 +34,16 @@ class RegistryEntry:
             Dictionary representation
         """
         return {
-            'key_path': self.key_path,
-            'value_name': self.value_name,
-            'value_data': self.value_data,
-            'value_type': self.value_type,
-            'hive': self.hive,
-            'category': self.category,
-            'related_file': str(self.related_file) if self.related_file else "",
-            'related_plugin': self.related_plugin or "",
-            'related_application': self.related_application or "",
-            'last_modified': self.last_modified.isoformat() if self.last_modified else "",
+            "key_path": self.key_path,
+            "value_name": self.value_name,
+            "value_data": self.value_data,
+            "value_type": self.value_type,
+            "hive": self.hive,
+            "category": self.category,
+            "related_file": str(self.related_file) if self.related_file else "",
+            "related_plugin": self.related_plugin or "",
+            "related_application": self.related_application or "",
+            "last_modified": self.last_modified.isoformat() if self.last_modified else "",
         }
 
     def get_full_path(self) -> str:
@@ -61,10 +61,11 @@ class RegistryEntry:
             return False
 
         # Check if value looks like a path
-        return ('\\' in self.value_data or '/' in self.value_data) and \
-               (self.value_data.startswith('C:\\') or
-                self.value_data.startswith('D:\\') or
-                ':\\' in self.value_data)
+        return ("\\" in self.value_data or "/" in self.value_data) and (
+            self.value_data.startswith("C:\\")
+            or self.value_data.startswith("D:\\")
+            or ":\\" in self.value_data
+        )
 
     def __repr__(self) -> str:
         """String representation."""
@@ -88,12 +89,13 @@ class RegistryBackup:
     def to_dict(self) -> dict:
         """Convert to dictionary."""
         return {
-            'backup_id': self.backup_id,
-            'backup_date': self.backup_date.isoformat(),
-            'backup_path': str(self.backup_path),
-            'keys_count': len(self.keys_backed_up),
-            'keys_backed_up': ', '.join(self.keys_backed_up[:5]) + ('...' if len(self.keys_backed_up) > 5 else ''),
-            'registry_file': str(self.registry_file),
+            "backup_id": self.backup_id,
+            "backup_date": self.backup_date.isoformat(),
+            "backup_path": str(self.backup_path),
+            "keys_count": len(self.keys_backed_up),
+            "keys_backed_up": ", ".join(self.keys_backed_up[:5])
+            + ("..." if len(self.keys_backed_up) > 5 else ""),
+            "registry_file": str(self.registry_file),
         }
 
     def __repr__(self) -> str:
@@ -115,12 +117,12 @@ class PathUpdate:
     def to_dict(self) -> dict:
         """Convert to dictionary."""
         return {
-            'key_path': self.key_path,
-            'value_name': self.value_name,
-            'old_path': self.old_path,
-            'new_path': self.new_path,
-            'updated': self.updated,
-            'error': self.error or "",
+            "key_path": self.key_path,
+            "value_name": self.value_name,
+            "old_path": self.old_path,
+            "new_path": self.new_path,
+            "updated": self.updated,
+            "error": self.error or "",
         }
 
     def __repr__(self) -> str:

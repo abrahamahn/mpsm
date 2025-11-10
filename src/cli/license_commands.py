@@ -9,26 +9,30 @@ from rich.table import Table
 
 from ..core.config import ConfigManager
 from ..core.logger import get_logger
-from ..license.license_scanner import LicenseScanner
 from ..license.ilok_manager import iLokManager
+from ..license.license_scanner import LicenseScanner
 from ..license.license_validator import LicenseValidator
 
 console = Console()
 
+
+@click.group()
 def license():
     """License management commands."""
     pass
 
 
-@license.command('scan')
-@click.option('--config', default='config.yaml', help='Config file path')
-@click.option('--output', '-o', default='data/licenses.json', help='Output file path')
-@click.option('--format', type=click.Choice(['json', 'csv', 'excel']), default='json', help='Output format')
+@license.command("scan")
+@click.option("--config", default="config.yaml", help="Config file path")
+@click.option("--output", "-o", default="data/licenses.json", help="Output file path")
+@click.option(
+    "--format", type=click.Choice(["json", "csv", "excel"]), default="json", help="Output format"
+)
 def license_scan(config, output, format):
     """Scan for license files."""
     try:
         console.print("[bold cyan]License Scanner[/bold cyan]")
-        console.print("="*50)
+        console.print("=" * 50)
 
         # Load config
         config_manager = ConfigManager(Path(config))
@@ -54,7 +58,7 @@ def license_scan(config, output, format):
                 lic.owner,
                 lic.license_format.value,
                 f"[{status_color}]{lic.status.value}[/{status_color}]",
-                str(lic.file_path) if lic.file_path else "N/A"
+                str(lic.file_path) if lic.file_path else "N/A",
             )
 
         console.print(table)
@@ -66,63 +70,75 @@ def license_scan(config, output, format):
         output_path = Path(output)
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
-        if format == 'json':
+        if format == "json":
             import json
-            with open(output_path, 'w') as f:
-                json.dump({
-                    'scan_result': result.to_dict(),
-                    'licenses': [lic.to_dict() for lic in result.licenses]
-                }, f, indent=2)
+
+            with open(output_path, "w") as f:
+                json.dump(
+                    {
+                        "scan_result": result.to_dict(),
+                        "licenses": [lic.to_dict() for lic in result.licenses],
+                    },
+                    f,
+                    indent=2,
+                )
             console.print(f"\n[green]✓[/green] Exported to {output_path}")
 
-        elif format == 'csv':
+        elif format == "csv":
             import pandas as pd
+
             df = pd.DataFrame([lic.to_dict() for lic in result.licenses])
-            df.to_csv(output_path.with_suffix('.csv'), index=False)
+            df.to_csv(output_path.with_suffix(".csv"), index=False)
             console.print(f"\n[green]✓[/green] Exported to {output_path.with_suffix('.csv')}")
 
-        elif format == 'excel':
+        elif format == "excel":
             import pandas as pd
+
             df = pd.DataFrame([lic.to_dict() for lic in result.licenses])
-            df.to_excel(output_path.with_suffix('.xlsx'), index=False)
+            df.to_excel(output_path.with_suffix(".xlsx"), index=False)
             console.print(f"\n[green]✓[/green] Exported to {output_path.with_suffix('.xlsx')}")
 
     except Exception as e:
         console.print(f"[red]Error:[/red] {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 
 
-@license.command('validate')
-@click.argument('license_file', type=click.Path(exists=True))
+@license.command("validate")
+@click.argument("license_file", type=click.Path(exists=True))
 def license_validate(license_file):
     """Validate licenses from scan results."""
     try:
         console.print("[bold cyan]License Validator[/bold cyan]")
-        console.print("="*50)
+        console.print("=" * 50)
 
         # Load licenses from file
         import json
-        with open(license_file, 'r') as f:
+
+        with open(license_file, "r") as f:
             data = json.load(f)
-            licenses_data = data.get('licenses', [])
+            licenses_data = data.get("licenses", [])
 
         # Convert to License objects
-        from src.models.license import License, LicenseType, LicenseFormat, LicenseStatus
+        from src.models.license import License, LicenseFormat, LicenseStatus, LicenseType
+
         licenses = []
         for lic_data in licenses_data:
-            licenses.append(License(
-                license_id=lic_data['license_id'],
-                name=lic_data['name'],
-                owner=lic_data['owner'],
-                publisher=lic_data['publisher'],
-                license_type=LicenseType(lic_data['license_type']),
-                license_format=LicenseFormat(lic_data['license_format']),
-                status=LicenseStatus(lic_data['status']),
-                file_path=Path(lic_data['file_path']) if lic_data.get('file_path') else None,
-                file_hash=lic_data.get('file_hash'),
-            ))
+            licenses.append(
+                License(
+                    license_id=lic_data["license_id"],
+                    name=lic_data["name"],
+                    owner=lic_data["owner"],
+                    publisher=lic_data["publisher"],
+                    license_type=LicenseType(lic_data["license_type"]),
+                    license_format=LicenseFormat(lic_data["license_format"]),
+                    status=LicenseStatus(lic_data["status"]),
+                    file_path=Path(lic_data["file_path"]) if lic_data.get("file_path") else None,
+                    file_hash=lic_data.get("file_hash"),
+                )
+            )
 
         console.print(f"\n[bold]Validating {len(licenses)} licenses...[/bold]")
 
@@ -139,15 +155,18 @@ def license_validate(license_file):
         # Find expiring licenses
         expiring = validator.find_expiring_licenses(licenses, days=30)
         if expiring:
-            console.print(f"\n[yellow]Warning: {len(expiring)} licenses expiring within 30 days[/yellow]")
+            console.print(
+                f"\n[yellow]Warning: {len(expiring)} licenses expiring within 30 days[/yellow]"
+            )
 
         # Generate report
         report = validator.generate_validation_report(licenses)
-        report_path = Path('data/license_validation_report.json')
+        report_path = Path("data/license_validation_report.json")
         report_path.parent.mkdir(parents=True, exist_ok=True)
 
         import json
-        with open(report_path, 'w') as f:
+
+        with open(report_path, "w") as f:
             json.dump(report, f, indent=2)
 
         console.print(f"\n[green]✓[/green] Validation report saved to {report_path}")
@@ -155,23 +174,24 @@ def license_validate(license_file):
     except Exception as e:
         console.print(f"[red]Error:[/red] {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 
 
-@license.command('ilok')
-@click.option('--export', '-e', type=click.Path(), help='Export to file')
+@license.command("ilok")
+@click.option("--export", "-e", type=click.Path(), help="Export to file")
 def license_ilok(export):
     """Scan for iLok licenses."""
     try:
         console.print("[bold cyan]iLok License Scanner[/bold cyan]")
-        console.print("="*50)
+        console.print("=" * 50)
 
         manager = iLokManager()
 
         # Check if iLok is installed
         info = manager.get_ilok_info()
-        if not info['installed']:
+        if not info["installed"]:
             console.print("[yellow]iLok License Manager not found[/yellow]")
             console.print("Please install iLok License Manager from https://www.ilok.com/")
             return
@@ -198,7 +218,7 @@ def license_ilok(export):
                     lic.product_name,
                     lic.publisher,
                     lic.location,
-                    lic.license_id[:16] + "..." if len(lic.license_id) > 16 else lic.license_id
+                    lic.license_id[:16] + "..." if len(lic.license_id) > 16 else lic.license_id,
                 )
 
             console.print(table)
@@ -215,29 +235,31 @@ def license_ilok(export):
     except Exception as e:
         console.print(f"[red]Error:[/red] {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 
 
-@license.command('info')
-@click.argument('license_file', type=click.Path(exists=True))
-@click.argument('license_id')
+@license.command("info")
+@click.argument("license_file", type=click.Path(exists=True))
+@click.argument("license_id")
 def license_info(license_file, license_id):
     """Show detailed information about a specific license."""
     try:
         console.print("[bold cyan]License Information[/bold cyan]")
-        console.print("="*50)
+        console.print("=" * 50)
 
         # Load licenses
         import json
-        with open(license_file, 'r') as f:
+
+        with open(license_file, "r") as f:
             data = json.load(f)
-            licenses_data = data.get('licenses', [])
+            licenses_data = data.get("licenses", [])
 
         # Find license
         license_data = None
         for lic in licenses_data:
-            if lic['license_id'] == license_id:
+            if lic["license_id"] == license_id:
                 license_data = lic
                 break
 
@@ -254,62 +276,72 @@ def license_info(license_file, license_id):
         console.print(f"Format: {license_data['license_format']}")
         console.print(f"Status: {license_data['status']}")
 
-        if license_data.get('file_path'):
+        if license_data.get("file_path"):
             console.print(f"File: {license_data['file_path']}")
 
-        if license_data.get('expiration_date'):
+        if license_data.get("expiration_date"):
             console.print(f"Expires: {license_data['expiration_date']}")
 
-        if license_data.get('installation_date'):
+        if license_data.get("installation_date"):
             console.print(f"Installed: {license_data['installation_date']}")
 
     except Exception as e:
         console.print(f"[red]Error:[/red] {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 
 
-@cli.command()
-@click.option('--scan-file', '-s', type=click.Path(exists=True), help='Scan results file (if not provided, will scan now)')
-@click.option('--remove-32bit', is_flag=True, help='Remove 32-bit VST2 plugins')
-@click.option('--list-only', is_flag=True, help='Only list 32-bit plugins without removing')
-@click.option('--dry-run/--execute', default=True, help='Dry run mode (default: true)')
-def cleanup(scan_file, remove_32bit, list_only, dry_run):
+@license.command("cleanup")
+@click.option(
+    "--scan-file",
+    "-s",
+    type=click.Path(exists=True),
+    help="Scan results file (if not provided, will scan now)",
+)
+@click.option("--remove-32bit", is_flag=True, help="Remove 32-bit VST2 plugins")
+@click.option("--list-only", is_flag=True, help="Only list 32-bit plugins without removing")
+@click.option("--dry-run/--execute", default=True, help="Dry run mode (default: true)")
+def license_cleanup(scan_file, remove_32bit, list_only, dry_run):
     """Cleanup plugins: remove 32-bit VST2 plugins and duplicates."""
     try:
         console.print("[bold cyan]Plugin Cleanup[/bold cyan]")
-        console.print("="*50)
+        console.print("=" * 50)
 
         # Load or perform scan
         scan_result = None
         if scan_file:
             console.print(f"\n[bold]Loading scan results from {scan_file}...[/bold]")
             import pickle
-            with open(scan_file, 'rb') as f:
+
+            with open(scan_file, "rb") as f:
                 scan_result = pickle.load(f)
         else:
             console.print("\n[bold]No scan file provided. Running quick plugin scan...[/bold]")
             # Run a quick scan
             from pathlib import Path
+
             config_manager = ConfigManager()
             scanner = FileScanner(
                 exclude_paths=config_manager.get_exclude_paths(),
-                max_workers=config_manager.get('scan.max_workers', 4),
-                verbose=False
+                max_workers=config_manager.get("scan.max_workers", 4),
+                verbose=False,
             )
             metadata_extractor = MetadataExtractor()
 
             scan_paths = config_manager.get_scan_paths()
-            vst2_ext = ['.dll']
+            vst2_ext = [".dll"]
             plugin_files = scanner.scan_parallel(scan_paths, vst2_ext)
 
             console.print(f"   Found {len(plugin_files)} VST2 files")
 
             # Build scan result
-            from src.models.scan_result import ComprehensiveScanResult
-            from datetime import datetime
             import uuid
+            from datetime import datetime
+
+            from src.models.scan_result import ComprehensiveScanResult
+
             scan_result = ComprehensiveScanResult(
                 scan_id=str(uuid.uuid4()),
                 scan_date=datetime.now(),
@@ -328,8 +360,8 @@ def cleanup(scan_file, remove_32bit, list_only, dry_run):
                         publisher=publisher,
                         plugin_type=plugin_type,
                         file_path=file_path,
-                        file_size=metadata['file_size'],
-                        file_hash=metadata['file_hash'],
+                        file_size=metadata["file_size"],
+                        file_hash=metadata["file_hash"],
                         architecture=architecture,
                     )
                     scan_result.plugins.append(plugin)
@@ -337,7 +369,7 @@ def cleanup(scan_file, remove_32bit, list_only, dry_run):
                     pass
 
         # Find 32-bit plugins
-        plugins_32bit = [p for p in scan_result.plugins if p.architecture == 'x86']
+        plugins_32bit = [p for p in scan_result.plugins if p.architecture == "x86"]
 
         console.print(f"\n[bold]Found {len(plugins_32bit)} 32-bit VST2 plugins[/bold]")
 
@@ -361,7 +393,7 @@ def cleanup(scan_file, remove_32bit, list_only, dry_run):
                 plugin.name[:30],
                 plugin.publisher[:20],
                 f"{size_mb} MB",
-                str(plugin.file_path)[:50] if plugin.file_path else ""
+                str(plugin.file_path)[:50] if plugin.file_path else "",
             )
 
         console.print(table)
@@ -381,7 +413,9 @@ def cleanup(scan_file, remove_32bit, list_only, dry_run):
         if dry_run:
             console.print(f"\n[yellow]DRY RUN MODE - No files will be removed[/yellow]")
         else:
-            if not click.confirm(f'\n[bold red]Remove {len(plugins_32bit)} 32-bit VST2 plugins? This cannot be undone![/bold red]'):
+            if not click.confirm(
+                f"\n[bold red]Remove {len(plugins_32bit)} 32-bit VST2 plugins? This cannot be undone![/bold red]"
+            ):
                 console.print("[yellow]Operation cancelled[/yellow]")
                 return
 
@@ -394,6 +428,7 @@ def cleanup(scan_file, remove_32bit, list_only, dry_run):
             try:
                 if not dry_run:
                     import os
+
                     if plugin.file_path and plugin.file_path.exists():
                         os.remove(plugin.file_path)
                         removed_count += 1
@@ -413,9 +448,10 @@ def cleanup(scan_file, remove_32bit, list_only, dry_run):
     except Exception as e:
         console.print(f"[red]Error:[/red] {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 
 
-if __name__ == '__main__':
-    cli()
+# Note: This module is imported by src/cli/__init__.py
+# Run commands via: python mpsm.py license <subcommand>

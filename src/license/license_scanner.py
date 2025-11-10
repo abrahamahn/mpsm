@@ -2,16 +2,14 @@
 
 import hashlib
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional, Dict
-from concurrent.futures import ThreadPoolExecutor
+from typing import Dict, List, Optional
 
-from ..core.logger import get_logger
 from ..core.config import ConfigManager
-from ..models.license import (
-    License, LicenseType, LicenseStatus, LicenseFormat, LicenseScanResult
-)
+from ..core.logger import get_logger
+from ..models.license import License, LicenseFormat, LicenseScanResult, LicenseStatus, LicenseType
 
 
 class LicenseScanner:
@@ -19,41 +17,37 @@ class LicenseScanner:
 
     # Known license file extensions
     LICENSE_EXTENSIONS = [
-        '.lic',
-        '.license',
-        '.key',
-        '.dat',  # Some vendors use .dat for licenses
-        '.rsa',  # RSA key files
-        '.nks',  # Native Instruments
-        '.ilok',  # iLok license files
+        ".lic",
+        ".license",
+        ".key",
+        ".dat",  # Some vendors use .dat for licenses
+        ".rsa",  # RSA key files
+        ".nks",  # Native Instruments
+        ".ilok",  # iLok license files
     ]
 
     # Known license file names (exact match)
     LICENSE_FILENAMES = [
-        'license.txt',
-        'license.dat',
-        'license.xml',
-        'activation.dat',
-        'auth.dat',
-        'serial.txt',
-        'registration.txt',
+        "license.txt",
+        "license.dat",
+        "license.xml",
+        "activation.dat",
+        "auth.dat",
+        "serial.txt",
+        "registration.txt",
     ]
 
     # Vendor-specific license file patterns
     VENDOR_PATTERNS = {
-        'Native Instruments': ['*.nks', '*.nkc', '*.nki'],
-        'iZotope': ['*.dat', 'auth.dat'],
-        'Waves': ['*.dat', '*.wpc'],
-        'Arturia': ['*.arturia'],
-        'FabFilter': ['*.license'],
-        'iLok': ['*.ilok', '*.ilic'],
+        "Native Instruments": ["*.nks", "*.nkc", "*.nki"],
+        "iZotope": ["*.dat", "auth.dat"],
+        "Waves": ["*.dat", "*.wpc"],
+        "Arturia": ["*.arturia"],
+        "FabFilter": ["*.license"],
+        "iLok": ["*.ilok", "*.ilic"],
     }
 
-    def __init__(
-        self,
-        config: Optional[ConfigManager] = None,
-        max_workers: int = 4
-    ):
+    def __init__(self, config: Optional[ConfigManager] = None, max_workers: int = 4):
         """
         Initialize license scanner.
 
@@ -68,10 +62,7 @@ class LicenseScanner:
         # Discovered licenses
         self.licenses: List[License] = []
 
-    def scan_for_licenses(
-        self,
-        scan_paths: Optional[List[str]] = None
-    ) -> LicenseScanResult:
+    def scan_for_licenses(self, scan_paths: Optional[List[str]] = None) -> LicenseScanResult:
         """
         Scan for all license files.
 
@@ -85,7 +76,7 @@ class LicenseScanner:
         self.licenses = []
 
         if scan_paths is None:
-            scan_paths = self.config.get('scan.paths', [])
+            scan_paths = self.config.get("scan.paths", [])
 
         self.logger.info(f"Scanning for licenses in {len(scan_paths)} paths...")
 
@@ -104,13 +95,15 @@ class LicenseScanner:
             scan_date=datetime.now(),
             total_licenses=len(self.licenses),
             licenses=self.licenses,
-            scanned_paths=[Path(p) for p in scan_paths]
+            scanned_paths=[Path(p) for p in scan_paths],
         )
 
         # Calculate statistics
         self._calculate_statistics(result)
 
-        self.logger.info(f"License scan complete: {len(self.licenses)} licenses found in {scan_duration:.2f}s")
+        self.logger.info(
+            f"License scan complete: {len(self.licenses)} licenses found in {scan_duration:.2f}s"
+        )
 
         return result
 
@@ -122,7 +115,7 @@ class LicenseScanner:
             directory: Directory to scan
         """
         try:
-            for item in directory.rglob('*'):
+            for item in directory.rglob("*"):
                 if item.is_file():
                     # Check if file is a license file
                     if self._is_license_file(item):
@@ -154,11 +147,11 @@ class LicenseScanner:
             return True
 
         # Check if 'license' in name
-        if 'license' in file_path.name.lower():
+        if "license" in file_path.name.lower():
             return True
 
         # Check if 'activation' in name
-        if 'activation' in file_path.name.lower():
+        if "activation" in file_path.name.lower():
             return True
 
         return False
@@ -192,7 +185,7 @@ class LicenseScanner:
             activation_code = None
             if file_path.stat().st_size < 10 * 1024:  # Only read small files
                 try:
-                    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
                         content = f.read()
                         # Extract potential key strings (alphanumeric sequences)
                         if len(content) < 1000:  # Reasonable size
@@ -236,9 +229,19 @@ class LicenseScanner:
 
         # Common vendor folder names
         vendors = [
-            'Native Instruments', 'iZotope', 'Waves', 'Arturia',
-            'FabFilter', 'Xfer', 'Spectrasonics', 'Serum', 'Kontakt',
-            'iLok', 'Steinberg', 'Image-Line', 'FL Studio'
+            "Native Instruments",
+            "iZotope",
+            "Waves",
+            "Arturia",
+            "FabFilter",
+            "Xfer",
+            "Spectrasonics",
+            "Serum",
+            "Kontakt",
+            "iLok",
+            "Steinberg",
+            "Image-Line",
+            "FL Studio",
         ]
 
         for part in path_parts:
@@ -265,11 +268,11 @@ class LicenseScanner:
         """
         ext = file_path.suffix.lower()
 
-        if ext == '.ilok' or ext == '.ilic':
+        if ext == ".ilok" or ext == ".ilic":
             return LicenseFormat.ILOK
-        elif ext in ['.lic', '.license', '.key']:
+        elif ext in [".lic", ".license", ".key"]:
             return LicenseFormat.FILE
-        elif ext in ['.dat']:
+        elif ext in [".dat"]:
             return LicenseFormat.FILE
         else:
             return LicenseFormat.FILE
@@ -286,8 +289,8 @@ class LicenseScanner:
         """
         try:
             sha256_hash = hashlib.sha256()
-            with open(file_path, 'rb') as f:
-                for chunk in iter(lambda: f.read(8192), b''):
+            with open(file_path, "rb") as f:
+                for chunk in iter(lambda: f.read(8192), b""):
                     sha256_hash.update(chunk)
             return sha256_hash.hexdigest()
         except Exception as e:
@@ -303,14 +306,17 @@ class LicenseScanner:
         """
         # Count by type
         for license in result.licenses:
-            result.licenses_by_type[license.license_type] = \
+            result.licenses_by_type[license.license_type] = (
                 result.licenses_by_type.get(license.license_type, 0) + 1
+            )
 
-            result.licenses_by_format[license.license_format] = \
+            result.licenses_by_format[license.license_format] = (
                 result.licenses_by_format.get(license.license_format, 0) + 1
+            )
 
-            result.licenses_by_status[license.status] = \
+            result.licenses_by_status[license.status] = (
                 result.licenses_by_status.get(license.status, 0) + 1
+            )
 
             # Count active/expired
             if license.status == LicenseStatus.ACTIVE:

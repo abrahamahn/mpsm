@@ -1,12 +1,12 @@
 """Metadata extraction from plugin files and executables."""
 
 import hashlib
-from pathlib import Path
-from typing import Optional, Dict, Any
 import struct
+from pathlib import Path
+from typing import Any, Dict, Optional
 
-from ..core.logger import get_logger
 from ..core.exceptions import MetadataExtractionException
+from ..core.logger import get_logger
 from ..models.plugin import PluginType, Version
 
 
@@ -16,20 +16,42 @@ class MetadataExtractor:
     # Blacklisted DLL patterns (NOT plugins - helper libs, installers, etc.)
     BLACKLISTED_PATTERNS = [
         # Waves internal libraries
-        'waveshell', 'waveslib', 'libmmd', 'innerprocess', 'wavesinit',
+        "waveshell",
+        "waveslib",
+        "libmmd",
+        "innerprocess",
+        "wavesinit",
         # Microsoft / Visual Studio
-        'microsoft.', 'visualstudio', 'vs_layout', '.resources.dll',
+        "microsoft.",
+        "visualstudio",
+        "vs_layout",
+        ".resources.dll",
         # ReWire / bridging
-        'rewire', 'jbridge', 'vst-bridge',
+        "rewire",
+        "jbridge",
+        "vst-bridge",
         # Installers / setup
-        'setup', 'installer', 'unins', 'install',
+        "setup",
+        "installer",
+        "unins",
+        "install",
         # Temp / cache indicators
-        'cache', 'temp', 'tmp',
+        "cache",
+        "temp",
+        "tmp",
         # Generic helper libs
-        'helper', 'util', 'common.dll', 'shared.dll',
+        "helper",
+        "util",
+        "common.dll",
+        "shared.dll",
     ]
 
-    def __init__(self, enable_vst_host: bool = False, enable_registry: bool = True, juce_host_path: Optional[Path] = None):
+    def __init__(
+        self,
+        enable_vst_host: bool = False,
+        enable_registry: bool = True,
+        juce_host_path: Optional[Path] = None,
+    ):
         """
         Initialize metadata extractor.
 
@@ -61,36 +83,33 @@ class MetadataExtractor:
             MetadataExtractionException: If extraction fails
         """
         if not file_path.exists():
-            raise MetadataExtractionException(
-                f"File not found: {file_path}"
-            )
+            raise MetadataExtractionException(f"File not found: {file_path}")
 
         try:
             stat = file_path.stat()
 
             metadata = {
-                'file_name': file_path.name,
-                'file_path': str(file_path),
-                'file_size': stat.st_size,
-                'file_size_mb': round(stat.st_size / (1024 * 1024), 2),
-                'modified_time': stat.st_mtime,
-                'created_time': stat.st_ctime,
-                'extension': file_path.suffix.lower(),
+                "file_name": file_path.name,
+                "file_path": str(file_path),
+                "file_size": stat.st_size,
+                "file_size_mb": round(stat.st_size / (1024 * 1024), 2),
+                "modified_time": stat.st_mtime,
+                "created_time": stat.st_ctime,
+                "extension": file_path.suffix.lower(),
             }
 
             # Calculate file hash
-            metadata['file_hash'] = self.calculate_file_hash(file_path)
+            metadata["file_hash"] = self.calculate_file_hash(file_path)
 
             return metadata
 
         except Exception as e:
             self.logger.error(f"Failed to extract metadata from {file_path}: {e}")
             raise MetadataExtractionException(
-                f"Failed to extract metadata",
-                {'file': str(file_path), 'error': str(e)}
+                f"Failed to extract metadata", {"file": str(file_path), "error": str(e)}
             )
 
-    def calculate_file_hash(self, file_path: Path, algorithm: str = 'sha256') -> str:
+    def calculate_file_hash(self, file_path: Path, algorithm: str = "sha256") -> str:
         """
         Calculate file hash.
 
@@ -104,9 +123,9 @@ class MetadataExtractor:
         hash_func = hashlib.new(algorithm)
 
         try:
-            with open(file_path, 'rb') as f:
+            with open(file_path, "rb") as f:
                 # Read file in chunks to handle large files
-                for chunk in iter(lambda: f.read(8192), b''):
+                for chunk in iter(lambda: f.read(8192), b""):
                     hash_func.update(chunk)
 
             return hash_func.hexdigest()
@@ -127,16 +146,16 @@ class MetadataExtractor:
         """
         extension = file_path.suffix.lower()
 
-        if extension == '.vst3':
+        if extension == ".vst3":
             return PluginType.VST3
-        elif extension == '.dll':
+        elif extension == ".dll":
             # Could be VST2 - would need deeper inspection to confirm
             return PluginType.VST2
-        elif extension == '.aax':
+        elif extension == ".aax":
             return PluginType.AAX
-        elif extension == '.clap':
+        elif extension == ".clap":
             return PluginType.CLAP
-        elif extension in ['.component', '.vst']:
+        elif extension in [".component", ".vst"]:
             return PluginType.AU
         else:
             return PluginType.UNKNOWN
@@ -156,44 +175,44 @@ class MetadataExtractor:
             pefile library to extract detailed PE header information.
         """
         metadata = self.extract_file_metadata(file_path)
-        metadata['plugin_type'] = PluginType.VST2.value
+        metadata["plugin_type"] = PluginType.VST2.value
 
         try:
             # Try to extract basic PE information
-            with open(file_path, 'rb') as f:
+            with open(file_path, "rb") as f:
                 # Read DOS header
                 dos_header = f.read(64)
                 if len(dos_header) < 64:
                     return metadata
 
                 # Check for MZ signature
-                if dos_header[0:2] != b'MZ':
+                if dos_header[0:2] != b"MZ":
                     return metadata
 
                 # Get PE header offset
-                pe_offset = struct.unpack('<I', dos_header[60:64])[0]
+                pe_offset = struct.unpack("<I", dos_header[60:64])[0]
                 f.seek(pe_offset)
 
                 # Read PE signature
                 pe_sig = f.read(4)
-                if pe_sig != b'PE\0\0':
+                if pe_sig != b"PE\0\0":
                     return metadata
 
                 # Read architecture from Machine field
-                machine = struct.unpack('<H', f.read(2))[0]
+                machine = struct.unpack("<H", f.read(2))[0]
 
-                if machine == 0x014c:  # IMAGE_FILE_MACHINE_I386
-                    metadata['architecture'] = 'x86'
+                if machine == 0x014C:  # IMAGE_FILE_MACHINE_I386
+                    metadata["architecture"] = "x86"
                 elif machine == 0x8664:  # IMAGE_FILE_MACHINE_AMD64
-                    metadata['architecture'] = 'x64'
-                elif machine == 0xaa64:  # IMAGE_FILE_MACHINE_ARM64
-                    metadata['architecture'] = 'ARM64'
+                    metadata["architecture"] = "x64"
+                elif machine == 0xAA64:  # IMAGE_FILE_MACHINE_ARM64
+                    metadata["architecture"] = "ARM64"
                 else:
-                    metadata['architecture'] = 'Unknown'
+                    metadata["architecture"] = "Unknown"
 
         except Exception as e:
             self.logger.debug(f"Could not extract PE metadata from {file_path}: {e}")
-            metadata['architecture'] = 'x64'  # Default assumption
+            metadata["architecture"] = "x64"  # Default assumption
 
         return metadata
 
@@ -212,21 +231,22 @@ class MetadataExtractor:
             This is a simplified implementation.
         """
         metadata = self.extract_file_metadata(file_path)
-        metadata['plugin_type'] = PluginType.VST3.value
-        metadata['architecture'] = 'x64'  # VST3 is typically 64-bit
+        metadata["plugin_type"] = PluginType.VST3.value
+        metadata["architecture"] = "x64"  # VST3 is typically 64-bit
 
         # On Windows, VST3 files are typically in .vst3 folders
         # Could inspect moduleinfo.json inside the bundle for more info
         if file_path.is_dir():
-            moduleinfo = file_path / 'Contents' / 'moduleinfo.json'
+            moduleinfo = file_path / "Contents" / "moduleinfo.json"
             if moduleinfo.exists():
                 try:
                     import json
-                    with open(moduleinfo, 'r') as f:
+
+                    with open(moduleinfo, "r") as f:
                         info = json.load(f)
-                        metadata['version'] = info.get('version', 'Unknown')
-                        metadata['vendor'] = info.get('vendor', 'Unknown')
-                        metadata['name'] = info.get('name', file_path.stem)
+                        metadata["version"] = info.get("version", "Unknown")
+                        metadata["vendor"] = info.get("vendor", "Unknown")
+                        metadata["name"] = info.get("name", file_path.stem)
                 except Exception as e:
                     self.logger.debug(f"Could not read moduleinfo.json: {e}")
 
@@ -243,8 +263,8 @@ class MetadataExtractor:
             Dictionary with metadata
         """
         metadata = self.extract_file_metadata(file_path)
-        metadata['plugin_type'] = PluginType.AAX.value
-        metadata['architecture'] = 'x64'
+        metadata["plugin_type"] = PluginType.AAX.value
+        metadata["architecture"] = "x64"
 
         return metadata
 
@@ -278,17 +298,17 @@ class MetadataExtractor:
             For DLL files, reads PE header. Otherwise checks path for indicators.
         """
         # For DLL files, extract from PE header
-        if file_path.suffix.lower() == '.dll':
+        if file_path.suffix.lower() == ".dll":
             dll_metadata = self.extract_dll_metadata(file_path)
-            return dll_metadata.get('architecture', 'x64')
+            return dll_metadata.get("architecture", "x64")
 
         # Check path for 32-bit indicators
         path_str = str(file_path).lower()
-        if 'program files (x86)' in path_str or 'x86' in path_str:
-            return 'x86'
+        if "program files (x86)" in path_str or "x86" in path_str:
+            return "x86"
 
         # Default to x64 for modern plugins
-        return 'x64'
+        return "x64"
 
     def is_blacklisted(self, file_path: Path) -> bool:
         """
@@ -310,7 +330,9 @@ class MetadataExtractor:
 
         return False
 
-    def is_valid_plugin_file(self, file_path: Path, min_size_mb: float = 0.1, max_size_mb: float = 500) -> bool:
+    def is_valid_plugin_file(
+        self, file_path: Path, min_size_mb: float = 0.1, max_size_mb: float = 500
+    ) -> bool:
         """
         Validate if file is likely a real plugin.
 
@@ -342,21 +364,21 @@ class MetadataExtractor:
         extension = file_path.suffix.lower()
 
         # VST2 (DLL): Check for VST signatures
-        if extension == '.dll':
+        if extension == ".dll":
             # Lightweight check: scan file for VST signatures
             if not self.has_vst_signature(file_path):
                 return False
 
         # VST3: Always valid (folder or bundle)
-        elif extension == '.vst3':
+        elif extension == ".vst3":
             return True
 
         # AAX: Always valid (Pro Tools plugins)
-        elif extension == '.aax':
+        elif extension == ".aax":
             return True
 
         # CLAP: Always valid (CLAP format)
-        elif extension == '.clap':
+        elif extension == ".clap":
             return True
 
         return True
@@ -376,23 +398,23 @@ class MetadataExtractor:
             Not 100% accurate but catches most false positives.
         """
         try:
-            with open(dll_path, 'rb') as f:
+            with open(dll_path, "rb") as f:
                 # Read first 128KB for better coverage (many VST2 plugins have signatures further in)
                 data = f.read(131072)
 
                 # Check for VST-related signatures
                 vst_signatures = [
-                    b'VSTPluginMain',
-                    b'VstPlugin',
-                    b'VST',
-                    b'VSTXML',
-                    b'AudioEffect',
-                    b'AEffect',
-                    b'VSTi',
-                    b'VSTx',
+                    b"VSTPluginMain",
+                    b"VstPlugin",
+                    b"VST",
+                    b"VSTXML",
+                    b"AudioEffect",
+                    b"AEffect",
+                    b"VSTi",
+                    b"VSTx",
                     # Additional common VST2 exports
-                    b'main',
-                    b'MAIN',
+                    b"main",
+                    b"MAIN",
                 ]
 
                 for sig in vst_signatures:
@@ -425,99 +447,99 @@ class MetadataExtractor:
         # Known publishers (keyword -> publisher name mapping)
         publishers = {
             # Major vendors
-            'waves': 'Waves',
-            'izotope': 'iZotope',
-            'fabfilter': 'FabFilter',
-            'native instruments': 'Native Instruments',
-            'arturia': 'Arturia',
-            'plugin alliance': 'Plugin Alliance',
-            'xfer': 'Xfer Records',
-            'serum': 'Xfer Records',
-            'sylenth': 'LennarDigital',
-            'massive': 'Native Instruments',
-            'kontakt': 'Native Instruments',
-            'omnisphere': 'Spectrasonics',
-            'keyscape': 'Spectrasonics',
-            'spectrasonics': 'Spectrasonics',
+            "waves": "Waves",
+            "izotope": "iZotope",
+            "fabfilter": "FabFilter",
+            "native instruments": "Native Instruments",
+            "arturia": "Arturia",
+            "plugin alliance": "Plugin Alliance",
+            "xfer": "Xfer Records",
+            "serum": "Xfer Records",
+            "sylenth": "LennarDigital",
+            "massive": "Native Instruments",
+            "kontakt": "Native Instruments",
+            "omnisphere": "Spectrasonics",
+            "keyscape": "Spectrasonics",
+            "spectrasonics": "Spectrasonics",
             # Additional vendors from user's installation
-            'zynaptiq': 'Zynaptiq',
-            'air music': 'Air Music Technology',
-            'baby audio': 'Baby Audio',
-            'devious': 'DeviousMachines',
-            'discodsp': 'discoDSP',
-            'eventide': 'Eventide',
-            'fielding': 'Fielding DSP',
-            'hofa': 'HOFA',
-            'klanghelm': 'Klanghelm',
-            'klevgrand': 'Klevgrand',
-            'korg': 'KORG',
-            'kv331': 'KV331 Audio',
-            'lennardigital': 'LenndarDigital',
-            'newfangled': 'Newfangled Audio',
-            'ohm force': 'Ohm Force',
-            'plugin boutique': 'Plugin Boutique',
-            'press play': 'Press Play',
-            'propellerhead': 'Propellerhead',
-            'refx': 'reFX',
-            'softube': 'Softube',
-            'sonarworks': 'Sonarworks',
-            'sonic charge': 'Sonic Charge',
-            'sonnox': 'Sonnox',
-            'sononym': 'Sononym',
-            'tokyo dawn': 'Tokyo Dawn Labs',
-            'u-he': 'u-he',
-            'vital': 'Vital',
-            'voxengo': 'Voxengo',
-            'xln audio': 'XLN Audio',
-            'youlean': 'Youlean',
-            'fl cloud': 'FL Cloud Plugins',
-            'image-line': 'Image-Line',
-            'fl studio': 'Image-Line',
-            'ableton': 'Ableton',
-            'steinberg': 'Steinberg',
-            'avid': 'Avid',
+            "zynaptiq": "Zynaptiq",
+            "air music": "Air Music Technology",
+            "baby audio": "Baby Audio",
+            "devious": "DeviousMachines",
+            "discodsp": "discoDSP",
+            "eventide": "Eventide",
+            "fielding": "Fielding DSP",
+            "hofa": "HOFA",
+            "klanghelm": "Klanghelm",
+            "klevgrand": "Klevgrand",
+            "korg": "KORG",
+            "kv331": "KV331 Audio",
+            "lennardigital": "LenndarDigital",
+            "newfangled": "Newfangled Audio",
+            "ohm force": "Ohm Force",
+            "plugin boutique": "Plugin Boutique",
+            "press play": "Press Play",
+            "propellerhead": "Propellerhead",
+            "refx": "reFX",
+            "softube": "Softube",
+            "sonarworks": "Sonarworks",
+            "sonic charge": "Sonic Charge",
+            "sonnox": "Sonnox",
+            "sononym": "Sononym",
+            "tokyo dawn": "Tokyo Dawn Labs",
+            "u-he": "u-he",
+            "vital": "Vital",
+            "voxengo": "Voxengo",
+            "xln audio": "XLN Audio",
+            "youlean": "Youlean",
+            "fl cloud": "FL Cloud Plugins",
+            "image-line": "Image-Line",
+            "fl studio": "Image-Line",
+            "ableton": "Ableton",
+            "steinberg": "Steinberg",
+            "avid": "Avid",
             # Additional vendors from user's comprehensive plugin list
-            'aberrant dsp': 'Aberrant DSP',
-            'acustica': 'Acustica Audio',
-            'antelope audio': 'Antelope Audio',
-            'audiothing': 'AudioThing',
-            'black rooster': 'Black Rooster Audio',
-            'boz digital': 'Boz Digital Labs',
-            'cableguys': 'Cableguys',
-            'caelum audio': 'Caelum Audio',
-            'd16': 'D16',
-            'dada life': 'Dada Life',
-            'fiedler audio': 'Fiedler Audio',
-            'future audio workshop': 'Future Audio Workshop',
-            'faw': 'Future Audio Workshop',
-            'ignite amps': 'Ignite Amps',
-            'kilohearts': 'Kilohearts',
-            'meldaproduction': 'MeldaProduction',
-            'mixed in key': 'Mixed In Key',
-            'oeksound': 'Oeksound',
-            'output': 'Output',
-            'polyverse': 'Polyverse',
-            'presonus': 'PreSonus',
-            'reason studios': 'Reason Studios',
-            'reveal sound': 'Reveal Sound',
-            'schrammel': 'Schrammel',
-            'serato': 'Serato',
-            'shattered glass': 'Shattered Glass Audio',
-            'slate digital': 'Slate Digital',
-            'sonible': 'Sonible',
-            'sonic academy': 'Sonic Academy',
-            'soundtheory': 'Soundtheory',
-            'soundtoys': 'Soundtoys',
-            'tal': 'TAL',
-            'tokyo dawn records': 'Tokyo Dawn Records',
-            'tdr': 'Tokyo Dawn Records',
-            'united plugins': 'United Plugins',
-            'valhalla': 'Valhalla',
-            'vengeance': 'Vengeance',
-            'wavesfactory': 'Wavesfactory',
-            'wavetracing': 'waveTracing',
-            'reaper': 'Reaper',
-            'cockos': 'Cockos',
+            "aberrant dsp": "Aberrant DSP",
+            "acustica": "Acustica Audio",
+            "antelope audio": "Antelope Audio",
+            "audiothing": "AudioThing",
+            "black rooster": "Black Rooster Audio",
+            "boz digital": "Boz Digital Labs",
+            "cableguys": "Cableguys",
+            "caelum audio": "Caelum Audio",
+            "d16": "D16",
+            "dada life": "Dada Life",
+            "fiedler audio": "Fiedler Audio",
+            "future audio workshop": "Future Audio Workshop",
+            "faw": "Future Audio Workshop",
+            "ignite amps": "Ignite Amps",
+            "kilohearts": "Kilohearts",
+            "meldaproduction": "MeldaProduction",
+            "mixed in key": "Mixed In Key",
+            "oeksound": "Oeksound",
+            "output": "Output",
+            "polyverse": "Polyverse",
+            "presonus": "PreSonus",
+            "reason studios": "Reason Studios",
+            "reveal sound": "Reveal Sound",
+            "schrammel": "Schrammel",
+            "serato": "Serato",
+            "shattered glass": "Shattered Glass Audio",
+            "slate digital": "Slate Digital",
+            "sonible": "Sonible",
+            "sonic academy": "Sonic Academy",
+            "soundtheory": "Soundtheory",
+            "soundtoys": "Soundtoys",
+            "tal": "TAL",
+            "tokyo dawn records": "Tokyo Dawn Records",
+            "tdr": "Tokyo Dawn Records",
+            "united plugins": "United Plugins",
+            "valhalla": "Valhalla",
+            "vengeance": "Vengeance",
+            "wavesfactory": "Wavesfactory",
+            "wavetracing": "waveTracing",
+            "reaper": "Reaper",
+            "cockos": "Cockos",
         }
 
         for keyword, publisher in publishers.items():
@@ -560,10 +582,10 @@ class MetadataExtractor:
         """
         try:
             # Remove 'v' prefix if present
-            version_str = version_str.lower().strip().lstrip('v')
+            version_str = version_str.lower().strip().lstrip("v")
 
             # Split by dots
-            parts = version_str.split('.')
+            parts = version_str.split(".")
 
             if len(parts) < 2:
                 return None
@@ -593,19 +615,23 @@ class MetadataExtractor:
             # Try to use pefile if available
             try:
                 import pefile
-                pe = pefile.PE(str(file_path), fast_load=True)
-                pe.parse_data_directories(directories=[
-                    pefile.DIRECTORY_ENTRY['IMAGE_DIRECTORY_ENTRY_RESOURCE']
-                ])
 
-                if hasattr(pe, 'FileInfo'):
+                pe = pefile.PE(str(file_path), fast_load=True)
+                pe.parse_data_directories(
+                    directories=[pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_RESOURCE"]]
+                )
+
+                if hasattr(pe, "FileInfo"):
                     for file_info in pe.FileInfo:
                         for entry in file_info:
-                            if hasattr(entry, 'StringTable'):
+                            if hasattr(entry, "StringTable"):
                                 for st_entry in entry.StringTable:
                                     for key, value in st_entry.entries.items():
-                                        if key.decode('utf-8', errors='ignore').lower() in ['fileversion', 'productversion']:
-                                            version_str = value.decode('utf-8', errors='ignore')
+                                        if key.decode("utf-8", errors="ignore").lower() in [
+                                            "fileversion",
+                                            "productversion",
+                                        ]:
+                                            version_str = value.decode("utf-8", errors="ignore")
                                             version = self.parse_version_string(version_str)
                                             if version:
                                                 return version
@@ -619,8 +645,9 @@ class MetadataExtractor:
             # Fallback: try to extract from filename
             filename = file_path.stem
             import re
+
             # Look for version patterns like v1.2.3, 1.2.3, etc.
-            version_pattern = r'[vV]?(\d+)[\._](\d+)[\._]?(\d+)?[\._]?(\d+)?'
+            version_pattern = r"[vV]?(\d+)[\._](\d+)[\._]?(\d+)?[\._]?(\d+)?"
             match = re.search(version_pattern, filename)
             if match:
                 major = int(match.group(1))
@@ -649,11 +676,11 @@ class MetadataExtractor:
         # Create ID based on publisher + name + file hash (first 8 chars)
         try:
             file_hash = self.calculate_file_hash(file_path)
-            plugin_id = f"{publisher}_{name}_{file_hash[:8]}".replace(' ', '_').replace('-', '_')
+            plugin_id = f"{publisher}_{name}_{file_hash[:8]}".replace(" ", "_").replace("-", "_")
             return plugin_id
         except:
             # Fallback to name-based ID
-            return f"{publisher}_{name}".replace(' ', '_').replace('-', '_')
+            return f"{publisher}_{name}".replace(" ", "_").replace("-", "_")
 
     def detect_plugin_category(self, file_path: Path, name: str, publisher: str) -> str:
         """
@@ -671,113 +698,183 @@ class MetadataExtractor:
         path_lower = str(file_path).lower()
 
         # Instrument categories
-        if any(keyword in name_lower for keyword in [
-            'piano', 'keys', 'keyboard', 'electric piano', 'grand', 'upright'
-        ]):
-            return 'inst_piano'
+        if any(
+            keyword in name_lower
+            for keyword in ["piano", "keys", "keyboard", "electric piano", "grand", "upright"]
+        ):
+            return "inst_piano"
 
-        if any(keyword in name_lower for keyword in [
-            'synth', 'synthesizer', 'analog', 'wavetable', 'fm', 'additive',
-            'serum', 'sylenth', 'massive', 'omnisphere', 'diva', 'repro'
-        ]):
-            return 'inst_synth'
+        if any(
+            keyword in name_lower
+            for keyword in [
+                "synth",
+                "synthesizer",
+                "analog",
+                "wavetable",
+                "fm",
+                "additive",
+                "serum",
+                "sylenth",
+                "massive",
+                "omnisphere",
+                "diva",
+                "repro",
+            ]
+        ):
+            return "inst_synth"
 
-        if any(keyword in name_lower for keyword in [
-            'drum', 'beat', 'percussion', 'kick', 'snare', 'hat',
-            'battery', 'superior drummer', 'addictive drums'
-        ]):
-            return 'inst_drums'
+        if any(
+            keyword in name_lower
+            for keyword in [
+                "drum",
+                "beat",
+                "percussion",
+                "kick",
+                "snare",
+                "hat",
+                "battery",
+                "superior drummer",
+                "addictive drums",
+            ]
+        ):
+            return "inst_drums"
 
-        if any(keyword in name_lower for keyword in [
-            'strings', 'orchestra', 'violin', 'cello', 'brass', 'woodwind',
-            'kontakt', 'spitfire', 'orchestral'
-        ]):
-            return 'inst_orchestral'
+        if any(
+            keyword in name_lower
+            for keyword in [
+                "strings",
+                "orchestra",
+                "violin",
+                "cello",
+                "brass",
+                "woodwind",
+                "kontakt",
+                "spitfire",
+                "orchestral",
+            ]
+        ):
+            return "inst_orchestral"
 
-        if any(keyword in name_lower for keyword in [
-            'bass', 'sub', 'trilian', 'scarbee'
-        ]):
-            return 'inst_bass'
+        if any(keyword in name_lower for keyword in ["bass", "sub", "trilian", "scarbee"]):
+            return "inst_bass"
 
-        if any(keyword in name_lower for keyword in [
-            'guitar', 'strum', 'acoustic', 'electric guitar'
-        ]):
-            return 'inst_guitar'
+        if any(
+            keyword in name_lower for keyword in ["guitar", "strum", "acoustic", "electric guitar"]
+        ):
+            return "inst_guitar"
 
-        if any(keyword in name_lower for keyword in [
-            'rompler', 'sample', 'sampler', 'library', 'multisample'
-        ]):
-            return 'inst_rompler'
+        if any(
+            keyword in name_lower
+            for keyword in ["rompler", "sample", "sampler", "library", "multisample"]
+        ):
+            return "inst_rompler"
 
         # Effect categories
-        if any(keyword in name_lower for keyword in [
-            'eq', 'equalizer', 'equalization', 'filter', 'pro-q', 'fabfilter q'
-        ]):
-            return 'fx_eq'
+        if any(
+            keyword in name_lower
+            for keyword in ["eq", "equalizer", "equalization", "filter", "pro-q", "fabfilter q"]
+        ):
+            return "fx_eq"
 
-        if any(keyword in name_lower for keyword in [
-            'compressor', 'compression', 'dynamics', 'limiter', 'pro-c', 'pro-l',
-            '1176', 'la-2a', 'ssl comp', 'vca', 'opto'
-        ]):
-            return 'fx_compressor'
+        if any(
+            keyword in name_lower
+            for keyword in [
+                "compressor",
+                "compression",
+                "dynamics",
+                "limiter",
+                "pro-c",
+                "pro-l",
+                "1176",
+                "la-2a",
+                "ssl comp",
+                "vca",
+                "opto",
+            ]
+        ):
+            return "fx_compressor"
 
-        if any(keyword in name_lower for keyword in [
-            'reverb', 'room', 'hall', 'chamber', 'plate', 'spring',
-            'valhalla', 'convolution', 'altiverb'
-        ]):
-            return 'fx_reverb'
+        if any(
+            keyword in name_lower
+            for keyword in [
+                "reverb",
+                "room",
+                "hall",
+                "chamber",
+                "plate",
+                "spring",
+                "valhalla",
+                "convolution",
+                "altiverb",
+            ]
+        ):
+            return "fx_reverb"
 
-        if any(keyword in name_lower for keyword in [
-            'delay', 'echo', 'repeat', 'tape delay', 'ping pong'
-        ]):
-            return 'fx_delay'
+        if any(
+            keyword in name_lower
+            for keyword in ["delay", "echo", "repeat", "tape delay", "ping pong"]
+        ):
+            return "fx_delay"
 
-        if any(keyword in name_lower for keyword in [
-            'distortion', 'saturation', 'overdrive', 'fuzz', 'clipper',
-            'decapitator', 'saturn'
-        ]):
-            return 'fx_distortion'
+        if any(
+            keyword in name_lower
+            for keyword in [
+                "distortion",
+                "saturation",
+                "overdrive",
+                "fuzz",
+                "clipper",
+                "decapitator",
+                "saturn",
+            ]
+        ):
+            return "fx_distortion"
 
-        if any(keyword in name_lower for keyword in [
-            'modulation', 'chorus', 'flanger', 'phaser', 'tremolo', 'vibrato'
-        ]):
-            return 'fx_modulation'
+        if any(
+            keyword in name_lower
+            for keyword in ["modulation", "chorus", "flanger", "phaser", "tremolo", "vibrato"]
+        ):
+            return "fx_modulation"
 
-        if any(keyword in name_lower for keyword in [
-            'gate', 'noise gate', 'expander', 'transient'
-        ]):
-            return 'fx_gate'
+        if any(
+            keyword in name_lower for keyword in ["gate", "noise gate", "expander", "transient"]
+        ):
+            return "fx_gate"
 
-        if any(keyword in name_lower for keyword in [
-            'pitch', 'autotune', 'melodyne', 'pitch correct', 'tuning'
-        ]):
-            return 'fx_pitch'
+        if any(
+            keyword in name_lower
+            for keyword in ["pitch", "autotune", "melodyne", "pitch correct", "tuning"]
+        ):
+            return "fx_pitch"
 
-        if any(keyword in name_lower for keyword in [
-            'master', 'mastering', 'finalizer', 'ozone', 'isotope mastering'
-        ]):
-            return 'fx_mastering'
+        if any(
+            keyword in name_lower
+            for keyword in ["master", "mastering", "finalizer", "ozone", "isotope mastering"]
+        ):
+            return "fx_mastering"
 
-        if any(keyword in name_lower for keyword in [
-            'utility', 'tool', 'meter', 'analyzer', 'spectrum', 'phase'
-        ]):
-            return 'fx_utility'
+        if any(
+            keyword in name_lower
+            for keyword in ["utility", "tool", "meter", "analyzer", "spectrum", "phase"]
+        ):
+            return "fx_utility"
 
         # Check if it's likely an instrument or effect based on common patterns
-        if any(keyword in name_lower for keyword in [
-            'vsti', 'instrument', 'inst', 'player'
-        ]) or 'vsti' in path_lower:
-            return 'inst_other'
+        if (
+            any(keyword in name_lower for keyword in ["vsti", "instrument", "inst", "player"])
+            or "vsti" in path_lower
+        ):
+            return "inst_other"
 
-        if any(keyword in name_lower for keyword in [
-            'fx', 'effect', 'process'
-        ]):
-            return 'fx_other'
+        if any(keyword in name_lower for keyword in ["fx", "effect", "process"]):
+            return "fx_other"
 
         # Default
-        return 'unknown'
+        return "unknown"
 
-    def find_registry_key_for_plugin(self, file_path: Path, plugin_name: str, plugin_type: PluginType) -> Optional[str]:
+    def find_registry_key_for_plugin(
+        self, file_path: Path, plugin_name: str, plugin_type: PluginType
+    ) -> Optional[str]:
         """
         Find registry key associated with a plugin.
 
@@ -792,7 +889,8 @@ class MetadataExtractor:
         try:
             # Only works on Windows
             import platform
-            if platform.system() != 'Windows':
+
+            if platform.system() != "Windows":
                 return None
 
             import winreg
@@ -802,13 +900,13 @@ class MetadataExtractor:
 
             if plugin_type == PluginType.VST2:
                 registry_locations = [
-                    (winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\VST'),
-                    (winreg.HKEY_CURRENT_USER, r'Software\VST'),
+                    (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\VST"),
+                    (winreg.HKEY_CURRENT_USER, r"Software\VST"),
                 ]
             elif plugin_type == PluginType.VST3:
                 registry_locations = [
-                    (winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\VST3'),
-                    (winreg.HKEY_CURRENT_USER, r'Software\VST3'),
+                    (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\VST3"),
+                    (winreg.HKEY_CURRENT_USER, r"Software\VST3"),
                 ]
 
             # Search for plugin in registry
@@ -837,10 +935,15 @@ class MetadataExtractor:
                                 j = 0
                                 while True:
                                     try:
-                                        value_name, value_data, value_type = winreg.EnumValue(subkey, j)
+                                        value_name, value_data, value_type = winreg.EnumValue(
+                                            subkey, j
+                                        )
 
                                         # Check if value contains file path
-                                        if isinstance(value_data, str) and value_data.lower() in file_path_str:
+                                        if (
+                                            isinstance(value_data, str)
+                                            and value_data.lower() in file_path_str
+                                        ):
                                             full_path = f"{hkey}\\{subkey_path}\\{subkey_name}"
                                             winreg.CloseKey(subkey)
                                             winreg.CloseKey(key)
@@ -869,9 +972,7 @@ class MetadataExtractor:
         return None
 
     def extract_comprehensive_metadata(
-        self,
-        file_path: Path,
-        plugin_type: PluginType
+        self, file_path: Path, plugin_type: PluginType
     ) -> Dict[str, Any]:
         """
         Extract comprehensive metadata using all available methods.
@@ -891,7 +992,7 @@ class MetadataExtractor:
         """
         # Start with basic file metadata
         metadata = self.extract_file_metadata(file_path)
-        metadata['plugin_type'] = plugin_type
+        metadata["plugin_type"] = plugin_type
 
         # Add PE-based metadata
         if plugin_type == PluginType.VST2:
@@ -907,13 +1008,12 @@ class MetadataExtractor:
         # Extract version from PE
         version = self.extract_version_from_pe(file_path)
         if version:
-            metadata['version'] = version
+            metadata["version"] = version
 
         # Extract from registry if enabled
         if self.enable_registry:
             registry_metadata = self._get_registry_metadata(
-                file_path,
-                metadata.get('file_name', file_path.stem)
+                file_path, metadata.get("file_name", file_path.stem)
             )
             if registry_metadata:
                 metadata.update(registry_metadata)
@@ -931,17 +1031,14 @@ class MetadataExtractor:
         if self._registry_scanner is None:
             try:
                 from .registry_metadata import RegistryMetadataScanner
+
                 self._registry_scanner = RegistryMetadataScanner()
             except ImportError as e:
                 self.logger.debug(f"Registry scanner not available: {e}")
                 self._registry_scanner = False  # Don't try again
         return self._registry_scanner if self._registry_scanner is not False else None
 
-    def _get_registry_metadata(
-        self,
-        file_path: Path,
-        plugin_name: str
-    ) -> Optional[Dict[str, Any]]:
+    def _get_registry_metadata(self, file_path: Path, plugin_name: str) -> Optional[Dict[str, Any]]:
         """
         Get metadata from Windows registry.
 
@@ -999,32 +1096,32 @@ class MetadataExtractor:
                 # Map JUCE host data to our metadata format
                 metadata = {}
 
-                if vst_data.get('plugin_id'):
-                    metadata['plugin_id'] = vst_data['plugin_id']
+                if vst_data.get("plugin_id"):
+                    metadata["plugin_id"] = vst_data["plugin_id"]
 
-                if vst_data.get('plugin_id_hex'):
-                    metadata['plugin_id_hex'] = vst_data['plugin_id_hex']
+                if vst_data.get("plugin_id_hex"):
+                    metadata["plugin_id_hex"] = vst_data["plugin_id_hex"]
 
-                if vst_data.get('name'):
-                    metadata['vst_name'] = vst_data['name']
+                if vst_data.get("name"):
+                    metadata["vst_name"] = vst_data["name"]
 
-                if vst_data.get('vendor'):
-                    metadata['vst_vendor'] = vst_data['vendor']
+                if vst_data.get("vendor"):
+                    metadata["vst_vendor"] = vst_data["vendor"]
 
-                if vst_data.get('category'):
-                    metadata['vst_category'] = vst_data['category']
+                if vst_data.get("category"):
+                    metadata["vst_category"] = vst_data["category"]
 
-                if vst_data.get('version'):
-                    metadata['vst_version'] = vst_data['version']
+                if vst_data.get("version"):
+                    metadata["vst_version"] = vst_data["version"]
 
-                if vst_data.get('num_inputs'):
-                    metadata['num_inputs'] = vst_data['num_inputs']
+                if vst_data.get("num_inputs"):
+                    metadata["num_inputs"] = vst_data["num_inputs"]
 
-                if vst_data.get('num_outputs'):
-                    metadata['num_outputs'] = vst_data['num_outputs']
+                if vst_data.get("num_outputs"):
+                    metadata["num_outputs"] = vst_data["num_outputs"]
 
-                if vst_data.get('is_synth'):
-                    metadata['is_synth'] = vst_data['is_synth']
+                if vst_data.get("is_synth"):
+                    metadata["is_synth"] = vst_data["is_synth"]
 
                 return metadata
 

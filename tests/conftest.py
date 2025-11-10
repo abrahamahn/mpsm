@@ -1,10 +1,11 @@
 """Pytest fixtures and configuration."""
 
-import pytest
-from pathlib import Path
-import tempfile
 import shutil
+import tempfile
+from pathlib import Path
 from typing import Generator
+
+import pytest
 
 
 @pytest.fixture
@@ -64,30 +65,30 @@ safety:
 def mock_vendor_data() -> dict:
     """Mock vendor data for testing."""
     return {
-        'vendors': {
-            'native_instruments': {
-                'name': 'Native Instruments',
-                'patterns': ['native instruments', 'komplete', 'kontakt'],
-                'folders': ['Native Instruments', 'NI Resources'],
-                'executables': ['Native Access.exe'],
-                'daw_executables': [],
-                'standalone_executables': ['Kontakt*.exe']
+        "vendors": {
+            "native_instruments": {
+                "name": "Native Instruments",
+                "patterns": ["native instruments", "komplete", "kontakt"],
+                "folders": ["Native Instruments", "NI Resources"],
+                "executables": ["Native Access.exe"],
+                "daw_executables": [],
+                "standalone_executables": ["Kontakt*.exe"],
             },
-            'waves': {
-                'name': 'Waves',
-                'patterns': ['waves audio', 'waves'],
-                'folders': ['Waves Audio', 'WavesData'],
-                'executables': ['WavesCentral.exe'],
-                'daw_executables': [],
-                'standalone_executables': []
+            "waves": {
+                "name": "Waves",
+                "patterns": ["waves audio", "waves"],
+                "folders": ["Waves Audio", "WavesData"],
+                "executables": ["WavesCentral.exe"],
+                "daw_executables": [],
+                "standalone_executables": [],
             },
-            'fl_studio': {
-                'name': 'Image-Line',
-                'patterns': ['image-line', 'fl studio', 'flstudio'],
-                'folders': ['Image-Line', 'FL Studio'],
-                'executables': [],
-                'daw_executables': ['FL64.exe', 'FL.exe'],
-                'standalone_executables': []
-            }
+            "fl_studio": {
+                "name": "Image-Line",
+                "patterns": ["image-line", "fl studio", "flstudio"],
+                "folders": ["Image-Line", "FL Studio"],
+                "executables": [],
+                "daw_executables": ["FL64.exe", "FL.exe"],
+                "standalone_executables": [],
+            },
         }
     }

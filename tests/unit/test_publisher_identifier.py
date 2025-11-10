@@ -1,11 +1,11 @@
 """Unit tests for publisher_identifier."""
 
-import pytest
 from pathlib import Path
-from src.scanner.metadata.publisher_identifier import (
-    identify_publisher_from_path,
-    identify_publisher_from_metadata
-)
+
+import pytest
+
+from src.scanner.metadata.publisher_identifier import (identify_publisher_from_metadata,
+                                                       identify_publisher_from_path)
 
 
 class TestPublisherIdentifierFromPath:
@@ -142,10 +142,7 @@ class TestPublisherIdentifierFromMetadata:
     def test_fallback_to_company_name(self):
         """Test that it falls back to company name when no pattern matches."""
         # When no pattern matches, should return company name
-        publisher = identify_publisher_from_metadata(
-            "Generic Plugin v1.0",
-            "Small Audio Company"
-        )
+        publisher = identify_publisher_from_metadata("Generic Plugin v1.0", "Small Audio Company")
         assert publisher == "Small Audio Company"
 
     def test_unknown_when_no_match(self):
@@ -158,7 +155,9 @@ class TestPublisherIdentifierFromMetadata:
 
         for product_name, company_name in test_cases:
             publisher = identify_publisher_from_metadata(product_name, company_name)
-            assert publisher == "Unknown", f"Should return Unknown for: {product_name}, {company_name}"
+            assert (
+                publisher == "Unknown"
+            ), f"Should return Unknown for: {product_name}, {company_name}"
 
     def test_case_insensitive_metadata_matching(self):
         """Test that metadata matching is case-insensitive."""
@@ -215,7 +214,11 @@ class TestPublisherIdentifierIntegration:
         test_cases = [
             (Path("C:/Native Instruments/Kontakt.dll"), "Kontakt", "Native Instruments"),
             (Path("C:/Waves/Plugin.dll"), "Waves C6", "Waves"),
-            (Path("C:/FabFilter/ProQ.dll"), "FabFilter Pro-Q 3", "FabFilter"),  # Fixed: include vendor name in product
+            (
+                Path("C:/FabFilter/ProQ.dll"),
+                "FabFilter Pro-Q 3",
+                "FabFilter",
+            ),  # Fixed: include vendor name in product
         ]
 
         for path, product_name, expected_publisher in test_cases:

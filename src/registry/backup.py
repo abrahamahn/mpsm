@@ -9,11 +9,11 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import List, Optional
 
-from ..core.logger import get_logger
 from ..core.exceptions import RegistryException
+from ..core.logger import get_logger
 from ..models.registry import RegistryBackup
 
-IS_WINDOWS = platform.system() == 'Windows'
+IS_WINDOWS = platform.system() == "Windows"
 
 
 class RegistryBackupManager:
@@ -44,17 +44,17 @@ class RegistryBackupManager:
         """Load backup metadata from file."""
         if self.metadata_file.exists():
             try:
-                with open(self.metadata_file, 'r') as f:
+                with open(self.metadata_file, "r") as f:
                     return json.load(f)
             except Exception as e:
                 self.logger.warning(f"Could not load backup metadata: {e}")
 
-        return {'backups': []}
+        return {"backups": []}
 
     def _save_metadata(self) -> None:
         """Save backup metadata to file."""
         try:
-            with open(self.metadata_file, 'w') as f:
+            with open(self.metadata_file, "w") as f:
                 json.dump(self.metadata, f, indent=2, default=str)
         except Exception as e:
             self.logger.error(f"Could not save backup metadata: {e}")
@@ -86,10 +86,10 @@ class RegistryBackupManager:
 
         try:
             # Export each key to .reg file
-            with open(backup_path, 'w', encoding='utf-16le') as f:
+            with open(backup_path, "w", encoding="utf-16le") as f:
                 # Write .reg file header
-                f.write('\ufeff')  # BOM for UTF-16LE
-                f.write('Windows Registry Editor Version 5.00\n\n')
+                f.write("\ufeff")  # BOM for UTF-16LE
+                f.write("Windows Registry Editor Version 5.00\n\n")
 
                 for key in keys:
                     try:
@@ -97,20 +97,20 @@ class RegistryBackupManager:
                         temp_file = self.backup_dir / f"temp_{backup_id}.reg"
 
                         result = subprocess.run(
-                            ['reg', 'export', key, str(temp_file), '/y'],
+                            ["reg", "export", key, str(temp_file), "/y"],
                             capture_output=True,
                             text=True,
-                            check=False
+                            check=False,
                         )
 
                         if result.returncode == 0 and temp_file.exists():
                             # Read exported content (skip header)
-                            with open(temp_file, 'r', encoding='utf-16le') as temp_f:
+                            with open(temp_file, "r", encoding="utf-16le") as temp_f:
                                 lines = temp_f.readlines()
                                 # Skip first 2 lines (header)
-                                content = ''.join(lines[2:])
+                                content = "".join(lines[2:])
                                 f.write(content)
-                                f.write('\n')
+                                f.write("\n")
 
                             temp_file.unlink()
                             self.logger.debug(f"Backed up key: {key}")
@@ -130,14 +130,16 @@ class RegistryBackupManager:
             )
 
             # Save metadata
-            self.metadata['backups'].append({
-                'backup_id': backup_id,
-                'backup_date': backup_date.isoformat(),
-                'description': description,
-                'keys_count': len(keys),
-                'keys': keys,
-                'file': str(backup_path),
-            })
+            self.metadata["backups"].append(
+                {
+                    "backup_id": backup_id,
+                    "backup_date": backup_date.isoformat(),
+                    "description": description,
+                    "keys_count": len(keys),
+                    "keys": keys,
+                    "file": str(backup_path),
+                }
+            )
             self._save_metadata()
 
             self.logger.info(f"✓ Created backup {backup_id} with {len(keys)} keys")
@@ -145,7 +147,7 @@ class RegistryBackupManager:
 
         except Exception as e:
             self.logger.error(f"Failed to create backup: {e}")
-            raise RegistryException(f"Backup failed", {'error': str(e)})
+            raise RegistryException(f"Backup failed", {"error": str(e)})
 
     def _create_mock_backup(self, keys: List[str], description: str = "") -> RegistryBackup:
         """Create a mock backup for testing on non-Windows systems."""
@@ -156,14 +158,14 @@ class RegistryBackupManager:
 
         # Save mock backup
         mock_data = {
-            'backup_id': backup_id,
-            'backup_date': backup_date.isoformat(),
-            'description': description,
-            'keys': keys,
-            'mock': True,
+            "backup_id": backup_id,
+            "backup_date": backup_date.isoformat(),
+            "description": description,
+            "keys": keys,
+            "mock": True,
         }
 
-        with open(backup_path, 'w') as f:
+        with open(backup_path, "w") as f:
             json.dump(mock_data, f, indent=2)
 
         backup = RegistryBackup(
@@ -175,15 +177,17 @@ class RegistryBackupManager:
         )
 
         # Save metadata
-        self.metadata['backups'].append({
-            'backup_id': backup_id,
-            'backup_date': backup_date.isoformat(),
-            'description': description,
-            'keys_count': len(keys),
-            'keys': keys,
-            'file': str(backup_path),
-            'mock': True,
-        })
+        self.metadata["backups"].append(
+            {
+                "backup_id": backup_id,
+                "backup_date": backup_date.isoformat(),
+                "description": description,
+                "keys_count": len(keys),
+                "keys": keys,
+                "file": str(backup_path),
+                "mock": True,
+            }
+        )
         self._save_metadata()
 
         return backup
@@ -203,8 +207,8 @@ class RegistryBackupManager:
         """
         # Find backup
         backup_info = None
-        for backup in self.metadata['backups']:
-            if backup['backup_id'] == backup_id:
+        for backup in self.metadata["backups"]:
+            if backup["backup_id"] == backup_id:
                 backup_info = backup
                 break
 
@@ -215,7 +219,7 @@ class RegistryBackupManager:
             self.logger.warning("Not on Windows - mock restore")
             return True
 
-        backup_file = Path(backup_info['file'])
+        backup_file = Path(backup_info["file"])
         if not backup_file.exists():
             raise RegistryException(f"Backup file not found: {backup_file}")
 
@@ -224,10 +228,7 @@ class RegistryBackupManager:
         try:
             # Use reg.exe to import .reg file
             result = subprocess.run(
-                ['reg', 'import', str(backup_file)],
-                capture_output=True,
-                text=True,
-                check=False
+                ["reg", "import", str(backup_file)], capture_output=True, text=True, check=False
             )
 
             if result.returncode == 0:
@@ -239,7 +240,7 @@ class RegistryBackupManager:
 
         except Exception as e:
             self.logger.error(f"Failed to restore backup: {e}")
-            raise RegistryException(f"Restore failed", {'error': str(e)})
+            raise RegistryException(f"Restore failed", {"error": str(e)})
 
     def list_backups(self) -> List[dict]:
         """
@@ -248,7 +249,7 @@ class RegistryBackupManager:
         Returns:
             List of backup information dictionaries
         """
-        return self.metadata.get('backups', [])
+        return self.metadata.get("backups", [])
 
     def get_backup_info(self, backup_id: str) -> Optional[dict]:
         """
@@ -260,8 +261,8 @@ class RegistryBackupManager:
         Returns:
             Backup info dictionary or None if not found
         """
-        for backup in self.metadata['backups']:
-            if backup['backup_id'] == backup_id:
+        for backup in self.metadata["backups"]:
+            if backup["backup_id"] == backup_id:
                 return backup
         return None
 
@@ -282,14 +283,13 @@ class RegistryBackupManager:
 
         try:
             # Delete backup file
-            backup_file = Path(backup_info['file'])
+            backup_file = Path(backup_info["file"])
             if backup_file.exists():
                 backup_file.unlink()
 
             # Remove from metadata
-            self.metadata['backups'] = [
-                b for b in self.metadata['backups']
-                if b['backup_id'] != backup_id
+            self.metadata["backups"] = [
+                b for b in self.metadata["backups"] if b["backup_id"] != backup_id
             ]
             self._save_metadata()
 
@@ -315,11 +315,11 @@ class RegistryBackupManager:
 
         backups_to_delete = []
 
-        for backup in self.metadata['backups']:
-            backup_date = datetime.fromisoformat(backup['backup_date'])
+        for backup in self.metadata["backups"]:
+            backup_date = datetime.fromisoformat(backup["backup_date"])
 
             if backup_date < cutoff_date:
-                backups_to_delete.append(backup['backup_id'])
+                backups_to_delete.append(backup["backup_id"])
 
         for backup_id in backups_to_delete:
             if self.delete_backup(backup_id):
@@ -344,7 +344,7 @@ class RegistryBackupManager:
         if not backup_info:
             return False
 
-        backup_file = Path(backup_info['file'])
+        backup_file = Path(backup_info["file"])
         if not backup_file.exists():
             self.logger.error(f"Backup file missing: {backup_file}")
             return False

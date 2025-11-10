@@ -1,12 +1,13 @@
 """PE (Portable Executable) header parsing for Windows binaries."""
 
-from pathlib import Path
-from typing import Optional, Dict, Any
-import struct
 import re
+import struct
+from pathlib import Path
+from typing import Any, Dict, Optional
 
 try:
     import pefile
+
     HAS_PEFILE = True
 except ImportError:
     HAS_PEFILE = False
@@ -29,9 +30,11 @@ def extract_version_from_pe(file_path: Path) -> Optional[Version]:
 
     try:
         pe = pefile.PE(str(file_path), fast_load=True)
-        pe.parse_data_directories(directories=[pefile.DIRECTORY_ENTRY['IMAGE_DIRECTORY_ENTRY_RESOURCE']])
+        pe.parse_data_directories(
+            directories=[pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_RESOURCE"]]
+        )
 
-        if hasattr(pe, 'VS_FIXEDFILEINFO') and pe.VS_FIXEDFILEINFO:
+        if hasattr(pe, "VS_FIXEDFILEINFO") and pe.VS_FIXEDFILEINFO:
             version_info = pe.VS_FIXEDFILEINFO[0]
 
             major = version_info.FileVersionMS >> 16
@@ -42,14 +45,14 @@ def extract_version_from_pe(file_path: Path) -> Optional[Version]:
                 return Version(major=major, minor=minor, patch=patch)
 
         # Try version string
-        if hasattr(pe, 'FileInfo'):
+        if hasattr(pe, "FileInfo"):
             for file_info in pe.FileInfo:
                 for entry in file_info:
-                    if hasattr(entry, 'StringTable'):
+                    if hasattr(entry, "StringTable"):
                         for st in entry.StringTable:
                             for key, value in st.entries.items():
-                                if key in [b'FileVersion', b'ProductVersion']:
-                                    version_str = value.decode('utf-8', errors='ignore')
+                                if key in [b"FileVersion", b"ProductVersion"]:
+                                    version_str = value.decode("utf-8", errors="ignore")
                                     parsed = parse_version_string(version_str)
                                     if parsed:
                                         return parsed
@@ -75,19 +78,23 @@ def get_product_name(file_path: Path) -> str:
 
     try:
         pe = pefile.PE(str(file_path), fast_load=True)
-        pe.parse_data_directories(directories=[pefile.DIRECTORY_ENTRY['IMAGE_DIRECTORY_ENTRY_RESOURCE']])
+        pe.parse_data_directories(
+            directories=[pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_RESOURCE"]]
+        )
 
-        if hasattr(pe, 'FileInfo'):
+        if hasattr(pe, "FileInfo"):
             for file_info in pe.FileInfo:
                 for entry in file_info:
-                    if hasattr(entry, 'StringTable'):
+                    if hasattr(entry, "StringTable"):
                         for st in entry.StringTable:
                             for key, value in st.entries.items():
-                                if key in [b'ProductName', b'InternalName', b'OriginalFilename']:
-                                    product_name = value.decode('utf-8', errors='ignore').strip()
-                                    if product_name and product_name.lower() not in ['', 'null']:
+                                if key in [b"ProductName", b"InternalName", b"OriginalFilename"]:
+                                    product_name = value.decode("utf-8", errors="ignore").strip()
+                                    if product_name and product_name.lower() not in ["", "null"]:
                                         # Clean up extension if present
-                                        product_name = product_name.replace('.dll', '').replace('.exe', '')
+                                        product_name = product_name.replace(".dll", "").replace(
+                                            ".exe", ""
+                                        )
                                         return product_name
 
     except Exception:
@@ -111,17 +118,19 @@ def get_company_name(file_path: Path) -> str:
 
     try:
         pe = pefile.PE(str(file_path), fast_load=True)
-        pe.parse_data_directories(directories=[pefile.DIRECTORY_ENTRY['IMAGE_DIRECTORY_ENTRY_RESOURCE']])
+        pe.parse_data_directories(
+            directories=[pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_RESOURCE"]]
+        )
 
-        if hasattr(pe, 'FileInfo'):
+        if hasattr(pe, "FileInfo"):
             for file_info in pe.FileInfo:
                 for entry in file_info:
-                    if hasattr(entry, 'StringTable'):
+                    if hasattr(entry, "StringTable"):
                         for st in entry.StringTable:
                             for key, value in st.entries.items():
-                                if key == b'CompanyName':
-                                    company = value.decode('utf-8', errors='ignore').strip()
-                                    if company and company.lower() not in ['', 'null', 'unknown']:
+                                if key == b"CompanyName":
+                                    company = value.decode("utf-8", errors="ignore").strip()
+                                    if company and company.lower() not in ["", "null", "unknown"]:
                                         return company
 
     except Exception:
@@ -142,26 +151,26 @@ def detect_architecture(file_path: Path) -> str:
     """
     try:
         # Read PE header
-        with open(file_path, 'rb') as f:
+        with open(file_path, "rb") as f:
             # Read DOS header
             dos_header = f.read(64)
-            if len(dos_header) < 64 or dos_header[:2] != b'MZ':
+            if len(dos_header) < 64 or dos_header[:2] != b"MZ":
                 return "unknown"
 
             # Get PE header offset
-            pe_offset = struct.unpack('<I', dos_header[60:64])[0]
+            pe_offset = struct.unpack("<I", dos_header[60:64])[0]
 
             # Read PE header
             f.seek(pe_offset)
             pe_signature = f.read(4)
-            if pe_signature != b'PE\x00\x00':
+            if pe_signature != b"PE\x00\x00":
                 return "unknown"
 
             # Read machine type (2 bytes after PE signature)
-            machine_type = struct.unpack('<H', f.read(2))[0]
+            machine_type = struct.unpack("<H", f.read(2))[0]
 
             # Machine types
-            IMAGE_FILE_MACHINE_I386 = 0x014c   # x86
+            IMAGE_FILE_MACHINE_I386 = 0x014C  # x86
             IMAGE_FILE_MACHINE_AMD64 = 0x8664  # x64
 
             if machine_type == IMAGE_FILE_MACHINE_AMD64:
@@ -186,10 +195,10 @@ def parse_version_string(version_str: str) -> Optional[Version]:
         Version object or None
     """
     # Remove non-digit prefixes
-    version_str = re.sub(r'^[vV]', '', version_str.strip())
+    version_str = re.sub(r"^[vV]", "", version_str.strip())
 
     # Extract numbers
-    parts = re.findall(r'\d+', version_str)
+    parts = re.findall(r"\d+", version_str)
 
     if not parts:
         return None

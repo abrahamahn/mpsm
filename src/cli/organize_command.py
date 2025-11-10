@@ -1,7 +1,7 @@
 """Organize command - consolidate and organize music production software."""
 
-import sys
 import json
+import sys
 from pathlib import Path
 
 import click
@@ -12,23 +12,33 @@ from rich.table import Table
 from ..core.config import ConfigManager
 from ..core.logger import get_logger
 from ..models.scan_result import ComprehensiveScanResult
-from ..organizer.structure_builder import StructureBuilder
-from ..organizer.file_mover import FileMover
 from ..organizer.consolidator import Consolidator
+from ..organizer.file_mover import FileMover
+from ..organizer.structure_builder import StructureBuilder
 
 console = Console()
+
+
+@click.command()
+@click.option(
+    "--scan-file", "-s", type=click.Path(exists=True), required=True, help="Scan results file"
+)
+@click.option("--dry-run/--execute", default=True, help="Dry run mode (default: true)")
+@click.option("--approve", "-y", is_flag=True, help="Auto-approve all prompts")
 def organize(scan_file, dry_run, approve):
     """Organize and consolidate plugins into clean structure."""
     try:
         console.print("[bold cyan]Plugin Organizer[/bold cyan]")
-        console.print("="*50)
+        console.print("=" * 50)
 
         # Load configuration
         config = ConfigManager()
 
         # Override dry_run from config if specified
         if not dry_run:
-            if not approve and not click.confirm('\n[yellow]This will move files. Continue?[/yellow]'):
+            if not approve and not click.confirm(
+                "\n[yellow]This will move files. Continue?[/yellow]"
+            ):
                 console.print("[yellow]Operation cancelled[/yellow]")
                 return
 
@@ -49,14 +59,14 @@ def organize(scan_file, dry_run, approve):
             # Run quick scan
             scanner = FileScanner(
                 exclude_paths=config.get_exclude_paths(),
-                max_workers=config.get('scan.max_workers', 4),
-                verbose=False
+                max_workers=config.get("scan.max_workers", 4),
+                verbose=False,
             )
 
             metadata_extractor = MetadataExtractor()
             scan_paths = config.get_scan_paths()
-            vst2_ext = config.get('scan.extensions.plugins.vst2', ['.dll'])
-            vst3_ext = config.get('scan.extensions.plugins.vst3', ['.vst3'])
+            vst2_ext = config.get("scan.extensions.plugins.vst2", [".dll"])
+            vst3_ext = config.get("scan.extensions.plugins.vst3", [".vst3"])
             all_extensions = vst2_ext + vst3_ext
 
             plugin_files = scanner.scan_parallel(scan_paths, all_extensions)
@@ -79,8 +89,8 @@ def organize(scan_file, dry_run, approve):
                         publisher=publisher,
                         plugin_type=plugin_type,
                         file_path=file_path,
-                        file_size=metadata['file_size'],
-                        file_hash=metadata['file_hash'],
+                        file_size=metadata["file_size"],
+                        file_hash=metadata["file_hash"],
                     )
 
                     scan_result.plugins.append(plugin)
@@ -128,11 +138,7 @@ def organize(scan_file, dry_run, approve):
             table.add_column("Type", style="yellow")
 
             for source, dest, is_folder in plan.move_operations[:5]:
-                table.add_row(
-                    str(source)[-60:],
-                    str(dest)[-60:],
-                    "Folder" if is_folder else "File"
-                )
+                table.add_row(str(source)[-60:], str(dest)[-60:], "Folder" if is_folder else "File")
 
             console.print(table)
 
@@ -147,7 +153,7 @@ def organize(scan_file, dry_run, approve):
 
         # Confirm execution
         if not dry_run and not approve:
-            if not click.confirm('\nProceed with consolidation?'):
+            if not click.confirm("\nProceed with consolidation?"):
                 console.print("[yellow]Operation cancelled[/yellow]")
                 return
 
@@ -172,7 +178,9 @@ def organize(scan_file, dry_run, approve):
         console.print(table)
 
         if result.operations_failed > 0:
-            console.print(f"\n[yellow]⚠ Consolidation completed with {result.operations_failed} failures[/yellow]")
+            console.print(
+                f"\n[yellow]⚠ Consolidation completed with {result.operations_failed} failures[/yellow]"
+            )
         else:
             console.print(f"\n[bold green]✓ Consolidation completed successfully![/bold green]")
 
@@ -182,7 +190,6 @@ def organize(scan_file, dry_run, approve):
     except Exception as e:
         console.print(f"\n[red]Unexpected error:[/red] {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
-
-

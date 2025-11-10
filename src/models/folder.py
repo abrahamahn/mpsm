@@ -9,6 +9,7 @@ from typing import Dict, List, Optional
 
 class FolderType(Enum):
     """Folder type classification."""
+
     PLUGIN_INSTALLATION = "Plugin Installation"
     PRESETS = "Presets"
     SAMPLES = "Samples"
@@ -50,17 +51,17 @@ class DataFolder:
             Dictionary representation
         """
         return {
-            'path': str(self.path),
-            'type': self.folder_type.value,
-            'owner': self.owner or "",
-            'file_count': self.file_count,
-            'size_mb': round(self.total_size / (1024 * 1024), 2),
-            'size_gb': round(self.total_size / (1024 * 1024 * 1024), 3),
-            'parent_plugin': self.parent_plugin or "",
-            'parent_application': self.parent_application or "",
-            'created_date': self.created_date.isoformat() if self.created_date else "",
-            'modified_date': self.modified_date.isoformat() if self.modified_date else "",
-            'file_types': ', '.join(f"{ext}:{count}" for ext, count in self.file_types.items()),
+            "path": str(self.path),
+            "type": self.folder_type.value,
+            "owner": self.owner or "",
+            "file_count": self.file_count,
+            "size_mb": round(self.total_size / (1024 * 1024), 2),
+            "size_gb": round(self.total_size / (1024 * 1024 * 1024), 3),
+            "parent_plugin": self.parent_plugin or "",
+            "parent_application": self.parent_application or "",
+            "created_date": self.created_date.isoformat() if self.created_date else "",
+            "modified_date": self.modified_date.isoformat() if self.modified_date else "",
+            "file_types": ", ".join(f"{ext}:{count}" for ext, count in self.file_types.items()),
         }
 
     def add_file_type(self, extension: str, count: int = 1) -> None:
@@ -82,7 +83,11 @@ class DataFolder:
 
     def __str__(self) -> str:
         """User-friendly string representation."""
-        size_str = f"{self.get_size_gb():.2f} GB" if self.total_size > 1024**3 else f"{self.get_size_mb():.2f} MB"
+        size_str = (
+            f"{self.get_size_gb():.2f} GB"
+            if self.total_size > 1024**3
+            else f"{self.get_size_mb():.2f} MB"
+        )
         return f"{self.path.name} ({self.folder_type.value}, {self.file_count} files, {size_str})"
 
 
@@ -129,16 +134,16 @@ class PluginInstallation:
             Dictionary representation
         """
         return {
-            'plugin_name': self.plugin_name,
-            'publisher': self.publisher,
-            'plugin_files_count': len(self.plugin_files),
-            'executables_count': len(self.executables),
-            'data_folders_count': len(self.data_folders),
-            'install_root': str(self.install_root) if self.install_root else "",
-            'total_size_gb': round(self.total_size / (1024 * 1024 * 1024), 3),
-            'registry_keys_count': len(self.registry_keys),
-            'plugin_files': ', '.join(str(p) for p in self.plugin_files),
-            'executables': ', '.join(str(p) for p in self.executables),
+            "plugin_name": self.plugin_name,
+            "publisher": self.publisher,
+            "plugin_files_count": len(self.plugin_files),
+            "executables_count": len(self.executables),
+            "data_folders_count": len(self.data_folders),
+            "install_root": str(self.install_root) if self.install_root else "",
+            "total_size_gb": round(self.total_size / (1024 * 1024 * 1024), 3),
+            "registry_keys_count": len(self.registry_keys),
+            "plugin_files": ", ".join(str(p) for p in self.plugin_files),
+            "executables": ", ".join(str(p) for p in self.executables),
         }
 
     def calculate_total_size(self) -> int:
@@ -174,4 +179,6 @@ class PluginInstallation:
     def __str__(self) -> str:
         """User-friendly string representation."""
         size_gb = round(self.total_size / (1024 * 1024 * 1024), 2)
-        return f"{self.plugin_name} by {self.publisher} ({len(self.plugin_files)} files, {size_gb} GB)"
+        return (
+            f"{self.plugin_name} by {self.publisher} ({len(self.plugin_files)} files, {size_gb} GB)"
+        )

@@ -1,18 +1,18 @@
 """Plugin installation consolidator."""
 
 from dataclasses import dataclass, field
-from pathlib import Path
-from typing import List, Dict, Optional
 from datetime import datetime
+from pathlib import Path
+from typing import Dict, List, Optional
 
-from ..core.logger import get_logger
 from ..core.config import ConfigManager
 from ..core.exceptions import FileOperationException
-from ..models.scan_result import ComprehensiveScanResult
-from ..models.plugin import Plugin
+from ..core.logger import get_logger
 from ..models.folder import PluginInstallation
-from .structure_builder import StructureBuilder
+from ..models.plugin import Plugin
+from ..models.scan_result import ComprehensiveScanResult
 from .file_mover import FileMover, MoveOperation
+from .structure_builder import StructureBuilder
 
 
 @dataclass
@@ -32,16 +32,16 @@ class ConsolidationPlan:
     def to_dict(self) -> dict:
         """Convert to dictionary."""
         return {
-            'plan_id': self.plan_id,
-            'created_date': self.created_date.isoformat(),
-            'total_plugins': self.total_plugins,
-            'total_folders': self.total_folders,
-            'total_size_mb': round(self.total_size_bytes / (1024 * 1024), 2),
-            'total_size_gb': round(self.total_size_bytes / (1024 ** 3), 2),
-            'operations_count': len(self.move_operations),
-            'registry_updates_count': len(self.registry_updates),
-            'conflicts_count': len(self.conflicts),
-            'warnings_count': len(self.warnings),
+            "plan_id": self.plan_id,
+            "created_date": self.created_date.isoformat(),
+            "total_plugins": self.total_plugins,
+            "total_folders": self.total_folders,
+            "total_size_mb": round(self.total_size_bytes / (1024 * 1024), 2),
+            "total_size_gb": round(self.total_size_bytes / (1024**3), 2),
+            "operations_count": len(self.move_operations),
+            "registry_updates_count": len(self.registry_updates),
+            "conflicts_count": len(self.conflicts),
+            "warnings_count": len(self.warnings),
         }
 
     def get_summary(self) -> str:
@@ -84,26 +84,24 @@ class ConsolidationResult:
     def to_dict(self) -> dict:
         """Convert to dictionary."""
         return {
-            'plan_id': self.plan_id,
-            'execution_date': self.execution_date.isoformat(),
-            'duration_seconds': round(self.duration_seconds, 2),
-            'operations_attempted': self.operations_attempted,
-            'operations_successful': self.operations_successful,
-            'operations_failed': self.operations_failed,
-            'registry_updates_successful': self.registry_updates_successful,
-            'registry_updates_failed': self.registry_updates_failed,
-            'success_rate': round((self.operations_successful / max(self.operations_attempted, 1)) * 100, 1),
+            "plan_id": self.plan_id,
+            "execution_date": self.execution_date.isoformat(),
+            "duration_seconds": round(self.duration_seconds, 2),
+            "operations_attempted": self.operations_attempted,
+            "operations_successful": self.operations_successful,
+            "operations_failed": self.operations_failed,
+            "registry_updates_successful": self.registry_updates_successful,
+            "registry_updates_failed": self.registry_updates_failed,
+            "success_rate": round(
+                (self.operations_successful / max(self.operations_attempted, 1)) * 100, 1
+            ),
         }
 
 
 class Consolidator:
     """Consolidates complete plugin installations."""
 
-    def __init__(
-        self,
-        config: Optional[ConfigManager] = None,
-        dry_run: bool = True
-    ):
+    def __init__(self, config: Optional[ConfigManager] = None, dry_run: bool = True):
         """
         Initialize consolidator.
 
@@ -118,10 +116,7 @@ class Consolidator:
         self.structure_builder = StructureBuilder(self.config)
         self.file_mover = FileMover(dry_run=dry_run)
 
-    def plan_consolidation(
-        self,
-        scan_result: ComprehensiveScanResult
-    ) -> ConsolidationPlan:
+    def plan_consolidation(self, scan_result: ComprehensiveScanResult) -> ConsolidationPlan:
         """
         Create consolidation plan from scan results.
 
@@ -132,6 +127,7 @@ class Consolidator:
             ConsolidationPlan
         """
         import uuid
+
         plan_id = str(uuid.uuid4())[:8]
 
         self.logger.info(f"Creating consolidation plan {plan_id}...")
@@ -141,7 +137,7 @@ class Consolidator:
             created_date=datetime.now(),
             total_plugins=len(scan_result.plugins),
             total_folders=len(scan_result.data_folders),
-            total_size_bytes=0
+            total_size_bytes=0,
         )
 
         # Plan moves for each plugin
@@ -164,12 +160,14 @@ class Consolidator:
 
             # Plan registry update if plugin has registry key
             if plugin.registry_key:
-                plan.registry_updates.append({
-                    'key_path': plugin.registry_key,
-                    'value_name': 'Path',  # Common value name
-                    'old_path': str(plugin.file_path),
-                    'new_path': str(target_path),
-                })
+                plan.registry_updates.append(
+                    {
+                        "key_path": plugin.registry_key,
+                        "value_name": "Path",  # Common value name
+                        "old_path": str(plugin.file_path),
+                        "new_path": str(target_path),
+                    }
+                )
 
         # Plan moves for data folders
         for folder in scan_result.data_folders:
@@ -199,9 +197,7 @@ class Consolidator:
         return plan
 
     def execute_consolidation(
-        self,
-        plan: ConsolidationPlan,
-        create_backup: bool = True
+        self, plan: ConsolidationPlan, create_backup: bool = True
     ) -> ConsolidationResult:
         """
         Execute consolidation plan.
@@ -252,24 +248,22 @@ class Consolidator:
 
         # Execute registry updates (if not dry run)
         if not self.dry_run and plan.registry_updates:
-            result.registry_updates_successful, result.registry_updates_failed = \
+            result.registry_updates_successful, result.registry_updates_failed = (
                 self._execute_registry_updates(plan.registry_updates)
+            )
 
         result.duration_seconds = time.time() - start_time
 
         if result.operations_failed > 0:
-            self.logger.warning(
-                f"Consolidation completed with {result.operations_failed} failures"
-            )
+            self.logger.warning(f"Consolidation completed with {result.operations_failed} failures")
         else:
-            self.logger.info(f"✓ Consolidation completed successfully in {result.duration_seconds:.2f}s")
+            self.logger.info(
+                f"✓ Consolidation completed successfully in {result.duration_seconds:.2f}s"
+            )
 
         return result
 
-    def _execute_registry_updates(
-        self,
-        updates: List[Dict]
-    ) -> tuple[int, int]:
+    def _execute_registry_updates(self, updates: List[Dict]) -> tuple[int, int]:
         """
         Execute registry updates.
 
@@ -294,10 +288,7 @@ class Consolidator:
             self.logger.error(f"Registry updates failed: {e}")
             return 0, len(updates)
 
-    def create_installation_plan(
-        self,
-        installation: PluginInstallation
-    ) -> Dict[str, Path]:
+    def create_installation_plan(self, installation: PluginInstallation) -> Dict[str, Path]:
         """
         Create plan to move an entire plugin installation.
 
@@ -329,15 +320,15 @@ class Consolidator:
             )
 
             # Detect plugin type from extension
-            if plugin_file.suffix.lower() == '.vst3':
+            if plugin_file.suffix.lower() == ".vst3":
                 plugin.plugin_type = PluginType.VST3
-            elif plugin_file.suffix.lower() == '.dll':
+            elif plugin_file.suffix.lower() == ".dll":
                 plugin.plugin_type = PluginType.VST2
-            elif plugin_file.suffix.lower() == '.aax':
+            elif plugin_file.suffix.lower() == ".aax":
                 plugin.plugin_type = PluginType.AAX
 
             target = self.structure_builder.map_plugin_file_location(plugin)
-            plan[f'plugin_file_{i}'] = target
+            plan[f"plugin_file_{i}"] = target
 
         # Map executables
         for i, exe_file in enumerate(installation.executables):
@@ -351,15 +342,14 @@ class Consolidator:
             )
 
             target = self.structure_builder.map_application_location(app)
-            plan[f'executable_{i}'] = target / exe_file.name
+            plan[f"executable_{i}"] = target / exe_file.name
 
         # Map data folders
         for i, data_folder in enumerate(installation.data_folders):
             target = self.structure_builder.map_data_folder_location(
-                data_folder,
-                installation.plugin_name
+                data_folder, installation.plugin_name
             )
-            plan[f'data_folder_{i}'] = target
+            plan[f"data_folder_{i}"] = target
 
         return plan
 

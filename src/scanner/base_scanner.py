@@ -3,20 +3,19 @@
 Provides common functionality for folder_scanner and application_scanner.
 """
 
-from abc import ABC, abstractmethod
-from pathlib import Path
-from typing import List, Optional, TypeVar, Generic, Callable
-from concurrent.futures import ThreadPoolExecutor
 import platform
+from abc import ABC, abstractmethod
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+from typing import Callable, Generic, List, Optional, TypeVar
 
-from ..core.logger import get_logger
 from ..core.config import ConfigManager
-
+from ..core.logger import get_logger
 
 # Type variable for the item being scanned (DataFolder, Application, etc.)
-T = TypeVar('T')
+T = TypeVar("T")
 
-IS_WINDOWS = platform.system() == 'Windows'
+IS_WINDOWS = platform.system() == "Windows"
 
 
 class BaseScanner(ABC, Generic[T]):
@@ -30,11 +29,7 @@ class BaseScanner(ABC, Generic[T]):
     (e.g., DataFolder, Application).
     """
 
-    def __init__(
-        self,
-        config: Optional[ConfigManager] = None,
-        max_workers: int = 4
-    ):
+    def __init__(self, config: Optional[ConfigManager] = None, max_workers: int = 4):
         """
         Initialize scanner.
 
@@ -81,7 +76,7 @@ class BaseScanner(ABC, Generic[T]):
     def scan(
         self,
         scan_paths: Optional[List[str]] = None,
-        progress_callback: Optional[Callable[[int], None]] = None
+        progress_callback: Optional[Callable[[int], None]] = None,
     ) -> List[T]:
         """
         Generic scan implementation.

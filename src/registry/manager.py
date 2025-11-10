@@ -2,15 +2,15 @@
 
 import platform
 from pathlib import Path
-from typing import List, Optional, Dict
+from typing import Dict, List, Optional
 
-from ..core.logger import get_logger
 from ..core.exceptions import RegistryException
+from ..core.logger import get_logger
 from ..models.registry import PathUpdate
-from .registry_reader import RegistryReader
 from .backup import RegistryBackupManager
+from .registry_reader import RegistryReader
 
-IS_WINDOWS = platform.system() == 'Windows'
+IS_WINDOWS = platform.system() == "Windows"
 
 if IS_WINDOWS:
     try:
@@ -24,11 +24,7 @@ else:
 class RegistryManager:
     """Manages registry operations with backup and rollback."""
 
-    def __init__(
-        self,
-        backup_dir: Optional[Path] = None,
-        auto_backup: bool = True
-    ):
+    def __init__(self, backup_dir: Optional[Path] = None, auto_backup: bool = True):
         """
         Initialize registry manager.
 
@@ -78,11 +74,7 @@ class RegistryManager:
         return backup.backup_id
 
     def update_path(
-        self,
-        key_path: str,
-        value_name: str,
-        old_path: str,
-        new_path: str
+        self, key_path: str, value_name: str, old_path: str, new_path: str
     ) -> PathUpdate:
         """
         Update a registry path value.
@@ -109,10 +101,7 @@ class RegistryManager:
                 self.logger.warning(f"Backup failed: {e}")
 
         update = PathUpdate(
-            key_path=key_path,
-            value_name=value_name,
-            old_path=old_path,
-            new_path=new_path
+            key_path=key_path, value_name=value_name, old_path=old_path, new_path=new_path
         )
 
         if not self.is_windows:
@@ -126,7 +115,9 @@ class RegistryManager:
             hive_const = self.reader.HIVE_CONSTANTS[hive]
 
             # Open key with write access
-            with winreg.OpenKey(hive_const, subkey, 0, winreg.KEY_SET_VALUE | winreg.KEY_READ) as key:
+            with winreg.OpenKey(
+                hive_const, subkey, 0, winreg.KEY_SET_VALUE | winreg.KEY_READ
+            ) as key:
                 # Read current value to verify
                 try:
                     current_value, value_type = winreg.QueryValueEx(key, value_name)
@@ -162,9 +153,7 @@ class RegistryManager:
         return update
 
     def batch_update(
-        self,
-        updates: List[Dict[str, str]],
-        description: str = ""
+        self, updates: List[Dict[str, str]], description: str = ""
     ) -> Dict[str, PathUpdate]:
         """
         Perform batch registry updates with transaction-like behavior.
@@ -186,7 +175,7 @@ class RegistryManager:
         results = {}
 
         # Collect all keys that will be modified
-        keys_to_backup = list(set(u['key_path'] for u in updates))
+        keys_to_backup = list(set(u["key_path"] for u in updates))
 
         # Create backup
         if self.auto_backup:
@@ -203,10 +192,10 @@ class RegistryManager:
         for update_dict in updates:
             try:
                 result = self.update_path(
-                    key_path=update_dict['key_path'],
-                    value_name=update_dict['value_name'],
-                    old_path=update_dict['old_path'],
-                    new_path=update_dict['new_path']
+                    key_path=update_dict["key_path"],
+                    value_name=update_dict["value_name"],
+                    old_path=update_dict["old_path"],
+                    new_path=update_dict["new_path"],
                 )
 
                 key = f"{update_dict['key_path']}\\{update_dict['value_name']}"

@@ -1,19 +1,18 @@
 """Application and DAW scanner."""
 
-from pathlib import Path
-from typing import List, Optional, Dict
-from datetime import datetime
-from concurrent.futures import ThreadPoolExecutor
 import platform
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, List, Optional
 
-from ..core.logger import get_logger
 from ..core.config import ConfigManager
-from ..models.application import Application, ApplicationType
+from ..core.logger import get_logger
 from ..data.vendor_registry import vendor_registry
+from ..models.application import Application, ApplicationType
 from .base_scanner import BaseScanner
 
-
-IS_WINDOWS = platform.system() == 'Windows'
+IS_WINDOWS = platform.system() == "Windows"
 
 
 class ApplicationScanner(BaseScanner[Application]):
@@ -23,11 +22,7 @@ class ApplicationScanner(BaseScanner[Application]):
     Uses centralized VendorRegistry for executable pattern matching.
     """
 
-    def __init__(
-        self,
-        config: Optional[ConfigManager] = None,
-        max_workers: int = 4
-    ):
+    def __init__(self, config: Optional[ConfigManager] = None, max_workers: int = 4):
         """
         Initialize application scanner.
 
@@ -79,10 +74,7 @@ class ApplicationScanner(BaseScanner[Application]):
         """Set discovered applications (backward compatibility)."""
         self.items = value
 
-    def scan_for_applications(
-        self,
-        scan_paths: Optional[List[str]] = None
-    ) -> List[Application]:
+    def scan_for_applications(self, scan_paths: Optional[List[str]] = None) -> List[Application]:
         """
         Scan for music production applications.
 
@@ -106,24 +98,28 @@ class ApplicationScanner(BaseScanner[Application]):
         paths = []
 
         if IS_WINDOWS:
-            paths.extend([
-                'C:\\Program Files',
-                'C:\\Program Files (x86)',
-                'C:\\Program Files\\Common Files',
-                'C:\\Program Files (x86)\\Common Files',
-                'C:\\Program Files\\VSTPlugins',
-                'C:\\Program Files\\Steinberg',
-                'C:\\Program Files\\Image-Line',
-                'C:\\Program Files\\Ableton',
-                'C:\\Program Files\\Avid',
-            ])
+            paths.extend(
+                [
+                    "C:\\Program Files",
+                    "C:\\Program Files (x86)",
+                    "C:\\Program Files\\Common Files",
+                    "C:\\Program Files (x86)\\Common Files",
+                    "C:\\Program Files\\VSTPlugins",
+                    "C:\\Program Files\\Steinberg",
+                    "C:\\Program Files\\Image-Line",
+                    "C:\\Program Files\\Ableton",
+                    "C:\\Program Files\\Avid",
+                ]
+            )
         else:
             # Mac/Linux paths
-            paths.extend([
-                '/Applications',
-                '/Library/Application Support',
-                str(Path.home() / 'Applications'),
-            ])
+            paths.extend(
+                [
+                    "/Applications",
+                    "/Library/Application Support",
+                    str(Path.home() / "Applications"),
+                ]
+            )
 
         return paths
 
@@ -150,11 +146,7 @@ class ApplicationScanner(BaseScanner[Application]):
         for daw_name, executables in daw_executables.items():
             for exe_pattern in executables:
                 if self._match_pattern(filename, exe_pattern):
-                    return self._create_application(
-                        file_path,
-                        daw_name,
-                        ApplicationType.DAW
-                    )
+                    return self._create_application(file_path, daw_name, ApplicationType.DAW)
 
         # Check plugin managers using VendorRegistry
         plugin_managers = vendor_registry.get_all_plugin_manager_executables()
@@ -162,9 +154,7 @@ class ApplicationScanner(BaseScanner[Application]):
             for exe_pattern in executables:
                 if self._match_pattern(filename, exe_pattern):
                     return self._create_application(
-                        file_path,
-                        manager_name,
-                        ApplicationType.PLUGIN_MANAGER
+                        file_path, manager_name, ApplicationType.PLUGIN_MANAGER
                     )
 
         # Check standalone plugins using VendorRegistry
@@ -173,9 +163,7 @@ class ApplicationScanner(BaseScanner[Application]):
             for exe_pattern in executables:
                 if self._match_pattern(filename, exe_pattern):
                     return self._create_application(
-                        file_path,
-                        plugin_name,
-                        ApplicationType.STANDALONE_PLUGIN
+                        file_path, plugin_name, ApplicationType.STANDALONE_PLUGIN
                     )
 
         return None
@@ -192,13 +180,11 @@ class ApplicationScanner(BaseScanner[Application]):
             True if matches
         """
         import fnmatch
+
         return fnmatch.fnmatch(filename.lower(), pattern.lower())
 
     def _create_application(
-        self,
-        file_path: Path,
-        name: str,
-        app_type: ApplicationType
+        self, file_path: Path, name: str, app_type: ApplicationType
     ) -> Application:
         """
         Create Application object.
@@ -257,14 +243,14 @@ class ApplicationScanner(BaseScanner[Application]):
         # Check filename for version
         parts = file_path.stem.split()
         for part in parts:
-            if part[0].isdigit() and any(c in part for c in ['.', 'v']):
-                return part.replace('v', '').replace('V', '')
+            if part[0].isdigit() and any(c in part for c in [".", "v"]):
+                return part.replace("v", "").replace("V", "")
 
         # Check parent directory for version
         parent = file_path.parent.name
         parts = parent.split()
         for part in parts:
-            if part[0].isdigit() and '.' in part:
+            if part[0].isdigit() and "." in part:
                 return part
 
         return None
@@ -282,32 +268,32 @@ class ApplicationScanner(BaseScanner[Application]):
         """
         # Map of applications to publishers
         publishers = {
-            'FL Studio': 'Image-Line',
-            'Ableton Live': 'Ableton',
-            'Cubase': 'Steinberg',
-            'Nuendo': 'Steinberg',
-            'Pro Tools': 'Avid',
-            'Logic Pro': 'Apple',
-            'Studio One': 'PreSonus',
-            'Reaper': 'Cockos',
-            'Bitwig Studio': 'Bitwig',
-            'Reason': 'Reason Studios',
-            'Cakewalk': 'BandLab',
-            'GarageBand': 'Apple',
-            'Waves Central': 'Waves',
-            'Native Access': 'Native Instruments',
-            'iLok License Manager': 'PACE',
-            'Plugin Alliance': 'Plugin Alliance',
-            'Arturia Software Center': 'Arturia',
-            'Kontakt': 'Native Instruments',
-            'Komplete Kontrol': 'Native Instruments',
-            'Battery': 'Native Instruments',
-            'Reaktor': 'Native Instruments',
-            'Maschine': 'Native Instruments',
-            'Serum': 'Xfer Records',
-            'Omnisphere': 'Spectrasonics',
-            'Keyscape': 'Spectrasonics',
-            'Trilian': 'Spectrasonics',
+            "FL Studio": "Image-Line",
+            "Ableton Live": "Ableton",
+            "Cubase": "Steinberg",
+            "Nuendo": "Steinberg",
+            "Pro Tools": "Avid",
+            "Logic Pro": "Apple",
+            "Studio One": "PreSonus",
+            "Reaper": "Cockos",
+            "Bitwig Studio": "Bitwig",
+            "Reason": "Reason Studios",
+            "Cakewalk": "BandLab",
+            "GarageBand": "Apple",
+            "Waves Central": "Waves",
+            "Native Access": "Native Instruments",
+            "iLok License Manager": "PACE",
+            "Plugin Alliance": "Plugin Alliance",
+            "Arturia Software Center": "Arturia",
+            "Kontakt": "Native Instruments",
+            "Komplete Kontrol": "Native Instruments",
+            "Battery": "Native Instruments",
+            "Reaktor": "Native Instruments",
+            "Maschine": "Native Instruments",
+            "Serum": "Xfer Records",
+            "Omnisphere": "Spectrasonics",
+            "Keyscape": "Spectrasonics",
+            "Trilian": "Spectrasonics",
         }
 
         # Check if known application
@@ -324,28 +310,95 @@ class ApplicationScanner(BaseScanner[Application]):
         # Check for common publisher names in path
         common_publishers = [
             # DAWs and Major Vendors
-            'Steinberg', 'Image-Line', 'Ableton', 'Avid', 'Native Instruments',
-            'Waves', 'iZotope', 'FabFilter', 'Plugin Alliance', 'Arturia',
-            'Spectrasonics', 'Xfer', 'Cockos', 'PreSonus', 'Bitwig',
+            "Steinberg",
+            "Image-Line",
+            "Ableton",
+            "Avid",
+            "Native Instruments",
+            "Waves",
+            "iZotope",
+            "FabFilter",
+            "Plugin Alliance",
+            "Arturia",
+            "Spectrasonics",
+            "Xfer",
+            "Cockos",
+            "PreSonus",
+            "Bitwig",
             # Additional Vendors (from user's custom installation)
-            'Zynaptiq', 'Air Music Technology', 'Baby Audio', 'DeviousMachines',
-            'discoDSP', 'Eventide', 'Fielding DSP', 'FL Cloud Plugins',
-            'HOFA', 'Klanghelm', 'Klevgrand', 'KORG', 'KV331 Audio',
-            'LenndarDigital', 'Newfangled Audio', 'Ohm Force', 'Plugin Boutique',
-            'Press Play', 'Propellerhead', 'reFX', 'Softube', 'Sonarworks',
-            'Sonic Charge', 'Sonnox', 'Sononym', 'Tokyo Dawn Labs', 'u-he',
-            'Vital', 'Voxengo', 'XLN Audio', 'Youlean', 'Softube Central',
-            'FAW', 'FlexASIO', 'ASIO4ALL',
+            "Zynaptiq",
+            "Air Music Technology",
+            "Baby Audio",
+            "DeviousMachines",
+            "discoDSP",
+            "Eventide",
+            "Fielding DSP",
+            "FL Cloud Plugins",
+            "HOFA",
+            "Klanghelm",
+            "Klevgrand",
+            "KORG",
+            "KV331 Audio",
+            "LenndarDigital",
+            "Newfangled Audio",
+            "Ohm Force",
+            "Plugin Boutique",
+            "Press Play",
+            "Propellerhead",
+            "reFX",
+            "Softube",
+            "Sonarworks",
+            "Sonic Charge",
+            "Sonnox",
+            "Sononym",
+            "Tokyo Dawn Labs",
+            "u-he",
+            "Vital",
+            "Voxengo",
+            "XLN Audio",
+            "Youlean",
+            "Softube Central",
+            "FAW",
+            "FlexASIO",
+            "ASIO4ALL",
             # Additional vendors from user's comprehensive plugin list
-            'Aberrant DSP', 'Acustica Audio', 'Antelope Audio', 'AudioThing',
-            'Black Rooster Audio', 'Boz Digital Labs', 'Cableguys', 'Caelum Audio',
-            'D16', 'Dada Life', 'Fiedler Audio', 'Future Audio Workshop',
-            'Ignite Amps', 'Kilohearts', 'MeldaProduction', 'Mixed In Key',
-            'Oeksound', 'Output', 'Polyverse', 'Reaper', 'Reason Studios',
-            'Reveal Sound', 'Schrammel', 'Serato', 'Shattered Glass Audio',
-            'Slate Digital', 'Sonible', 'Sonic Academy', 'Soundtheory',
-            'Soundtoys', 'TAL', 'Tokyo Dawn Records', 'United Plugins',
-            'Valhalla', 'Vengeance', 'Wavesfactory', 'waveTracing'
+            "Aberrant DSP",
+            "Acustica Audio",
+            "Antelope Audio",
+            "AudioThing",
+            "Black Rooster Audio",
+            "Boz Digital Labs",
+            "Cableguys",
+            "Caelum Audio",
+            "D16",
+            "Dada Life",
+            "Fiedler Audio",
+            "Future Audio Workshop",
+            "Ignite Amps",
+            "Kilohearts",
+            "MeldaProduction",
+            "Mixed In Key",
+            "Oeksound",
+            "Output",
+            "Polyverse",
+            "Reaper",
+            "Reason Studios",
+            "Reveal Sound",
+            "Schrammel",
+            "Serato",
+            "Shattered Glass Audio",
+            "Slate Digital",
+            "Sonible",
+            "Sonic Academy",
+            "Soundtheory",
+            "Soundtoys",
+            "TAL",
+            "Tokyo Dawn Records",
+            "United Plugins",
+            "Valhalla",
+            "Vengeance",
+            "Wavesfactory",
+            "waveTracing",
         ]
 
         for part in path_parts:
@@ -353,7 +406,7 @@ class ApplicationScanner(BaseScanner[Application]):
                 if publisher.lower() in part.lower():
                     return publisher
 
-        return 'Unknown'
+        return "Unknown"
 
     def find_daws(self) -> List[Application]:
         """
@@ -380,7 +433,9 @@ class ApplicationScanner(BaseScanner[Application]):
         Returns:
             List of standalone plugin applications
         """
-        return [app for app in self.applications if app.app_type == ApplicationType.STANDALONE_PLUGIN]
+        return [
+            app for app in self.applications if app.app_type == ApplicationType.STANDALONE_PLUGIN
+        ]
 
     def get_by_publisher(self, publisher: str) -> List[Application]:
         """
@@ -392,7 +447,4 @@ class ApplicationScanner(BaseScanner[Application]):
         Returns:
             List of applications from publisher
         """
-        return [
-            app for app in self.applications
-            if publisher.lower() in app.publisher.lower()
-        ]
+        return [app for app in self.applications if publisher.lower() in app.publisher.lower()]

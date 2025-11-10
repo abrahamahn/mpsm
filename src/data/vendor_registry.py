@@ -7,6 +7,7 @@ and application_scanner modules.
 
 from pathlib import Path
 from typing import Dict, List, Optional, Set
+
 import yaml
 
 from ..core.logger import get_logger
@@ -20,7 +21,7 @@ class VendorRegistry:
     convenient access methods for different scanner modules.
     """
 
-    _instance: Optional['VendorRegistry'] = None
+    _instance: Optional["VendorRegistry"] = None
     _vendors: Dict[str, Dict] = {}
     _loaded: bool = False
 
@@ -39,12 +40,12 @@ class VendorRegistry:
     def _load_vendors(self):
         """Load vendors from YAML file."""
         logger = get_logger()
-        vendor_file = Path(__file__).parent / 'vendors.yaml'
+        vendor_file = Path(__file__).parent / "vendors.yaml"
 
         try:
-            with open(vendor_file, 'r', encoding='utf-8') as f:
+            with open(vendor_file, "r", encoding="utf-8") as f:
                 data = yaml.safe_load(f)
-                VendorRegistry._vendors = data.get('vendors', {})
+                VendorRegistry._vendors = data.get("vendors", {})
 
             logger.debug(f"Loaded {len(VendorRegistry._vendors)} vendors from registry")
         except FileNotFoundError:
@@ -75,10 +76,10 @@ class VendorRegistry:
         text_lower = text.lower()
 
         for vendor_data in self._vendors.values():
-            patterns = vendor_data.get('patterns', [])
+            patterns = vendor_data.get("patterns", [])
             for pattern in patterns:
                 if pattern.lower() in text_lower:
-                    return vendor_data.get('name', 'Unknown')
+                    return vendor_data.get("name", "Unknown")
 
         return None
 
@@ -99,10 +100,10 @@ class VendorRegistry:
         folder_lower = folder_name.lower()
 
         for vendor_data in self._vendors.values():
-            folders = vendor_data.get('folders', [])
+            folders = vendor_data.get("folders", [])
             for folder in folders:
                 if folder.lower() == folder_lower or folder.lower() in folder_lower:
-                    return vendor_data.get('name', 'Unknown')
+                    return vendor_data.get("name", "Unknown")
 
         return None
 
@@ -120,7 +121,7 @@ class VendorRegistry:
         Returns:
             List of search patterns
         """
-        return self._vendors.get(vendor_key, {}).get('patterns', [])
+        return self._vendors.get(vendor_key, {}).get("patterns", [])
 
     def get_folders(self, vendor_key: str) -> List[str]:
         """
@@ -132,7 +133,7 @@ class VendorRegistry:
         Returns:
             List of expected folder names
         """
-        return self._vendors.get(vendor_key, {}).get('folders', [])
+        return self._vendors.get(vendor_key, {}).get("folders", [])
 
     def get_executables(self, vendor_key: str) -> List[str]:
         """
@@ -144,7 +145,7 @@ class VendorRegistry:
         Returns:
             List of executable patterns
         """
-        return self._vendors.get(vendor_key, {}).get('executables', [])
+        return self._vendors.get(vendor_key, {}).get("executables", [])
 
     def get_daw_executables(self, vendor_key: str) -> List[str]:
         """
@@ -156,7 +157,7 @@ class VendorRegistry:
         Returns:
             List of DAW executable patterns
         """
-        return self._vendors.get(vendor_key, {}).get('daw_executables', [])
+        return self._vendors.get(vendor_key, {}).get("daw_executables", [])
 
     def get_standalone_executables(self, vendor_key: str) -> List[str]:
         """
@@ -168,7 +169,7 @@ class VendorRegistry:
         Returns:
             List of standalone executable patterns
         """
-        return self._vendors.get(vendor_key, {}).get('standalone_executables', [])
+        return self._vendors.get(vendor_key, {}).get("standalone_executables", [])
 
     # ========================================================================
     # AGGREGATE DATA METHODS (for scanners)
@@ -188,8 +189,8 @@ class VendorRegistry:
         """
         result = {}
         for vendor_data in self._vendors.values():
-            name = vendor_data.get('name')
-            patterns = vendor_data.get('patterns', [])
+            name = vendor_data.get("name")
+            patterns = vendor_data.get("patterns", [])
             if name and patterns:
                 result[name] = patterns
         return result
@@ -203,8 +204,8 @@ class VendorRegistry:
         """
         result = {}
         for vendor_data in self._vendors.values():
-            name = vendor_data.get('name')
-            folders = vendor_data.get('folders', [])
+            name = vendor_data.get("name")
+            folders = vendor_data.get("folders", [])
             if name and folders:
                 result[name] = folders
         return result
@@ -218,8 +219,8 @@ class VendorRegistry:
         """
         result = {}
         for vendor_data in self._vendors.values():
-            name = vendor_data.get('name')
-            daw_exes = vendor_data.get('daw_executables', [])
+            name = vendor_data.get("name")
+            daw_exes = vendor_data.get("daw_executables", [])
             if name and daw_exes:
                 result[name] = daw_exes
         return result
@@ -233,8 +234,8 @@ class VendorRegistry:
         """
         result = {}
         for vendor_data in self._vendors.values():
-            name = vendor_data.get('name')
-            executables = vendor_data.get('executables', [])
+            name = vendor_data.get("name")
+            executables = vendor_data.get("executables", [])
             if name and executables:
                 result[name] = executables
         return result
@@ -248,8 +249,8 @@ class VendorRegistry:
         """
         result = {}
         for vendor_data in self._vendors.values():
-            name = vendor_data.get('name')
-            standalone_exes = vendor_data.get('standalone_executables', [])
+            name = vendor_data.get("name")
+            standalone_exes = vendor_data.get("standalone_executables", [])
             if name and standalone_exes:
                 result[name] = standalone_exes
         return result
@@ -265,7 +266,7 @@ class VendorRegistry:
         Returns:
             Sorted list of vendor display names
         """
-        names = [v.get('name') for v in self._vendors.values() if v.get('name')]
+        names = [v.get("name") for v in self._vendors.values() if v.get("name")]
         return sorted(names)
 
     def vendor_count(self) -> int:
@@ -303,8 +304,8 @@ class VendorRegistry:
         matches = []
 
         for vendor_data in self._vendors.values():
-            name = vendor_data.get('name', '')
-            patterns = vendor_data.get('patterns', [])
+            name = vendor_data.get("name", "")
+            patterns = vendor_data.get("patterns", [])
 
             # Match against name
             if query_lower in name.lower():

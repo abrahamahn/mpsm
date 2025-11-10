@@ -8,28 +8,30 @@ from rich.console import Console
 from rich.table import Table
 
 from ..core.config import ConfigManager
-from ..core.logger import get_logger
 from ..core.exceptions import RegistryException
-from ..registry.registry_reader import RegistryReader
-from ..registry.manager import RegistryManager
-from ..registry.validator import PathValidator
+from ..core.logger import get_logger
 from ..registry.backup import RegistryBackup
+from ..registry.manager import RegistryManager
+from ..registry.registry_reader import RegistryReader
+from ..registry.validator import PathValidator
 
 console = Console()
 
+
+@click.group()
 def registry():
     """Registry management commands."""
     pass
 
 
-@registry.command('backup')
-@click.option('--keys', '-k', multiple=True, help='Registry keys to backup')
-@click.option('--description', '-d', default='', help='Backup description')
+@registry.command("backup")
+@click.option("--keys", "-k", multiple=True, help="Registry keys to backup")
+@click.option("--description", "-d", default="", help="Backup description")
 def registry_backup(keys, description):
     """Backup registry keys."""
     try:
         console.print("[bold cyan]Registry Backup[/bold cyan]")
-        console.print("="*50)
+        console.print("=" * 50)
 
         # Initialize registry manager
         manager = RegistryManager()
@@ -37,10 +39,12 @@ def registry_backup(keys, description):
         # If no keys specified, backup all known music production keys
         if not keys:
             reader = RegistryReader()
-            console.print("\n[yellow]No keys specified, backing up all known music production keys...[/yellow]")
+            console.print(
+                "\n[yellow]No keys specified, backing up all known music production keys...[/yellow]"
+            )
             keys = []
             for base_key in reader.KNOWN_KEYS:
-                for hive in ['HKLM', 'HKCU']:
+                for hive in ["HKLM", "HKCU"]:
                     key_path = f"{hive}\\{base_key}"
                     if reader.key_exists(key_path):
                         keys.append(key_path)
@@ -62,13 +66,13 @@ def registry_backup(keys, description):
         sys.exit(1)
 
 
-@registry.command('restore')
-@click.argument('backup_id')
+@registry.command("restore")
+@click.argument("backup_id")
 def registry_restore(backup_id):
     """Restore registry from backup."""
     try:
         console.print("[bold cyan]Registry Restore[/bold cyan]")
-        console.print("="*50)
+        console.print("=" * 50)
 
         manager = RegistryManager()
 
@@ -83,7 +87,7 @@ def registry_restore(backup_id):
         console.print(f"Keys: {backup_info['keys_count']}")
         console.print(f"Description: {backup_info.get('description', 'N/A')}")
 
-        if not click.confirm('\nAre you sure you want to restore this backup?'):
+        if not click.confirm("\nAre you sure you want to restore this backup?"):
             console.print("[yellow]Restore cancelled[/yellow]")
             return
 
@@ -104,7 +108,7 @@ def registry_restore(backup_id):
         sys.exit(1)
 
 
-@registry.command('list')
+@registry.command("list")
 def registry_list():
     """List all registry backups."""
     try:
@@ -125,10 +129,10 @@ def registry_list():
 
         for backup in backups:
             table.add_row(
-                backup['backup_id'],
-                backup['backup_date'][:19],  # Truncate timestamp
-                str(backup['keys_count']),
-                backup.get('description', '')[:50]  # Truncate long descriptions
+                backup["backup_id"],
+                backup["backup_date"][:19],  # Truncate timestamp
+                str(backup["keys_count"]),
+                backup.get("description", "")[:50],  # Truncate long descriptions
             )
 
         console.print(table)
@@ -138,12 +142,12 @@ def registry_list():
         sys.exit(1)
 
 
-@registry.command('validate')
+@registry.command("validate")
 def registry_validate():
     """Validate registry paths."""
     try:
         console.print("[bold cyan]Registry Path Validation[/bold cyan]")
-        console.print("="*50)
+        console.print("=" * 50)
 
         validator = PathValidator()
 
@@ -164,10 +168,10 @@ def registry_validate():
 
         for broken in broken_paths[:20]:  # Show first 20
             table.add_row(
-                broken['key_path'][-50:],  # Truncate long paths
-                broken['value_name'],
-                broken['path'][-50:],
-                broken['reason']
+                broken["key_path"][-50:],  # Truncate long paths
+                broken["value_name"],
+                broken["path"][-50:],
+                broken["reason"],
             )
 
         console.print(table)
@@ -180,13 +184,13 @@ def registry_validate():
         sys.exit(1)
 
 
-@registry.command('scan')
-@click.option('--export', '-e', type=click.Path(), help='Export to file')
+@registry.command("scan")
+@click.option("--export", "-e", type=click.Path(), help="Export to file")
 def registry_scan(export):
     """Scan registry for music production software."""
     try:
         console.print("[bold cyan]Registry Scanner[/bold cyan]")
-        console.print("="*50)
+        console.print("=" * 50)
 
         reader = RegistryReader()
 
@@ -194,7 +198,9 @@ def registry_scan(export):
         all_entries = reader.scan_all_music_production_keys()
 
         total_entries = sum(len(entries) for entries in all_entries.values())
-        console.print(f"\n[bold green]Found {len(all_entries)} keys with {total_entries} total entries[/bold green]")
+        console.print(
+            f"\n[bold green]Found {len(all_entries)} keys with {total_entries} total entries[/bold green]"
+        )
 
         # Display summary
         table = Table(show_header=True, header_style="bold magenta")
@@ -217,5 +223,3 @@ def registry_scan(export):
     except Exception as e:
         console.print(f"[red]Error:[/red] {e}")
         sys.exit(1)
-
-

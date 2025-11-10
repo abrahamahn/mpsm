@@ -14,18 +14,19 @@ Architecture:
 
 import json
 import subprocess
-from pathlib import Path
-from typing import Optional, Dict, Any, List
-from enum import Enum
 import time
+from enum import Enum
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 from ..core.logger import get_logger
 
 
 class CommunicationMethod(Enum):
     """Communication method with external VST host."""
+
     SUBPROCESS = "subprocess"  # stdin/stdout JSON
-    HTTP = "http"              # REST API
+    HTTP = "http"  # REST API
     NAMED_PIPE = "named_pipe"  # Windows named pipes (future)
 
 
@@ -47,7 +48,7 @@ class ExternalVSTHost:
         juce_host_path: Optional[Path] = None,
         communication_method: CommunicationMethod = CommunicationMethod.SUBPROCESS,
         timeout: int = 5,
-        http_url: str = "http://localhost:8080"
+        http_url: str = "http://localhost:8080",
     ):
         """
         Initialize external VST host communication.
@@ -98,7 +99,7 @@ class ExternalVSTHost:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
-                bufsize=1  # Line buffered
+                bufsize=1,  # Line buffered
             )
             self.logger.info(f"Started JUCE VST host: {self.juce_host_path}")
             return True
@@ -110,6 +111,7 @@ class ExternalVSTHost:
         """Check if HTTP server is available."""
         try:
             import requests
+
             response = requests.get(f"{self.http_url}/health", timeout=1)
             return response.status_code == 200
         except Exception:
@@ -171,11 +173,7 @@ class ExternalVSTHost:
 
         try:
             # Send request
-            request = {
-                "command": "scan",
-                "path": str(plugin_path),
-                "timeout": self.timeout
-            }
+            request = {"command": "scan", "path": str(plugin_path), "timeout": self.timeout}
 
             self._process.stdin.write(json.dumps(request) + "\n")
             self._process.stdin.flush()
@@ -216,7 +214,7 @@ class ExternalVSTHost:
             response = requests.post(
                 f"{self.http_url}/scan",
                 json={"path": str(plugin_path), "timeout": self.timeout},
-                timeout=self.timeout + 1
+                timeout=self.timeout + 1,
             )
 
             if response.status_code == 200:

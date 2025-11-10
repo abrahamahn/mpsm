@@ -1,17 +1,16 @@
 """iLok license manager integration."""
 
-import subprocess
 import json
+import platform
+import subprocess
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional, Dict
-import platform
+from typing import Dict, List, Optional
 
 from ..core.logger import get_logger
-from ..models.license import iLokLicense, License, LicenseFormat, LicenseType, LicenseStatus
+from ..models.license import License, LicenseFormat, LicenseStatus, LicenseType, iLokLicense
 
-
-IS_WINDOWS = platform.system() == 'Windows'
+IS_WINDOWS = platform.system() == "Windows"
 
 
 class iLokManager:
@@ -30,7 +29,7 @@ class iLokManager:
     # iLok License Manager executable names
     ILOK_EXECUTABLES = [
         "iLokLicenseManager.exe",  # Windows
-        "iLok License Manager",     # Mac
+        "iLok License Manager",  # Mac
     ]
 
     def __init__(self):
@@ -103,7 +102,9 @@ class iLokManager:
         if IS_WINDOWS:
             ilok_data_path = Path.home() / "AppData" / "Local" / "PACE Anti-Piracy" / "Eden"
         else:
-            ilok_data_path = Path.home() / "Library" / "Application Support" / "PACE Anti-Piracy" / "Eden"
+            ilok_data_path = (
+                Path.home() / "Library" / "Application Support" / "PACE Anti-Piracy" / "Eden"
+            )
 
         licenses = []
 
@@ -143,9 +144,13 @@ class iLokManager:
         """
         # Computer-activated licenses are stored locally
         if IS_WINDOWS:
-            computer_lic_path = Path.home() / "AppData" / "Local" / "PACE Anti-Piracy" / "Repository"
+            computer_lic_path = (
+                Path.home() / "AppData" / "Local" / "PACE Anti-Piracy" / "Repository"
+            )
         else:
-            computer_lic_path = Path.home() / "Library" / "Application Support" / "PACE Anti-Piracy" / "Repository"
+            computer_lic_path = (
+                Path.home() / "Library" / "Application Support" / "PACE Anti-Piracy" / "Repository"
+            )
 
         licenses = []
 
@@ -185,10 +190,18 @@ class iLokManager:
             # Try to extract publisher from path
             path_parts = file_path.parts
             for part in path_parts:
-                if any(vendor in part for vendor in [
-                    'Waves', 'iZotope', 'FabFilter', 'Native Instruments',
-                    'Plugin Alliance', 'Slate Digital', 'Softube'
-                ]):
+                if any(
+                    vendor in part
+                    for vendor in [
+                        "Waves",
+                        "iZotope",
+                        "FabFilter",
+                        "Native Instruments",
+                        "Plugin Alliance",
+                        "Slate Digital",
+                        "Softube",
+                    ]
+                ):
                     publisher = part
                     break
 
@@ -238,9 +251,9 @@ class iLokManager:
             Dictionary with iLok info
         """
         info = {
-            'installed': self.is_installed,
-            'installation_path': str(self.ilok_path) if self.ilok_path else None,
-            'version': self._get_ilok_version(),
+            "installed": self.is_installed,
+            "installation_path": str(self.ilok_path) if self.ilok_path else None,
+            "version": self._get_ilok_version(),
         }
 
         return info
@@ -315,12 +328,16 @@ class iLokManager:
             # Convert to JSON
             licenses_data = [lic.to_dict() for lic in licenses]
 
-            with open(output_path, 'w') as f:
-                json.dump({
-                    'export_date': datetime.now().isoformat(),
-                    'total_licenses': len(licenses),
-                    'licenses': licenses_data,
-                }, f, indent=2)
+            with open(output_path, "w") as f:
+                json.dump(
+                    {
+                        "export_date": datetime.now().isoformat(),
+                        "total_licenses": len(licenses),
+                        "licenses": licenses_data,
+                    },
+                    f,
+                    indent=2,
+                )
 
             self.logger.info(f"Exported {len(licenses)} iLok licenses to {output_path}")
             return True

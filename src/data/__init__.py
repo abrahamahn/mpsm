@@ -2,4 +2,4 @@
 
 from .vendor_registry import VendorRegistry
 
-__all__ = ['VendorRegistry']
+__all__ = ["VendorRegistry"]

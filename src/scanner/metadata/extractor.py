@@ -2,16 +2,13 @@
 
 import hashlib
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
-from ...core.logger import get_logger
 from ...core.exceptions import MetadataExtractionException
+from ...core.logger import get_logger
 from ...models.plugin import PluginType, Version
-
 # Import modular components
-from . import pe_parser
-from . import vst_detector
-from . import publisher_identifier
+from . import pe_parser, publisher_identifier, vst_detector
 
 
 class MetadataExtractor:
@@ -21,7 +18,7 @@ class MetadataExtractor:
         self,
         enable_vst_host: bool = False,
         enable_registry: bool = True,
-        juce_host_path: Optional[Path] = None
+        juce_host_path: Optional[Path] = None,
     ):
         """
         Initialize metadata extractor.
@@ -52,29 +49,28 @@ class MetadataExtractor:
         try:
             stat = file_path.stat()
             return {
-                'file_name': file_path.name,
-                'file_path': str(file_path),
-                'file_size': stat.st_size,
-                'file_size_mb': round(stat.st_size / (1024 * 1024), 2),
-                'modified_time': stat.st_mtime,
-                'created_time': stat.st_ctime,
-                'extension': file_path.suffix.lower(),
-                'file_hash': self.calculate_file_hash(file_path),
+                "file_name": file_path.name,
+                "file_path": str(file_path),
+                "file_size": stat.st_size,
+                "file_size_mb": round(stat.st_size / (1024 * 1024), 2),
+                "modified_time": stat.st_mtime,
+                "created_time": stat.st_ctime,
+                "extension": file_path.suffix.lower(),
+                "file_hash": self.calculate_file_hash(file_path),
             }
         except Exception as e:
             self.logger.error(f"Failed to extract metadata from {file_path}: {e}")
             raise MetadataExtractionException(
-                "Failed to extract metadata",
-                {'file': str(file_path), 'error': str(e)}
+                "Failed to extract metadata", {"file": str(file_path), "error": str(e)}
             )
 
-    def calculate_file_hash(self, file_path: Path, algorithm: str = 'sha256') -> str:
+    def calculate_file_hash(self, file_path: Path, algorithm: str = "sha256") -> str:
         """Calculate file hash (SHA-256 by default)."""
         hash_func = hashlib.new(algorithm)
 
         try:
-            with open(file_path, 'rb') as f:
-                for chunk in iter(lambda: f.read(8192), b''):
+            with open(file_path, "rb") as f:
+                for chunk in iter(lambda: f.read(8192), b""):
                     hash_func.update(chunk)
             return hash_func.hexdigest()
         except Exception as e:
@@ -89,13 +85,13 @@ class MetadataExtractor:
         """Detect plugin type from file extension."""
         ext = file_path.suffix.lower()
 
-        if ext == '.vst3':
+        if ext == ".vst3":
             return PluginType.VST3
-        elif ext == '.dll':
+        elif ext == ".dll":
             return PluginType.VST2
-        elif ext == '.aax':
+        elif ext == ".aax":
             return PluginType.AAX
-        elif ext == '.clap':
+        elif ext == ".clap":
             return PluginType.CLAP
         else:
             return PluginType.UNKNOWN
@@ -105,10 +101,7 @@ class MetadataExtractor:
     # ============================================================
 
     def is_valid_plugin_file(
-        self,
-        file_path: Path,
-        min_size_mb: float = 0.1,
-        max_size_mb: float = 500
+        self, file_path: Path, min_size_mb: float = 0.1, max_size_mb: float = 500
     ) -> bool:
         """Validate if file is a real plugin."""
         return vst_detector.is_valid_plugin_file(file_path, min_size_mb, max_size_mb)
@@ -156,31 +149,31 @@ class MetadataExtractor:
         combined = f"{name_lower} {path_lower}"
 
         # FX categories
-        if any(word in combined for word in ['comp', 'compressor', 'dynamics']):
+        if any(word in combined for word in ["comp", "compressor", "dynamics"]):
             return "fx_compressor"
-        elif any(word in combined for word in ['eq', 'equalizer', 'filter']):
+        elif any(word in combined for word in ["eq", "equalizer", "filter"]):
             return "fx_eq"
-        elif any(word in combined for word in ['reverb', 'verb', 'room']):
+        elif any(word in combined for word in ["reverb", "verb", "room"]):
             return "fx_reverb"
-        elif any(word in combined for word in ['delay', 'echo']):
+        elif any(word in combined for word in ["delay", "echo"]):
             return "fx_delay"
-        elif any(word in combined for word in ['chorus', 'flanger', 'phaser']):
+        elif any(word in combined for word in ["chorus", "flanger", "phaser"]):
             return "fx_modulation"
-        elif any(word in combined for word in ['distortion', 'overdrive', 'saturator']):
+        elif any(word in combined for word in ["distortion", "overdrive", "saturator"]):
             return "fx_distortion"
-        elif any(word in combined for word in ['limiter', 'maximizer']):
+        elif any(word in combined for word in ["limiter", "maximizer"]):
             return "fx_limiter"
 
         # Instrument categories
-        elif any(word in combined for word in ['synth', 'synthesizer', 'vsti']):
+        elif any(word in combined for word in ["synth", "synthesizer", "vsti"]):
             return "inst_synth"
-        elif any(word in combined for word in ['sampler', 'kontakt', 'sample']):
+        elif any(word in combined for word in ["sampler", "kontakt", "sample"]):
             return "inst_sampler"
-        elif any(word in combined for word in ['drum', 'percussion', 'beat']):
+        elif any(word in combined for word in ["drum", "percussion", "beat"]):
             return "inst_drum"
-        elif any(word in combined for word in ['piano', 'keys', 'keyboard']):
+        elif any(word in combined for word in ["piano", "keys", "keyboard"]):
             return "inst_piano"
-        elif any(word in combined for word in ['guitar', 'bass', 'string']):
+        elif any(word in combined for word in ["guitar", "bass", "string"]):
             return "inst_guitar"
 
         return "unknown"
@@ -211,14 +204,14 @@ class MetadataExtractor:
 
             if vst_data:
                 metadata = {}
-                if vst_data.get('plugin_id'):
-                    metadata['plugin_id'] = vst_data['plugin_id']
-                if vst_data.get('name'):
-                    metadata['vst_name'] = vst_data['name']
-                if vst_data.get('vendor'):
-                    metadata['vst_vendor'] = vst_data['vendor']
-                if vst_data.get('version'):
-                    metadata['vst_version'] = vst_data['version']
+                if vst_data.get("plugin_id"):
+                    metadata["plugin_id"] = vst_data["plugin_id"]
+                if vst_data.get("name"):
+                    metadata["vst_name"] = vst_data["name"]
+                if vst_data.get("vendor"):
+                    metadata["vst_vendor"] = vst_data["vendor"]
+                if vst_data.get("version"):
+                    metadata["vst_version"] = vst_data["version"]
                 return metadata
 
         except Exception as e:
@@ -238,6 +231,7 @@ class MetadataExtractor:
         try:
             if not self._registry_scanner:
                 from ..registry_metadata import RegistryMetadataScanner
+
                 self._registry_scanner = RegistryMetadataScanner()
 
             return self._registry_scanner.find_plugin_metadata(file_path)

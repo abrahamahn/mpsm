@@ -14,27 +14,15 @@ import click
 from rich.console import Console
 
 # Import CLI command handlers
-from src.cli import (
-    scan,
-    organize,
-    registry,
-    registry_backup,
-    registry_restore,
-    registry_list,
-    registry_validate,
-    registry_scan,
-    license,
-    license_scan,
-    license_validate,
-    license_ilok,
-    license_info,
-)
+from src.cli import (license, license_ilok, license_info, license_scan, license_validate, organize,
+                     registry, registry_backup, registry_list, registry_restore, registry_scan,
+                     registry_validate, scan)
 
 console = Console()
 
 
 @click.group()
-@click.version_option(version='1.0.0')
+@click.version_option(version="1.0.0")
 def cli():
     """MPSM - Music Production Software Manager
 
@@ -46,14 +34,14 @@ def cli():
 
 
 @cli.command()
-@click.option('--path', default=None, help='Target directory path')
-@click.option('--auto-detect', is_flag=True, help='Auto-detect common paths')
+@click.option("--path", default=None, help="Target directory path")
+@click.option("--auto-detect", is_flag=True, help="Auto-detect common paths")
 def init(path, auto_detect):
     """Initialize MPSM configuration."""
     from src.core.config import ConfigManager
 
     console.print("\n[bold cyan]MPSM Initialization[/bold cyan]")
-    console.print("="*50)
+    console.print("=" * 50)
 
     if auto_detect:
         console.print("\n[yellow]Auto-detecting common paths...[/yellow]")
@@ -113,13 +101,15 @@ def _auto_detect_scan_paths() -> list:
 
     # Add user-specific paths
     if is_windows:
-        username = os.getenv('USERNAME')
+        username = os.getenv("USERNAME")
         if username:
-            common_paths.extend([
-                f"C:\\Users\\{username}\\Documents",
-                f"C:\\Users\\{username}\\AppData\\Roaming",
-                f"C:\\Users\\{username}\\AppData\\Local",
-            ])
+            common_paths.extend(
+                [
+                    f"C:\\Users\\{username}\\Documents",
+                    f"C:\\Users\\{username}\\AppData\\Roaming",
+                    f"C:\\Users\\{username}\\AppData\\Local",
+                ]
+            )
 
     # Check which paths exist
     for path_str in common_paths:
@@ -133,11 +123,12 @@ def _auto_detect_scan_paths() -> list:
 @cli.command()
 def status():
     """Show current MPSM status and configuration."""
-    from src.core.config import ConfigManager
     from rich.table import Table
 
+    from src.core.config import ConfigManager
+
     console.print("\n[bold cyan]MPSM Status[/bold cyan]")
-    console.print("="*50)
+    console.print("=" * 50)
 
     try:
         config_manager = ConfigManager()
@@ -170,18 +161,18 @@ cli.add_command(registry)
 cli.add_command(license)
 
 # Add registry subcommands
-registry.add_command(registry_backup, 'backup')
-registry.add_command(registry_restore, 'restore')
-registry.add_command(registry_list, 'list')
-registry.add_command(registry_validate, 'validate')
-registry.add_command(registry_scan, 'scan')
+registry.add_command(registry_backup, "backup")
+registry.add_command(registry_restore, "restore")
+registry.add_command(registry_list, "list")
+registry.add_command(registry_validate, "validate")
+registry.add_command(registry_scan, "scan")
 
 # Add license subcommands
-license.add_command(license_scan, 'scan')
-license.add_command(license_validate, 'validate')
-license.add_command(license_ilok, 'ilok')
-license.add_command(license_info, 'info')
+license.add_command(license_scan, "scan")
+license.add_command(license_validate, "validate")
+license.add_command(license_ilok, "ilok")
+license.add_command(license_info, "info")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     cli()

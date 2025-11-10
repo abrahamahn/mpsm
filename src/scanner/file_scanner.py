@@ -4,21 +4,19 @@ import os
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Iterator, List, Optional, Set, Callable
+from typing import Callable, Iterator, List, Optional, Set
+
 from tqdm import tqdm
 
-from ..core.logger import get_logger
 from ..core.exceptions import ScanException
+from ..core.logger import get_logger
 
 
 class FileScanner:
     """Comprehensive filesystem scanner for all music production components."""
 
     def __init__(
-        self,
-        exclude_paths: Optional[List[str]] = None,
-        max_workers: int = 4,
-        verbose: bool = True
+        self, exclude_paths: Optional[List[str]] = None, max_workers: int = 4, verbose: bool = True
     ):
         """
         Initialize file scanner.
@@ -68,7 +66,7 @@ class FileScanner:
         path: str,
         extensions: List[str],
         recursive: bool = True,
-        progress_callback: Optional[Callable[[str], None]] = None
+        progress_callback: Optional[Callable[[str], None]] = None,
     ) -> List[Path]:
         """
         Scan directory for files with specific extensions.
@@ -144,7 +142,7 @@ class FileScanner:
             self.logger.warning(f"Permission denied: {path} - {e}")
         except Exception as e:
             self.logger.error(f"Error scanning {path}: {e}")
-            raise ScanException(f"Failed to scan {path}", {'error': str(e)})
+            raise ScanException(f"Failed to scan {path}", {"error": str(e)})
 
         self.logger.info(f"Found {len(found_files)} files in {path}")
         return found_files
@@ -159,13 +157,13 @@ class FileScanner:
         Returns:
             List of executable file paths
         """
-        return self.scan_directory(path, ['.exe'], recursive=True)
+        return self.scan_directory(path, [".exe"], recursive=True)
 
     def scan_parallel(
         self,
         root_paths: List[str],
         extensions: List[str],
-        progress_callback: Optional[Callable[[str], None]] = None
+        progress_callback: Optional[Callable[[str], None]] = None,
     ) -> List[Path]:
         """
         Scan multiple root paths in parallel.
@@ -189,7 +187,9 @@ class FileScanner:
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             # Submit scan tasks
             future_to_path = {
-                executor.submit(self.scan_directory, path, extensions, True, progress_callback): path
+                executor.submit(
+                    self.scan_directory, path, extensions, True, progress_callback
+                ): path
                 for path in root_paths
                 if Path(path).exists()
             }
@@ -200,7 +200,7 @@ class FileScanner:
                     as_completed(future_to_path),
                     total=len(future_to_path),
                     desc="Scanning directories",
-                    unit="dir"
+                    unit="dir",
                 )
             else:
                 futures = as_completed(future_to_path)
@@ -219,11 +219,7 @@ class FileScanner:
         self.logger.info(f"Parallel scan complete. Found {len(all_files)} total files.")
         return all_files
 
-    def find_files_by_pattern(
-        self,
-        root_path: str,
-        pattern: str
-    ) -> List[Path]:
+    def find_files_by_pattern(self, root_path: str, pattern: str) -> List[Path]:
         """
         Find files matching a glob pattern.
 
@@ -303,10 +299,10 @@ class FileScanner:
             Dictionary with scan statistics
         """
         return {
-            'files_scanned': self.files_scanned,
-            'total_size_bytes': self.total_size,
-            'total_size_mb': round(self.total_size / (1024 * 1024), 2),
-            'total_size_gb': round(self.total_size / (1024 ** 3), 2),
+            "files_scanned": self.files_scanned,
+            "total_size_bytes": self.total_size,
+            "total_size_mb": round(self.total_size / (1024 * 1024), 2),
+            "total_size_gb": round(self.total_size / (1024**3), 2),
         }
 
     def reset_statistics(self) -> None:

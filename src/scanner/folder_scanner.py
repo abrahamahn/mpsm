@@ -1,19 +1,18 @@
 """Data folder scanner for presets, samples, and libraries."""
 
-from pathlib import Path
-from typing import List, Optional, Dict
-from datetime import datetime
-from concurrent.futures import ThreadPoolExecutor
 import platform
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, List, Optional
 
-from ..core.logger import get_logger
 from ..core.config import ConfigManager
-from ..models.folder import DataFolder, FolderType
+from ..core.logger import get_logger
 from ..data.vendor_registry import vendor_registry
+from ..models.folder import DataFolder, FolderType
 from .base_scanner import BaseScanner
 
-
-IS_WINDOWS = platform.system() == 'Windows'
+IS_WINDOWS = platform.system() == "Windows"
 
 
 class FolderScanner(BaseScanner[DataFolder]):
@@ -21,31 +20,27 @@ class FolderScanner(BaseScanner[DataFolder]):
 
     # Known folder patterns for different types
     PRESET_PATTERNS = [
-        '**/Presets/**',
-        '**/User Presets/**',
-        '**/*.vstpreset',
-        '**/FXP/**',
-        '**/FXB/**',
+        "**/Presets/**",
+        "**/User Presets/**",
+        "**/*.vstpreset",
+        "**/FXP/**",
+        "**/FXB/**",
     ]
 
     SAMPLE_PATTERNS = [
-        '**/Samples/**',
-        '**/Sample Libraries/**',
-        '**/Audio Samples/**',
+        "**/Samples/**",
+        "**/Sample Libraries/**",
+        "**/Audio Samples/**",
     ]
 
     LIBRARY_PATTERNS = [
-        '**/Libraries/**',
-        '**/Content/**',
-        '**/Soundbanks/**',
-        '**/Instruments/**',
+        "**/Libraries/**",
+        "**/Content/**",
+        "**/Soundbanks/**",
+        "**/Instruments/**",
     ]
 
-    def __init__(
-        self,
-        config: Optional[ConfigManager] = None,
-        max_workers: int = 4
-    ):
+    def __init__(self, config: Optional[ConfigManager] = None, max_workers: int = 4):
         """
         Initialize folder scanner.
 
@@ -101,10 +96,7 @@ class FolderScanner(BaseScanner[DataFolder]):
         """Set discovered data folders (backward compatibility)."""
         self.items = value
 
-    def scan_for_data_folders(
-        self,
-        scan_paths: Optional[List[str]] = None
-    ) -> List[DataFolder]:
+    def scan_for_data_folders(self, scan_paths: Optional[List[str]] = None) -> List[DataFolder]:
         """
         Scan for music production data folders.
 
@@ -129,24 +121,28 @@ class FolderScanner(BaseScanner[DataFolder]):
 
         if IS_WINDOWS:
             # Common Windows locations
-            paths.extend([
-                str(Path.home() / 'Documents'),
-                str(Path.home() / 'AppData' / 'Local'),
-                str(Path.home() / 'AppData' / 'Roaming'),
-                'C:\\ProgramData',
-                'C:\\Program Files\\Common Files',
-                'C:\\Program Files (x86)\\Common Files',
-            ])
+            paths.extend(
+                [
+                    str(Path.home() / "Documents"),
+                    str(Path.home() / "AppData" / "Local"),
+                    str(Path.home() / "AppData" / "Roaming"),
+                    "C:\\ProgramData",
+                    "C:\\Program Files\\Common Files",
+                    "C:\\Program Files (x86)\\Common Files",
+                ]
+            )
         else:
             # Mac/Linux locations
-            paths.extend([
-                str(Path.home() / 'Library' / 'Application Support'),
-                str(Path.home() / 'Library' / 'Audio'),
-                str(Path.home() / 'Music'),
-                str(Path.home() / 'Documents'),
-                '/Library/Application Support',
-                '/Library/Audio',
-            ])
+            paths.extend(
+                [
+                    str(Path.home() / "Library" / "Application Support"),
+                    str(Path.home() / "Library" / "Audio"),
+                    str(Path.home() / "Music"),
+                    str(Path.home() / "Documents"),
+                    "/Library/Application Support",
+                    "/Library/Audio",
+                ]
+            )
 
         return paths
 
@@ -167,36 +163,35 @@ class FolderScanner(BaseScanner[DataFolder]):
         folder_name_lower = folder_path.name.lower()
 
         # Check for preset folders
-        if any(pattern in folder_name_lower for pattern in [
-            'preset', 'fxp', 'fxb', 'patch', 'sound'
-        ]):
+        if any(
+            pattern in folder_name_lower for pattern in ["preset", "fxp", "fxb", "patch", "sound"]
+        ):
             return FolderType.PRESETS
 
         # Check for sample folders
-        if any(pattern in folder_name_lower for pattern in [
-            'sample', 'audio', 'wav', 'loops', 'drums'
-        ]):
+        if any(
+            pattern in folder_name_lower for pattern in ["sample", "audio", "wav", "loops", "drums"]
+        ):
             return FolderType.SAMPLES
 
         # Check for library folders
-        if any(pattern in folder_name_lower for pattern in [
-            'library', 'libraries', 'content', 'soundbank', 'instrument'
-        ]):
+        if any(
+            pattern in folder_name_lower
+            for pattern in ["library", "libraries", "content", "soundbank", "instrument"]
+        ):
             return FolderType.LIBRARY
 
         # Check for project folders
-        if any(pattern in folder_name_lower for pattern in [
-            'project', 'session', 'song'
-        ]):
+        if any(pattern in folder_name_lower for pattern in ["project", "session", "song"]):
             return FolderType.PROJECTS
 
         # Check for known vendor folders using VendorRegistry
         vendor = vendor_registry.find_vendor_by_folder(folder_path.name)
         if vendor:
             # Determine more specific type based on subfolder
-            if 'preset' in folder_name_lower or 'user' in folder_name_lower:
+            if "preset" in folder_name_lower or "user" in folder_name_lower:
                 return FolderType.PRESETS
-            elif 'sample' in folder_name_lower:
+            elif "sample" in folder_name_lower:
                 return FolderType.SAMPLES
             else:
                 return FolderType.LIBRARY
@@ -204,9 +199,7 @@ class FolderScanner(BaseScanner[DataFolder]):
         return None
 
     def _create_data_folder(
-        self,
-        folder_path: Path,
-        folder_type: FolderType
+        self, folder_path: Path, folder_type: FolderType
     ) -> Optional[DataFolder]:
         """
         Create DataFolder object.
@@ -255,7 +248,7 @@ class FolderScanner(BaseScanner[DataFolder]):
         file_count = 0
 
         try:
-            for item in folder_path.rglob('*'):
+            for item in folder_path.rglob("*"):
                 if item.is_file():
                     try:
                         total_size += item.stat().st_size
@@ -288,10 +281,10 @@ class FolderScanner(BaseScanner[DataFolder]):
         # Try to extract from folder name or parent
         if len(folder_path.parts) > 1:
             parent = folder_path.parent.name
-            if parent not in ['Documents', 'AppData', 'Local', 'Roaming', 'Application Support']:
+            if parent not in ["Documents", "AppData", "Local", "Roaming", "Application Support"]:
                 return parent
 
-        return 'Unknown'
+        return "Unknown"
 
     def find_preset_folders(self) -> List[DataFolder]:
         """
@@ -330,10 +323,7 @@ class FolderScanner(BaseScanner[DataFolder]):
         Returns:
             List of folders from owner
         """
-        return [
-            folder for folder in self.data_folders
-            if owner.lower() in folder.owner.lower()
-        ]
+        return [folder for folder in self.data_folders if owner.lower() in folder.owner.lower()]
 
     def get_total_size_by_type(self) -> Dict[FolderType, int]:
         """

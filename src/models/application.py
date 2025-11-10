@@ -11,6 +11,7 @@ from .plugin import Version
 
 class ApplicationType(Enum):
     """Application type."""
+
     PLUGIN_MANAGER = "Plugin Manager"
     STANDALONE = "Standalone Plugin"
     DAW = "DAW"
@@ -55,19 +56,19 @@ class Application:
             Dictionary representation
         """
         return {
-            'name': self.name,
-            'publisher': self.publisher,
-            'type': self.app_type.value,
-            'version': str(self.version) if self.version else "Unknown",
-            'executable': str(self.executable_path) if self.executable_path else "",
-            'install_path': str(self.install_path) if self.install_path else "",
-            'registry_key': self.registry_key or "",
-            'uninstall_key': self.uninstall_key or "",
-            'related_plugins': ', '.join(self.related_plugins),
-            'related_folders_count': len(self.related_folders),
-            'file_size_mb': round(self.file_size / (1024 * 1024), 2),
-            'install_date': self.install_date.isoformat() if self.install_date else "",
-            'description': self.description or "",
+            "name": self.name,
+            "publisher": self.publisher,
+            "type": self.app_type.value,
+            "version": str(self.version) if self.version else "Unknown",
+            "executable": str(self.executable_path) if self.executable_path else "",
+            "install_path": str(self.install_path) if self.install_path else "",
+            "registry_key": self.registry_key or "",
+            "uninstall_key": self.uninstall_key or "",
+            "related_plugins": ", ".join(self.related_plugins),
+            "related_folders_count": len(self.related_folders),
+            "file_size_mb": round(self.file_size / (1024 * 1024), 2),
+            "install_date": self.install_date.isoformat() if self.install_date else "",
+            "description": self.description or "",
         }
 
     def add_related_plugin(self, plugin_name: str) -> None:

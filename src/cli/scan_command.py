@@ -1,28 +1,73 @@
+"""Scan command - comprehensive system scanning for plugins, DAWs, and data."""
+
+import sys
+import uuid
+from datetime import datetime
+from pathlib import Path
+
+import click
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
+
+from ..core.config import ConfigManager
+from ..core.logger import get_logger
+from ..models.scan_result import ComprehensiveScanResult
+from ..scanner.application_scanner import ApplicationScanner
+from ..scanner.file_scanner import FileScanner
+from ..scanner.folder_scanner import FolderScanner
+from ..scanner.metadata.extractor import MetadataExtractor
+
 console = Console()
 
 
-@click.option('--config', default='config.yaml', help='Config file path')
-@click.option('--output', default='data', help='Output directory for results')
-@click.option('--format', type=click.Choice(['csv', 'excel', 'both']), default='both', help='Export format')
-@click.option('--skip-plugins', is_flag=True, help='Skip plugin file scanning')
-@click.option('--skip-apps', is_flag=True, help='Skip application scanning')
-@click.option('--skip-folders', is_flag=True, help='Skip data folder scanning')
-@click.option('--skip-registry', is_flag=True, help='Skip registry scanning')
-@click.option('--skip-licenses', is_flag=True, help='Skip license scanning')
-@click.option('--enable-vst-host', is_flag=True, help='Enable external JUCE VST host for plugin_id extraction (requires VSTScanner.exe)')
-@click.option('--enable-registry', is_flag=True, default=True, help='Enable Windows registry metadata extraction')
-def scan(config, output, format, skip_plugins, skip_apps, skip_folders, skip_registry, skip_licenses, enable_vst_host, enable_registry):
+@click.command()
+@click.option("--config", default="config.yaml", help="Config file path")
+@click.option("--output", default="data", help="Output directory for results")
+@click.option(
+    "--format", type=click.Choice(["csv", "excel", "both"]), default="both", help="Export format"
+)
+@click.option("--skip-plugins", is_flag=True, help="Skip plugin file scanning")
+@click.option("--skip-apps", is_flag=True, help="Skip application scanning")
+@click.option("--skip-folders", is_flag=True, help="Skip data folder scanning")
+@click.option("--skip-registry", is_flag=True, help="Skip registry scanning")
+@click.option("--skip-licenses", is_flag=True, help="Skip license scanning")
+@click.option(
+    "--enable-vst-host",
+    is_flag=True,
+    help="Enable external JUCE VST host for plugin_id extraction (requires VSTScanner.exe)",
+)
+@click.option(
+    "--enable-registry",
+    is_flag=True,
+    default=True,
+    help="Enable Windows registry metadata extraction",
+)
+def scan(
+    config,
+    output,
+    format,
+    skip_plugins,
+    skip_apps,
+    skip_folders,
+    skip_registry,
+    skip_licenses,
+    enable_vst_host,
+    enable_registry,
+):
     """Comprehensive scan for music production software, plugins, DAWs, and data."""
     from rich.panel import Panel
     from rich.table import Table
 
     # Header
     console.print()
-    console.print(Panel.fit(
-        "[bold cyan]MPSM Comprehensive Scanner[/bold cyan]\n"
-        "[dim]Music Production Software Manager[/dim]",
-        border_style="cyan"
-    ))
+    console.print(
+        Panel.fit(
+            "[bold cyan]MPSM Comprehensive Scanner[/bold cyan]\n"
+            "[dim]Music Production Software Manager[/dim]",
+            border_style="cyan",
+        )
+    )
     console.print()
 
     try:
@@ -42,9 +87,9 @@ def scan(config, output, format, skip_plugins, skip_apps, skip_folders, skip_reg
 
         # Initialize logger (suppress console output during scan)
         logger = get_logger(
-            level=config_manager.get('logging.level', 'INFO'),
+            level=config_manager.get("logging.level", "INFO"),
             log_to_console=False,  # Suppress logger console output
-            log_to_file=config_manager.get('logging.log_to_file', True),
+            log_to_file=config_manager.get("logging.log_to_file", True),
         )
 
         # Get scan paths
@@ -72,35 +117,37 @@ def scan(config, output, format, skip_plugins, skip_apps, skip_folders, skip_reg
 
             scanner = FileScanner(
                 exclude_paths=config_manager.get_exclude_paths(),
-                max_workers=config_manager.get('scan.max_workers', 4),
-                verbose=False
+                max_workers=config_manager.get("scan.max_workers", 4),
+                verbose=False,
             )
             metadata_extractor = MetadataExtractor(
-                enable_vst_host=enable_vst_host,
-                enable_registry=enable_registry
+                enable_vst_host=enable_vst_host, enable_registry=enable_registry
             )
 
             # Show metadata extraction settings
             if enable_vst_host:
-                console.print("  [cyan]🔌 External VST Host enabled[/cyan] - Requires JUCE VSTScanner.exe")
+                console.print(
+                    "  [cyan]🔌 External VST Host enabled[/cyan] - Requires JUCE VSTScanner.exe"
+                )
             if enable_registry:
                 console.print("  [cyan]ℹ Registry scanning enabled[/cyan]")
 
             # Get all plugin extensions
-            vst2_ext = config_manager.get('scan.extensions.plugins.vst2', ['.dll'])
-            vst3_ext = config_manager.get('scan.extensions.plugins.vst3', ['.vst3'])
-            aax_ext = config_manager.get('scan.extensions.plugins.aax', ['.aax'])
-            clap_ext = config_manager.get('scan.extensions.plugins.clap', ['.clap'])
+            vst2_ext = config_manager.get("scan.extensions.plugins.vst2", [".dll"])
+            vst3_ext = config_manager.get("scan.extensions.plugins.vst3", [".vst3"])
+            aax_ext = config_manager.get("scan.extensions.plugins.aax", [".aax"])
+            clap_ext = config_manager.get("scan.extensions.plugins.clap", [".clap"])
             all_extensions = vst2_ext + vst3_ext + aax_ext + clap_ext
 
             console.print(f"  Extensions: [dim]{', '.join(all_extensions)}[/dim]")
 
             # Get validation settings
-            min_size = config_manager.get('scan.validation.min_plugin_size_mb', 0.1)
-            max_size = config_manager.get('scan.validation.max_plugin_size_mb', 500)
+            min_size = config_manager.get("scan.validation.min_plugin_size_mb", 0.1)
+            max_size = config_manager.get("scan.validation.max_plugin_size_mb", 500)
 
             # Progress callback for real-time directory display with file counts
             import time
+
             progress_start_time = time.time()  # Renamed to avoid conflict with scan start_time
             last_count = [0]  # Use list to allow modification in closure
 
@@ -123,7 +170,9 @@ def scan(config, output, format, skip_plugins, skip_apps, skip_folders, skip_reg
 
             # Scan for plugins
             console.print("  🔍 Scanning directories...")
-            plugin_files = scanner.scan_parallel(plugin_paths, all_extensions, progress_callback=show_scan_progress)
+            plugin_files = scanner.scan_parallel(
+                plugin_paths, all_extensions, progress_callback=show_scan_progress
+            )
             sys.stdout.write("\r" + " " * 120 + "\r")  # Clear progress line
             console.print(f"  ✓ Found [cyan]{len(plugin_files)}[/cyan] candidate files")
 
@@ -141,7 +190,8 @@ def scan(config, output, format, skip_plugins, skip_apps, skip_folders, skip_reg
                         percent = int((i + 1) / len(plugin_files) * 100)
                         sys.stdout.write(
                             f"\r  🔬 Validating: {percent:3d}% ({i+1:,}/{len(plugin_files):,}) | "
-                            f"✓ {validated_count:,} valid | ✗ {filtered_count:,} filtered" + " " * 10
+                            f"✓ {validated_count:,} valid | ✗ {filtered_count:,} filtered"
+                            + " " * 10
                         )
                         sys.stdout.flush()
 
@@ -158,7 +208,9 @@ def scan(config, output, format, skip_plugins, skip_apps, skip_folders, skip_reg
 
                     # Extract additional metadata (conservative approach)
                     version = metadata_extractor.extract_version_from_pe(file_path)
-                    category_str = metadata_extractor.detect_plugin_category(file_path, product_name, "")
+                    category_str = metadata_extractor.detect_plugin_category(
+                        file_path, product_name, ""
+                    )
 
                     # Only set publisher if we can reliably detect it from path
                     publisher = metadata_extractor.identify_publisher(file_path)
@@ -171,12 +223,12 @@ def scan(config, output, format, skip_plugins, skip_apps, skip_folders, skip_reg
                         vst_host_attempts += 1
                         try:
                             vst_metadata = metadata_extractor._get_vst_host_metadata(file_path)
-                            if vst_metadata and 'plugin_id' in vst_metadata:
-                                plugin_id = vst_metadata['plugin_id']
+                            if vst_metadata and "plugin_id" in vst_metadata:
+                                plugin_id = vst_metadata["plugin_id"]
                                 vst_host_successes += 1
                                 # Update publisher from VST host if available
-                                if not publisher and 'vst_vendor' in vst_metadata:
-                                    publisher = vst_metadata['vst_vendor']
+                                if not publisher and "vst_vendor" in vst_metadata:
+                                    publisher = vst_metadata["vst_vendor"]
                         except Exception as e:
                             # VST host extraction failed, skip this plugin
                             logger.debug(f"VST host failed for {file_path}: {e}")
@@ -193,8 +245,8 @@ def scan(config, output, format, skip_plugins, skip_apps, skip_folders, skip_reg
                         category=category_str,
                         version=version,
                         file_path=file_path,
-                        file_size=metadata['file_size'],
-                        file_hash=metadata['file_hash'],
+                        file_size=metadata["file_size"],
+                        file_hash=metadata["file_hash"],
                         architecture=architecture,
                         registry_key=registry_key,
                         license_status="unknown",  # Explicitly unknown
@@ -209,14 +261,22 @@ def scan(config, output, format, skip_plugins, skip_apps, skip_folders, skip_reg
             sys.stdout.write("\r" + " " * 120 + "\r")  # Clear progress line
             scan_result.total_files_scanned = scanner.files_scanned
 
-            console.print(f"  ✓ [green bold]{len(scan_result.plugins)} real plugins[/green bold] validated")
+            console.print(
+                f"  ✓ [green bold]{len(scan_result.plugins)} real plugins[/green bold] validated"
+            )
             if filtered_count > 0:
-                console.print(f"  ⚠ [yellow]{filtered_count} files filtered[/yellow] (helpers, installers, etc.)")
+                console.print(
+                    f"  ⚠ [yellow]{filtered_count} files filtered[/yellow] (helpers, installers, etc.)"
+                )
 
             # Show VST host statistics if enabled
             if enable_vst_host and vst_host_attempts > 0:
-                success_rate = (vst_host_successes / vst_host_attempts * 100) if vst_host_attempts > 0 else 0
-                console.print(f"  🔌 VST Host: {vst_host_successes}/{vst_host_attempts} plugin_ids extracted ({success_rate:.0f}%)")
+                success_rate = (
+                    (vst_host_successes / vst_host_attempts * 100) if vst_host_attempts > 0 else 0
+                )
+                console.print(
+                    f"  🔌 VST Host: {vst_host_successes}/{vst_host_attempts} plugin_ids extracted ({success_rate:.0f}%)"
+                )
 
             console.print()
 
@@ -273,9 +333,13 @@ def scan(config, output, format, skip_plugins, skip_apps, skip_folders, skip_reg
             try:
                 registry_reader = RegistryReader()
                 registry_entries = registry_reader.scan_all_music_production_keys()
-                scan_result.total_registry_entries = sum(len(entries) for entries in registry_entries.values())
+                scan_result.total_registry_entries = sum(
+                    len(entries) for entries in registry_entries.values()
+                )
 
-                console.print(f"  ✓ Found [cyan]{len(registry_entries)}[/cyan] registry keys ([cyan]{scan_result.total_registry_entries}[/cyan] entries)")
+                console.print(
+                    f"  ✓ Found [cyan]{len(registry_entries)}[/cyan] registry keys ([cyan]{scan_result.total_registry_entries}[/cyan] entries)"
+                )
                 console.print()
             except Exception as e:
                 console.print(f"  ⚠ [yellow]Registry scanning skipped:[/yellow] {e}")
@@ -311,11 +375,13 @@ def scan(config, output, format, skip_plugins, skip_apps, skip_folders, skip_reg
 
         # Display comprehensive summary
         console.print()
-        console.print(Panel.fit(
-            f"[bold green]✓ Scan Complete![/bold green]\n"
-            f"[dim]Duration: {scan_result.scan_duration:.1f}s[/dim]",
-            border_style="green"
-        ))
+        console.print(
+            Panel.fit(
+                f"[bold green]✓ Scan Complete![/bold green]\n"
+                f"[dim]Duration: {scan_result.scan_duration:.1f}s[/dim]",
+                border_style="green",
+            )
+        )
         console.print()
 
         # Summary table
@@ -338,19 +404,20 @@ def scan(config, output, format, skip_plugins, skip_apps, skip_folders, skip_reg
 
         console.print("[bold]📁 Exporting Results[/bold]")
 
-        if format in ['csv', 'both']:
+        if format in ["csv", "both"]:
             scan_result.export_csv(output_dir)
             console.print(f"  ✓ CSV files → [cyan]{output_dir}/[/cyan]")
 
-        if format in ['excel', 'both']:
+        if format in ["excel", "both"]:
             excel_path = output_dir / f"scan_results_{scan_result.scan_id[:8]}.xlsx"
             scan_result.export_excel(excel_path)
             console.print(f"  ✓ Excel file → [cyan]{excel_path.name}[/cyan]")
 
         # Save scan result as JSON for later use
         import json
+
         json_path = output_dir / f"scan_result_{scan_result.scan_id[:8]}.json"
-        with open(json_path, 'w') as f:
+        with open(json_path, "w") as f:
             json.dump(scan_result.get_summary_dict(), f, indent=2)
         console.print(f"  ✓ JSON metadata → [cyan]{json_path.name}[/cyan]")
         console.print()
@@ -364,6 +431,7 @@ def scan(config, output, format, skip_plugins, skip_apps, skip_folders, skip_reg
     except Exception as e:
         console.print(f"\n[red]Unexpected error:[/red] {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 
@@ -383,10 +451,7 @@ def _display_scan_samples(scan_result: ComprehensiveScanResult):
         for plugin in scan_result.plugins[:10]:
             size_mb = round(plugin.file_size / (1024 * 1024), 2)
             table.add_row(
-                plugin.name[:40],
-                plugin.publisher[:20],
-                plugin.plugin_type.value,
-                f"{size_mb} MB"
+                plugin.name[:40], plugin.publisher[:20], plugin.plugin_type.value, f"{size_mb} MB"
             )
         console.print(table)
 
@@ -401,10 +466,7 @@ def _display_scan_samples(scan_result: ComprehensiveScanResult):
 
         for app in scan_result.applications[:10]:
             table.add_row(
-                app.name[:40],
-                app.publisher[:20],
-                app.app_type.value,
-                app.version or "N/A"
+                app.name[:40], app.publisher[:20], app.app_type.value, app.version or "N/A"
             )
         console.print(table)
 
@@ -418,13 +480,8 @@ def _display_scan_samples(scan_result: ComprehensiveScanResult):
         table.add_column("Size", style="blue")
 
         for folder in scan_result.data_folders[:10]:
-            size_gb = round(folder.total_size / (1024 ** 3), 2)
+            size_gb = round(folder.total_size / (1024**3), 2)
             table.add_row(
-                folder.name[:40],
-                folder.owner[:20],
-                folder.folder_type.value,
-                f"{size_gb} GB"
+                folder.name[:40], folder.owner[:20], folder.folder_type.value, f"{size_gb} GB"
             )
         console.print(table)
-
-
