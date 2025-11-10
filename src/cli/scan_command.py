@@ -11,8 +11,12 @@ from rich.panel import Panel
 from rich.table import Table
 
 from ..core.config import ConfigManager
+from ..core.exceptions import MPSMException
 from ..core.logger import get_logger
+from ..license.license_scanner import LicenseScanner
+from ..models.plugin import Plugin, PluginType
 from ..models.scan_result import ComprehensiveScanResult
+from ..registry.registry_reader import RegistryReader
 from ..scanner.application_scanner import ApplicationScanner
 from ..scanner.file_scanner import FileScanner
 from ..scanner.folder_scanner import FolderScanner
