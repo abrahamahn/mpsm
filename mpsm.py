@@ -154,7 +154,9 @@ def _auto_detect_scan_paths() -> list:
 @click.option('--skip-folders', is_flag=True, help='Skip data folder scanning')
 @click.option('--skip-registry', is_flag=True, help='Skip registry scanning')
 @click.option('--skip-licenses', is_flag=True, help='Skip license scanning')
-def scan(config, output, format, skip_plugins, skip_apps, skip_folders, skip_registry, skip_licenses):
+@click.option('--enable-vst-host', is_flag=True, help='Enable VST host for plugin_id extraction (slower, may crash on unstable plugins)')
+@click.option('--enable-registry', is_flag=True, default=True, help='Enable Windows registry metadata extraction')
+def scan(config, output, format, skip_plugins, skip_apps, skip_folders, skip_registry, skip_licenses, enable_vst_host, enable_registry):
     """Comprehensive scan for music production software, plugins, DAWs, and data."""
     from rich.panel import Panel
     from rich.table import Table
@@ -218,7 +220,16 @@ def scan(config, output, format, skip_plugins, skip_apps, skip_folders, skip_reg
                 max_workers=config_manager.get('scan.max_workers', 4),
                 verbose=False
             )
-            metadata_extractor = MetadataExtractor()
+            metadata_extractor = MetadataExtractor(
+                enable_vst_host=enable_vst_host,
+                enable_registry=enable_registry
+            )
+
+            # Show metadata extraction settings
+            if enable_vst_host:
+                console.print("  [yellow]⚠ VST Host enabled[/yellow] - May be slower, can crash on unstable plugins")
+            if enable_registry:
+                console.print("  [cyan]ℹ Registry scanning enabled[/cyan]")
 
             # Get all plugin extensions
             vst2_ext = config_manager.get('scan.extensions.plugins.vst2', ['.dll'])
@@ -297,9 +308,19 @@ def scan(config, output, format, skip_plugins, skip_apps, skip_folders, skip_reg
                     if publisher == "Unknown":
                         publisher = ""  # Leave empty instead of "Unknown"
 
-                    # Leave plugin_id empty unless VST host extracts it
-                    # (The generate_plugin_id creates a hash, not the real VST ID)
+                    # Extract plugin_id using VST host if enabled (VST2 only)
                     plugin_id = None
+                    if enable_vst_host and plugin_type == PluginType.VST2:
+                        try:
+                            vst_metadata = metadata_extractor._get_vst_host_metadata(file_path)
+                            if vst_metadata and 'plugin_id' in vst_metadata:
+                                plugin_id = vst_metadata['plugin_id']
+                                # Update publisher from VST host if available
+                                if not publisher and 'vst_vendor' in vst_metadata:
+                                    publisher = vst_metadata['vst_vendor']
+                        except Exception as e:
+                            # VST host extraction failed, skip this plugin
+                            logger.debug(f"VST host failed for {file_path}: {e}")
 
                     # Leave registry_key empty for now
                     # (The registry scanner would need to be properly integrated)
