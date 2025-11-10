@@ -264,23 +264,28 @@ def scan(config, output, format, skip_plugins, skip_apps, skip_folders, skip_reg
                         filtered_count += 1
                         continue
 
+                    # Basic file metadata
                     metadata = metadata_extractor.extract_file_metadata(file_path)
                     plugin_type = metadata_extractor.detect_plugin_type(file_path)
-                    publisher = metadata_extractor.identify_publisher(file_path)
                     product_name = metadata_extractor.get_product_name(file_path)
                     architecture = metadata_extractor.detect_architecture(file_path)
 
-                    # Extract additional metadata
+                    # Extract additional metadata (conservative approach)
                     version = metadata_extractor.extract_version_from_pe(file_path)
-                    plugin_id = metadata_extractor.generate_plugin_id(file_path, publisher, product_name)
-                    category_str = metadata_extractor.detect_plugin_category(file_path, product_name, publisher)
+                    category_str = metadata_extractor.detect_plugin_category(file_path, product_name, "")
 
-                    # Find registry key (only for VST2 and VST3)
+                    # Only set publisher if we can reliably detect it from path
+                    publisher = metadata_extractor.identify_publisher(file_path)
+                    if publisher == "Unknown":
+                        publisher = ""  # Leave empty instead of "Unknown"
+
+                    # Leave plugin_id empty unless VST host extracts it
+                    # (The generate_plugin_id creates a hash, not the real VST ID)
+                    plugin_id = None
+
+                    # Leave registry_key empty for now
+                    # (The registry scanner would need to be properly integrated)
                     registry_key = None
-                    if plugin_type in [PluginType.VST2, PluginType.VST3]:
-                        registry_key = metadata_extractor.find_registry_key_for_plugin(
-                            file_path, product_name, plugin_type
-                        )
 
                     plugin = Plugin(
                         name=product_name,
@@ -294,6 +299,8 @@ def scan(config, output, format, skip_plugins, skip_apps, skip_folders, skip_reg
                         file_hash=metadata['file_hash'],
                         architecture=architecture,
                         registry_key=registry_key,
+                        license_status="unknown",  # Explicitly unknown
+                        license_path=None,  # Leave empty
                     )
                     scan_result.plugins.append(plugin)
                     validated_count += 1

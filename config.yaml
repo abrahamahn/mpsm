@@ -83,7 +83,12 @@ scan:
 
     # CUSTOM: User's organized production directory
     # This user has moved all applications to a custom organized structure
+    - "C:\\Production"
     - "C:\\Production\\Applications"
+    - "C:\\Production\\Plugins"
+    - "C:\\Production\\VST"
+    - "C:\\Production\\VST2"
+    - "C:\\Production\\VST3"
 
     # Add any additional custom directories here
     # - "D:\\Audio\\Plugins"
