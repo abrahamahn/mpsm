@@ -276,6 +276,8 @@ def scan(config, output, format, skip_plugins, skip_apps, skip_folders, skip_reg
             console.print("  🔬 Validating plugins...")
             validated_count = 0
             filtered_count = 0
+            vst_host_attempts = 0
+            vst_host_successes = 0
 
             for i, file_path in enumerate(plugin_files):
                 try:
@@ -311,10 +313,12 @@ def scan(config, output, format, skip_plugins, skip_apps, skip_folders, skip_reg
                     # Extract plugin_id using VST host if enabled (VST2 only)
                     plugin_id = None
                     if enable_vst_host and plugin_type == PluginType.VST2:
+                        vst_host_attempts += 1
                         try:
                             vst_metadata = metadata_extractor._get_vst_host_metadata(file_path)
                             if vst_metadata and 'plugin_id' in vst_metadata:
                                 plugin_id = vst_metadata['plugin_id']
+                                vst_host_successes += 1
                                 # Update publisher from VST host if available
                                 if not publisher and 'vst_vendor' in vst_metadata:
                                     publisher = vst_metadata['vst_vendor']
@@ -353,6 +357,12 @@ def scan(config, output, format, skip_plugins, skip_apps, skip_folders, skip_reg
             console.print(f"  ✓ [green bold]{len(scan_result.plugins)} real plugins[/green bold] validated")
             if filtered_count > 0:
                 console.print(f"  ⚠ [yellow]{filtered_count} files filtered[/yellow] (helpers, installers, etc.)")
+
+            # Show VST host statistics if enabled
+            if enable_vst_host and vst_host_attempts > 0:
+                success_rate = (vst_host_successes / vst_host_attempts * 100) if vst_host_attempts > 0 else 0
+                console.print(f"  🔌 VST Host: {vst_host_successes}/{vst_host_attempts} plugin_ids extracted ({success_rate:.0f}%)")
+
             console.print()
 
         # ============================================================
