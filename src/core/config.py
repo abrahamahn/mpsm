@@ -5,6 +5,11 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 import yaml
 
+try:
+    from dotenv import dotenv_values
+except ImportError:
+    dotenv_values = None
+
 
 class ConfigManager:
     """Manages application configuration."""
@@ -354,12 +359,59 @@ class ConfigManager:
             return []
 
     def get_plugin_paths(self) -> List[str]:
-        """Get list of paths containing plugin binaries (.dll, .vst3, .aaxplugin)."""
+        """
+        Get list of paths containing plugin binaries (.dll, .vst3, .aaxplugin).
+
+        Includes custom paths from .env file if present.
+        """
         plugin_paths = self.get('scan.plugin_paths', [])
-        if plugin_paths:
-            return plugin_paths
-        # Fallback to scan_paths for backward compatibility
-        return self.get('scan.scan_paths', [])
+        if not plugin_paths:
+            # Fallback to scan_paths for backward compatibility
+            plugin_paths = self.get('scan.scan_paths', [])
+
+        # Load custom paths from .env file
+        custom_paths = self._load_custom_paths_from_env()
+        if custom_paths:
+            plugin_paths = list(plugin_paths) + custom_paths
+
+        return plugin_paths
+
+    def _load_custom_paths_from_env(self) -> List[str]:
+        """
+        Load custom plugin paths from .env file.
+
+        Reads all CUSTOM_*_PATH_* variables from .env and returns valid paths.
+
+        Returns:
+            List of custom paths that exist
+        """
+        if dotenv_values is None:
+            return []
+
+        env_file = self.config_path.parent / '.env'
+        if not env_file.exists():
+            return []
+
+        try:
+            env_vars = dotenv_values(env_file)
+            custom_paths = []
+
+            # Sort keys to maintain consistent order
+            sorted_keys = sorted(env_vars.keys())
+
+            for key in sorted_keys:
+                # Match CUSTOM_*_PATH_* pattern
+                if key.startswith('CUSTOM_') and '_PATH_' in key:
+                    value = env_vars[key]
+                    if value and value.strip():
+                        # Add path regardless of existence (Windows paths won't exist on Linux)
+                        custom_paths.append(value.strip())
+
+            return custom_paths
+
+        except Exception as e:
+            # Log error but don't fail - custom paths are optional
+            return []
 
     def get_data_paths(self) -> List[str]:
         """Get list of paths containing presets, samples, licenses (vendor-filtered)."""

@@ -41,6 +41,7 @@ data/*.db
 logs/*.log
 backups/registry/*.reg
 backups/files/*
+.env
 
 # Keep data and log directories but ignore contents
 !data/.gitkeep

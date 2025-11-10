@@ -8,6 +8,9 @@ lxml>=4.9.0
 # File Operations
 pefile>=2023.2.7
 
+# Environment Variables
+python-dotenv>=1.0.0
+
 # Scheduling
 schedule>=1.2.0
 apscheduler>=3.10.0
