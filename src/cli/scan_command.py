@@ -66,9 +66,6 @@ def scan(
     raw_output,
 ):
     """Comprehensive scan for music production software, plugins, DAWs, and data."""
-    from rich.panel import Panel
-    from rich.table import Table
-
     # Header
     console.print()
     console.print(
@@ -313,28 +310,35 @@ def scan(
 
             if raw_output:
                 console.print(
-                    f"  ✓ [green bold]{len(scan_result.plugins)} files processed[/green bold] (no filtering applied)"
+                    f"  ✓ [green bold]{len(scan_result.plugins)} files processed[/green bold]"
+                    " (no filtering applied)"
                 )
                 if filtered_count > 0:
                     console.print(
-                        f"  ⚠ [yellow]{filtered_count} files failed to process[/yellow] (check logs for details)"
+                        f"  ⚠ [yellow]{filtered_count} files failed to process[/yellow]"
+                        " (check logs for details)"
                     )
             else:
                 console.print(
-                    f"  ✓ [green bold]{len(scan_result.plugins)} real plugins[/green bold] validated"
+                    f"  ✓ [green bold]{len(scan_result.plugins)} real plugins[/green bold]"
+                    " validated"
                 )
                 if filtered_count > 0:
                     console.print(
-                        f"  ⚠ [yellow]{filtered_count} files filtered[/yellow] (helpers, installers, etc.)"
+                        f"  ⚠ [yellow]{filtered_count} files filtered[/yellow]"
+                        " (helpers, installers, etc.)"
                     )
 
             # Show VST host statistics if enabled
             if enable_vst_host and vst_host_attempts > 0:
                 success_rate = (
-                    (vst_host_successes / vst_host_attempts * 100) if vst_host_attempts > 0 else 0
+                    (vst_host_successes / vst_host_attempts * 100)
+                    if vst_host_attempts > 0
+                    else 0
                 )
                 console.print(
-                    f"  🔌 VST Host: {vst_host_successes}/{vst_host_attempts} plugin_ids extracted ({success_rate:.0f}%)"
+                    f"  🔌 VST Host: {vst_host_successes}/{vst_host_attempts}"
+                    f" plugin_ids extracted ({success_rate:.0f}%)"
                 )
 
             console.print()
@@ -397,7 +401,8 @@ def scan(
                 )
 
                 console.print(
-                    f"  ✓ Found [cyan]{len(registry_entries)}[/cyan] registry keys ([cyan]{scan_result.total_registry_entries}[/cyan] entries)"
+                    f"  ✓ Found [cyan]{len(registry_entries)}[/cyan] registry keys"
+                    f" ([cyan]{scan_result.total_registry_entries}[/cyan] entries)"
                 )
                 console.print()
             except Exception as e:
@@ -500,7 +505,7 @@ def _display_scan_samples(scan_result: ComprehensiveScanResult):
 
     # Sample plugins
     if scan_result.plugins:
-        console.print(f"\n[bold]Sample Plugins (showing first 10):[/bold]")
+        console.print("\n[bold]Sample Plugins (showing first 10):[/bold]")
         table = Table(show_header=True, header_style="bold magenta")
         table.add_column("Name", style="cyan")
         table.add_column("Publisher", style="yellow")
@@ -516,7 +521,7 @@ def _display_scan_samples(scan_result: ComprehensiveScanResult):
 
     # Sample applications
     if scan_result.applications:
-        console.print(f"\n[bold]Sample Applications (showing first 10):[/bold]")
+        console.print("\n[bold]Sample Applications (showing first 10):[/bold]")
         table = Table(show_header=True, header_style="bold magenta")
         table.add_column("Name", style="cyan")
         table.add_column("Publisher", style="yellow")
@@ -531,7 +536,7 @@ def _display_scan_samples(scan_result: ComprehensiveScanResult):
 
     # Sample data folders
     if scan_result.data_folders:
-        console.print(f"\n[bold]Sample Data Folders (showing first 10):[/bold]")
+        console.print("\n[bold]Sample Data Folders (showing first 10):[/bold]")
         table = Table(show_header=True, header_style="bold magenta")
         table.add_column("Name", style="cyan")
         table.add_column("Owner", style="yellow")
