@@ -43,6 +43,11 @@ console = Console()
     default=True,
     help="Enable Windows registry metadata extraction",
 )
+@click.option(
+    "--raw-output",
+    is_flag=True,
+    help="Skip validation filtering - output all candidate files for manual analysis",
+)
 def scan(
     config,
     output,
@@ -54,6 +59,7 @@ def scan(
     skip_licenses,
     enable_vst_host,
     enable_registry,
+    raw_output,
 ):
     """Comprehensive scan for music production software, plugins, DAWs, and data."""
     from rich.panel import Panel
@@ -85,10 +91,11 @@ def scan(
 
         console.print("[green]✓[/green]")
 
-        # Initialize logger (suppress console output during scan)
+        # Initialize logger (suppress console output during scan to avoid clutter)
+        # Force WARNING level to reduce log spam, write everything to file
         logger = get_logger(
-            level=config_manager.get("logging.level", "INFO"),
-            log_to_console=False,  # Suppress logger console output
+            level="WARNING",  # Only show warnings/errors in console
+            log_to_console=False,  # Suppress ALL logger console output for clean UI
             log_to_file=config_manager.get("logging.log_to_file", True),
         )
 
@@ -177,7 +184,10 @@ def scan(
             console.print(f"  ✓ Found [cyan]{len(plugin_files)}[/cyan] candidate files")
 
             # Validate and extract metadata
-            console.print("  🔬 Validating plugins...")
+            if raw_output:
+                console.print("  📋 Processing all files (raw output mode - no filtering)...")
+            else:
+                console.print("  🔬 Validating plugins...")
             validated_count = 0
             filtered_count = 0
             vst_host_attempts = 0
@@ -188,17 +198,21 @@ def scan(
                     # Show progress for every file
                     if len(plugin_files) > 0:
                         percent = int((i + 1) / len(plugin_files) * 100)
+                        status = "Processing" if raw_output else "Validating"
                         sys.stdout.write(
-                            f"\r  🔬 Validating: {percent:3d}% ({i+1:,}/{len(plugin_files):,}) | "
-                            f"✓ {validated_count:,} valid | ✗ {filtered_count:,} filtered"
-                            + " " * 10
+                            f"\r  🔬 {status}: {percent:3d}% ({i+1:,}/{len(plugin_files):,}) | "
+                            f"✓ {validated_count:,} processed"
+                            + " " * 20
                         )
                         sys.stdout.flush()
 
-                    # CRITICAL: Validate file before processing
-                    if not metadata_extractor.is_valid_plugin_file(file_path, min_size, max_size):
-                        filtered_count += 1
-                        continue
+                    # CRITICAL: Validate file before processing (skip if raw_output mode)
+                    if not raw_output:
+                        if not metadata_extractor.is_valid_plugin_file(
+                            file_path, min_size, max_size
+                        ):
+                            filtered_count += 1
+                            continue
 
                     # Basic file metadata
                     metadata = metadata_extractor.extract_file_metadata(file_path)
@@ -261,13 +275,18 @@ def scan(
             sys.stdout.write("\r" + " " * 120 + "\r")  # Clear progress line
             scan_result.total_files_scanned = scanner.files_scanned
 
-            console.print(
-                f"  ✓ [green bold]{len(scan_result.plugins)} real plugins[/green bold] validated"
-            )
-            if filtered_count > 0:
+            if raw_output:
                 console.print(
-                    f"  ⚠ [yellow]{filtered_count} files filtered[/yellow] (helpers, installers, etc.)"
+                    f"  ✓ [green bold]{len(scan_result.plugins)} files processed[/green bold] (no filtering applied)"
                 )
+            else:
+                console.print(
+                    f"  ✓ [green bold]{len(scan_result.plugins)} real plugins[/green bold] validated"
+                )
+                if filtered_count > 0:
+                    console.print(
+                        f"  ⚠ [yellow]{filtered_count} files filtered[/yellow] (helpers, installers, etc.)"
+                    )
 
             # Show VST host statistics if enabled
             if enable_vst_host and vst_host_attempts > 0:

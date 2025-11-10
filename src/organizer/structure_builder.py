@@ -104,8 +104,8 @@ class StructureBuilder:
             Target path for plugin file
 
         Example:
-            VST2: C:\MusicProduction\Plugins\VST2\Waves\WavesPlugin.dll
-            VST3: C:\MusicProduction\Plugins\VST3\Serum.vst3
+            VST2: C:\\MusicProduction\\Plugins\\VST2\\Waves\\WavesPlugin.dll
+            VST3: C:\\MusicProduction\\Plugins\\VST3\\Serum.vst3
         """
         # Get base path for plugin type
         if plugin.plugin_type == PluginType.VST2:
@@ -152,7 +152,7 @@ class StructureBuilder:
             Target path for application folder
 
         Example:
-            C:\MusicProduction\Plugins\Xfer\Serum\Serum.exe
+            C:\\MusicProduction\\Plugins\\Xfer\\Serum\\Serum.exe
         """
         base_path = self.root_path / "Plugins"
 
@@ -172,8 +172,8 @@ class StructureBuilder:
             Target path for data folder
 
         Example:
-            C:\MusicProduction\Libraries\Serum\Presets\
-            C:\MusicProduction\Libraries\Kontakt\Libraries\
+            C:\\MusicProduction\\Libraries\\Serum\\Presets\\
+            C:\\MusicProduction\\Libraries\\Kontakt\\Libraries\\
         """
         base_path = self.root_path / self.config.get("custom_paths.libraries", "Libraries")
 
@@ -203,7 +203,7 @@ class StructureBuilder:
             Target path for license files
 
         Example:
-            C:\MusicProduction\Licenses\Serum\
+            C:\\MusicProduction\\Licenses\\Serum\\
         """
         base_path = self.root_path / self.config.get("custom_paths.licenses", "Licenses")
         return base_path / plugin_name
