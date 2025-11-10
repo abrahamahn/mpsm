@@ -214,22 +214,51 @@ def scan(
                             filtered_count += 1
                             continue
 
-                    # Basic file metadata
-                    metadata = metadata_extractor.extract_file_metadata(file_path)
-                    plugin_type = metadata_extractor.detect_plugin_type(file_path)
-                    product_name = metadata_extractor.get_product_name(file_path)
-                    architecture = metadata_extractor.detect_architecture(file_path)
+                    # Basic file metadata (use safe extraction with fallbacks)
+                    try:
+                        metadata = metadata_extractor.extract_file_metadata(file_path)
+                    except Exception:
+                        # Fallback for metadata extraction failure
+                        metadata = {
+                            "file_size": file_path.stat().st_size if file_path.exists() else 0,
+                            "file_hash": "",
+                        }
+
+                    try:
+                        plugin_type = metadata_extractor.detect_plugin_type(file_path)
+                    except Exception:
+                        plugin_type = None
+
+                    try:
+                        product_name = metadata_extractor.get_product_name(file_path)
+                    except Exception:
+                        product_name = file_path.stem  # Use filename as fallback
+
+                    try:
+                        architecture = metadata_extractor.detect_architecture(file_path)
+                    except Exception:
+                        architecture = "unknown"
 
                     # Extract additional metadata (conservative approach)
-                    version = metadata_extractor.extract_version_from_pe(file_path)
-                    category_str = metadata_extractor.detect_plugin_category(
-                        file_path, product_name, ""
-                    )
+                    try:
+                        version = metadata_extractor.extract_version_from_pe(file_path)
+                    except Exception:
+                        version = None
+
+                    try:
+                        category_str = metadata_extractor.detect_plugin_category(
+                            file_path, product_name, ""
+                        )
+                    except Exception:
+                        category_str = "unknown"
 
                     # Only set publisher if we can reliably detect it from path
-                    publisher = metadata_extractor.identify_publisher(file_path)
-                    if publisher == "Unknown":
-                        publisher = ""  # Leave empty instead of "Unknown"
+                    try:
+                        publisher = metadata_extractor.identify_publisher(file_path)
+                        if publisher == "Unknown":
+                            publisher = ""  # Leave empty instead of "Unknown"
+                    except Exception:
+                        publisher = ""
 
                     # Extract plugin_id using VST host if enabled (VST2 only)
                     plugin_id = None
@@ -270,6 +299,9 @@ def scan(
                     validated_count += 1
 
                 except Exception as e:
+                    # In raw_output mode, show what's failing
+                    if raw_output:
+                        logger.warning(f"Failed to process {file_path}: {e}")
                     filtered_count += 1
 
             sys.stdout.write("\r" + " " * 120 + "\r")  # Clear progress line
@@ -279,6 +311,10 @@ def scan(
                 console.print(
                     f"  ✓ [green bold]{len(scan_result.plugins)} files processed[/green bold] (no filtering applied)"
                 )
+                if filtered_count > 0:
+                    console.print(
+                        f"  ⚠ [yellow]{filtered_count} files failed to process[/yellow] (check logs for details)"
+                    )
             else:
                 console.print(
                     f"  ✓ [green bold]{len(scan_result.plugins)} real plugins[/green bold] validated"
