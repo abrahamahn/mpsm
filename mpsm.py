@@ -156,31 +156,41 @@ def _auto_detect_scan_paths() -> list:
 @click.option('--skip-licenses', is_flag=True, help='Skip license scanning')
 def scan(config, output, format, skip_plugins, skip_apps, skip_folders, skip_registry, skip_licenses):
     """Comprehensive scan for music production software, plugins, DAWs, and data."""
-    console.print("[bold cyan]MPSM Comprehensive Scanner[/bold cyan]")
-    console.print("="*50)
+    from rich.panel import Panel
+    from rich.table import Table
+
+    # Header
+    console.print()
+    console.print(Panel.fit(
+        "[bold cyan]MPSM Comprehensive Scanner[/bold cyan]\n"
+        "[dim]Music Production Software Manager[/dim]",
+        border_style="cyan"
+    ))
+    console.print()
 
     try:
         # Load configuration
-        console.print(f"\n[bold]Loading configuration...[/bold]")
+        console.print("📋 [bold]Loading configuration...[/bold]", end=" ")
         config_manager = ConfigManager(Path(config))
         errors = config_manager.validate_config()
 
         if errors:
-            console.print("[red]Configuration errors:[/red]")
+            console.print("[red]✗[/red]")
+            console.print("\n[red]Configuration errors:[/red]")
             for error in errors:
-                console.print(f"  - {error}")
+                console.print(f"  • {error}")
             sys.exit(1)
 
-        console.print("[green]✓[/green] Configuration loaded successfully")
+        console.print("[green]✓[/green]")
 
-        # Initialize logger
+        # Initialize logger (suppress console output during scan)
         logger = get_logger(
             level=config_manager.get('logging.level', 'INFO'),
-            log_to_console=config_manager.get('logging.log_to_console', True),
+            log_to_console=False,  # Suppress logger console output
             log_to_file=config_manager.get('logging.log_to_file', True),
         )
 
-        # Get scan paths (use new plugin_paths for better accuracy)
+        # Get scan paths
         plugin_paths = config_manager.get_plugin_paths()
         data_paths = config_manager.get_data_paths()
 
@@ -191,14 +201,17 @@ def scan(config, output, format, skip_plugins, skip_apps, skip_folders, skip_reg
             scan_date=datetime.now(),
         )
 
-        console.print(f"\n[bold]Plugin scan paths:[/bold] {len(plugin_paths)} directories")
-        console.print(f"[bold]Data scan paths:[/bold] {len(data_paths)} directories")
+        # Show scan configuration
+        console.print("\n[bold]Scan Configuration:[/bold]")
+        console.print(f"  • Plugin directories: [cyan]{len(plugin_paths)}[/cyan]")
+        console.print(f"  • Data directories: [cyan]{len(data_paths)}[/cyan]")
+        console.print()
 
         # ============================================================
         # 1. SCAN FOR PLUGIN FILES (VST2, VST3, AAX, CLAP)
         # ============================================================
         if not skip_plugins:
-            console.print(f"\n[bold cyan]1. Scanning for plugin files (with validation)...[/bold cyan]")
+            console.print("[bold cyan]━━━ Phase 1: Plugin Files ━━━[/bold cyan]")
 
             scanner = FileScanner(
                 exclude_paths=config_manager.get_exclude_paths(),
@@ -214,7 +227,7 @@ def scan(config, output, format, skip_plugins, skip_apps, skip_folders, skip_reg
             clap_ext = config_manager.get('scan.extensions.plugins.clap', ['.clap'])
             all_extensions = vst2_ext + vst3_ext + aax_ext + clap_ext
 
-            console.print(f"   Extensions: {', '.join(all_extensions)}")
+            console.print(f"  Extensions: [dim]{', '.join(all_extensions)}[/dim]")
 
             # Get validation settings
             min_size = config_manager.get('scan.validation.min_plugin_size_mb', 0.1)
@@ -223,23 +236,29 @@ def scan(config, output, format, skip_plugins, skip_apps, skip_folders, skip_reg
             # Progress callback for real-time directory display
             def show_scan_progress(directory: str):
                 # Truncate long paths for display
-                display_path = directory if len(directory) <= 70 else f"...{directory[-67:]}"
-                sys.stdout.write(f"\r   Scanning: {display_path}")
+                display_path = directory if len(directory) <= 65 else f"...{directory[-62:]}"
+                sys.stdout.write(f"\r  🔍 Scanning: [dim]{display_path}[/dim]" + " " * 10)
                 sys.stdout.flush()
 
-            # Scan for plugins using ONLY plugin_paths (no AppData/ProgramData)
-            console.print(f"   Starting scan...")
+            # Scan for plugins
+            console.print("  🔍 Scanning directories...")
             plugin_files = scanner.scan_parallel(plugin_paths, all_extensions, progress_callback=show_scan_progress)
             sys.stdout.write("\r" + " " * 100 + "\r")  # Clear progress line
-            console.print(f"   [green]✓[/green] Found {len(plugin_files)} candidate files")
+            console.print(f"  ✓ Found [cyan]{len(plugin_files)}[/cyan] candidate files")
 
             # Validate and extract metadata
-            console.print(f"   Validating and extracting metadata...")
+            console.print("  🔬 Validating plugins...")
             validated_count = 0
             filtered_count = 0
 
             for i, file_path in enumerate(plugin_files):
                 try:
+                    # Show progress every 100 files
+                    if (i + 1) % 100 == 0:
+                        percent = int((i + 1) / len(plugin_files) * 100)
+                        sys.stdout.write(f"\r  Progress: {percent}% ({i+1}/{len(plugin_files)})")
+                        sys.stdout.flush()
+
                     # CRITICAL: Validate file before processing
                     if not metadata_extractor.is_valid_plugin_file(file_path, min_size, max_size):
                         filtered_count += 1
@@ -263,93 +282,99 @@ def scan(config, output, format, skip_plugins, skip_apps, skip_folders, skip_reg
                     scan_result.plugins.append(plugin)
                     validated_count += 1
 
-                    if (validated_count + 1) % 50 == 0:
-                        console.print(f"   Validated {validated_count}/{len(plugin_files)} files...", end='\r')
-
                 except Exception as e:
-                    logger.warning(f"Failed to process {file_path}: {e}")
                     filtered_count += 1
 
+            sys.stdout.write("\r" + " " * 100 + "\r")  # Clear progress line
             scan_result.total_files_scanned = scanner.files_scanned
-            console.print(f"   [green]✓[/green] Validated {len(scan_result.plugins)} real plugins")
-            console.print(f"   [yellow]⚠[/yellow] Filtered out {filtered_count} non-plugin files (helpers, installers, etc.)")
+
+            console.print(f"  ✓ [green bold]{len(scan_result.plugins)} real plugins[/green bold] validated")
+            if filtered_count > 0:
+                console.print(f"  ⚠ [yellow]{filtered_count} files filtered[/yellow] (helpers, installers, etc.)")
+            console.print()
 
         # ============================================================
         # 2. SCAN FOR APPLICATIONS (DAWs, Plugin Managers, Standalone)
         # ============================================================
         if not skip_apps:
-            console.print(f"\n[bold cyan]2. Scanning for applications (DAWs, plugin managers)...[/bold cyan]")
+            console.print("[bold cyan]━━━ Phase 2: Applications ━━━[/bold cyan]")
 
             app_scanner = ApplicationScanner(config=config_manager)
             applications = app_scanner.scan_for_applications()
             scan_result.applications = applications
 
-            console.print(f"   [green]✓[/green] Found {len(applications)} applications")
+            console.print(f"  ✓ Found [cyan]{len(applications)}[/cyan] applications")
 
             # Show breakdown
             daws = app_scanner.find_daws()
             managers = app_scanner.find_plugin_managers()
             standalone = app_scanner.find_standalone_plugins()
 
-            console.print(f"      - DAWs: {len(daws)}")
-            console.print(f"      - Plugin Managers: {len(managers)}")
-            console.print(f"      - Standalone Plugins: {len(standalone)}")
+            console.print(f"    • DAWs: [cyan]{len(daws)}[/cyan]")
+            console.print(f"    • Plugin Managers: [cyan]{len(managers)}[/cyan]")
+            console.print(f"    • Standalone: [cyan]{len(standalone)}[/cyan]")
+            console.print()
 
         # ============================================================
         # 3. SCAN FOR DATA FOLDERS (Presets, Samples, Libraries)
         # ============================================================
         if not skip_folders:
-            console.print(f"\n[bold cyan]3. Scanning for data folders (presets, samples, libraries)...[/bold cyan]")
+            console.print("[bold cyan]━━━ Phase 3: Data Folders ━━━[/bold cyan]")
 
             folder_scanner = FolderScanner(config=config_manager)
             data_folders = folder_scanner.scan_for_data_folders()
             scan_result.data_folders = data_folders
 
-            console.print(f"   [green]✓[/green] Found {len(data_folders)} data folders")
+            console.print(f"  ✓ Found [cyan]{len(data_folders)}[/cyan] data folders")
 
             # Show breakdown
             presets = folder_scanner.find_preset_folders()
             samples = folder_scanner.find_sample_folders()
             libraries = folder_scanner.find_library_folders()
 
-            console.print(f"      - Presets: {len(presets)}")
-            console.print(f"      - Samples: {len(samples)}")
-            console.print(f"      - Libraries: {len(libraries)}")
+            console.print(f"    • Presets: [cyan]{len(presets)}[/cyan]")
+            console.print(f"    • Samples: [cyan]{len(samples)}[/cyan]")
+            console.print(f"    • Libraries: [cyan]{len(libraries)}[/cyan]")
+            console.print()
 
         # ============================================================
         # 4. SCAN REGISTRY (Windows only)
         # ============================================================
         if not skip_registry:
-            console.print(f"\n[bold cyan]4. Scanning Windows Registry...[/bold cyan]")
+            console.print("[bold cyan]━━━ Phase 4: Windows Registry ━━━[/bold cyan]")
 
             try:
                 registry_reader = RegistryReader()
                 registry_entries = registry_reader.scan_all_music_production_keys()
                 scan_result.total_registry_entries = sum(len(entries) for entries in registry_entries.values())
 
-                console.print(f"   [green]✓[/green] Found {len(registry_entries)} registry keys with {scan_result.total_registry_entries} entries")
+                console.print(f"  ✓ Found [cyan]{len(registry_entries)}[/cyan] registry keys ([cyan]{scan_result.total_registry_entries}[/cyan] entries)")
+                console.print()
             except Exception as e:
-                console.print(f"   [yellow]⚠[/yellow] Registry scanning skipped: {e}")
+                console.print(f"  ⚠ [yellow]Registry scanning skipped:[/yellow] {e}")
+                console.print()
 
         # ============================================================
         # 5. SCAN FOR LICENSES
         # ============================================================
         if not skip_licenses:
-            console.print(f"\n[bold cyan]5. Scanning for licenses...[/bold cyan]")
+            console.print("[bold cyan]━━━ Phase 5: License Files ━━━[/bold cyan]")
 
             try:
                 license_scanner = LicenseScanner(config=config_manager)
                 license_result = license_scanner.scan_for_licenses()
                 scan_result.licenses = license_result.licenses
 
-                console.print(f"   [green]✓[/green] Found {len(license_result.licenses)} licenses")
+                console.print(f"  ✓ Found [cyan]{len(license_result.licenses)}[/cyan] licenses")
 
                 # Show breakdown by format
                 if license_result.licenses_by_format:
                     for fmt, count in license_result.licenses_by_format.items():
-                        console.print(f"      - {fmt.value}: {count}")
+                        console.print(f"    • {fmt.value}: [cyan]{count}[/cyan]")
+                console.print()
             except Exception as e:
-                console.print(f"   [yellow]⚠[/yellow] License scanning skipped: {e}")
+                console.print(f"  ⚠ [yellow]License scanning skipped:[/yellow] {e}")
+                console.print()
 
         # ============================================================
         # FINALIZE SCAN
@@ -358,38 +383,53 @@ def scan(config, output, format, skip_plugins, skip_apps, skip_folders, skip_reg
         scan_result.calculate_statistics()
 
         # Display comprehensive summary
-        console.print(f"\n[bold green]{'='*50}[/bold green]")
-        console.print(f"[bold green]Scan Complete![/bold green]")
-        console.print(f"[bold green]{'='*50}[/bold green]")
-        console.print(scan_result.generate_summary())
+        console.print()
+        console.print(Panel.fit(
+            f"[bold green]✓ Scan Complete![/bold green]\n"
+            f"[dim]Duration: {scan_result.scan_duration:.1f}s[/dim]",
+            border_style="green"
+        ))
+        console.print()
+
+        # Summary table
+        summary_table = Table(show_header=True, header_style="bold cyan", border_style="dim")
+        summary_table.add_column("Component", style="cyan")
+        summary_table.add_column("Count", justify="right", style="bold")
+
+        summary_table.add_row("Real Plugins", f"{len(scan_result.plugins)}")
+        summary_table.add_row("Applications", f"{len(scan_result.applications)}")
+        summary_table.add_row("Data Folders", f"{len(scan_result.data_folders)}")
+        summary_table.add_row("Registry Entries", f"{scan_result.total_registry_entries}")
+        summary_table.add_row("Licenses", f"{len(scan_result.licenses)}")
+
+        console.print(summary_table)
+        console.print()
 
         # Export results
         output_dir = Path(output)
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        console.print(f"\n[bold]Exporting results...[/bold]")
+        console.print("[bold]📁 Exporting Results[/bold]")
 
         if format in ['csv', 'both']:
             scan_result.export_csv(output_dir)
-            console.print(f"[green]✓[/green] Exported CSV files to {output_dir}/")
+            console.print(f"  ✓ CSV files → [cyan]{output_dir}/[/cyan]")
 
         if format in ['excel', 'both']:
             excel_path = output_dir / f"scan_results_{scan_result.scan_id[:8]}.xlsx"
             scan_result.export_excel(excel_path)
-            console.print(f"[green]✓[/green] Exported Excel file to {excel_path}")
+            console.print(f"  ✓ Excel file → [cyan]{excel_path.name}[/cyan]")
 
         # Save scan result as JSON for later use
         import json
         json_path = output_dir / f"scan_result_{scan_result.scan_id[:8]}.json"
         with open(json_path, 'w') as f:
             json.dump(scan_result.get_summary_dict(), f, indent=2)
-        console.print(f"[green]✓[/green] Saved scan metadata to {json_path}")
+        console.print(f"  ✓ JSON metadata → [cyan]{json_path.name}[/cyan]")
+        console.print()
 
         # Display sample results
         _display_scan_samples(scan_result)
-
-        console.print(f"\n[bold green]✓ Comprehensive scan completed successfully![/bold green]")
-        console.print(f"[dim]Duration: {scan_result.scan_duration:.2f}s[/dim]")
 
     except MPSMException as e:
         console.print(f"\n[red]Error:[/red] {e}")
