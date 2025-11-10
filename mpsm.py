@@ -258,9 +258,9 @@ def scan(config, output, format, skip_plugins, skip_apps, skip_folders, skip_reg
                 # Truncate long paths for display
                 display_path = directory if len(directory) <= 50 else f"...{directory[-47:]}"
 
-                # Show: count | rate | current directory
+                # Show: count | rate | current directory (no Rich markup in sys.stdout)
                 sys.stdout.write(
-                    f"\r  🔍 Found: [cyan]{current_count}[/cyan] files "
+                    f"\r  🔍 Scanning: {current_count:,} files "
                     f"({files_per_sec:.0f}/s) | {display_path}" + " " * 10
                 )
                 sys.stdout.flush()
@@ -283,8 +283,8 @@ def scan(config, output, format, skip_plugins, skip_apps, skip_folders, skip_reg
                     if len(plugin_files) > 0:
                         percent = int((i + 1) / len(plugin_files) * 100)
                         sys.stdout.write(
-                            f"\r  Progress: {percent:3d}% ({i+1}/{len(plugin_files)}) | "
-                            f"Valid: {validated_count} | Filtered: {filtered_count}" + " " * 10
+                            f"\r  🔬 Validating: {percent:3d}% ({i+1:,}/{len(plugin_files):,}) | "
+                            f"✓ {validated_count:,} valid | ✗ {filtered_count:,} filtered" + " " * 10
                         )
                         sys.stdout.flush()
 
