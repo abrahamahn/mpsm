@@ -152,19 +152,25 @@ mpsm/
 
 ## Documentation
 
-### User Guides
-- **[Installation Guide](docs/INSTALLATION.md)** - Complete setup instructions
-- **[Usage Examples](docs/FRAMEWORK.md)** - CLI commands and workflows
-- **[Configuration](docs/CUSTOM_PATHS.md)** - Customizing scan paths
+### User Manual (`docs/manual/`)
+- **[Installation Guide](docs/manual/INSTALLATION.md)** - Complete setup instructions
+- **[Configuration](docs/manual/CUSTOM_PATHS.md)** - Customizing scan paths
+- **[Metadata Extraction](docs/manual/METADATA_EXTRACTION_GUIDE.md)** - How metadata works
+- **[VST Protocol](docs/manual/JUCE_VST_HOST_PROTOCOL.md)** - Technical reference
 
-### Developer Docs
-- **[Architecture](docs/BASESCANNER_ARCHITECTURE.md)** - System design and patterns
-- **[Testing](docs/TESTING_SUMMARY.md)** - Test infrastructure (96 tests)
-- **[Refactoring](docs/REFACTORING_SUMMARY.md)** - Code evolution history
+### Developer Documentation (`docs/dev/`)
+- **[Architecture](docs/dev/BASESCANNER_ARCHITECTURE.md)** - Scanner design patterns
+- **[Framework](docs/dev/FRAMEWORK.md)** - Overall system design
+- **[Testing](docs/dev/TESTING_SUMMARY.md)** - Test infrastructure (96 tests)
+- **[Refactoring History](docs/dev/REFACTORING_SUMMARY.md)** - Code evolution
+- **[Scalability](docs/dev/SCALABILITY_ANALYSIS.md)** - Performance analysis
+- **[Improvements](docs/dev/IMPROVEMENTS.md)** - Roadmap and ideas
 
-### Technical Specs
-- **[Metadata Extraction](docs/METADATA_EXTRACTION_GUIDE.md)** - PE parsing, VST detection
-- **[Framework](docs/FRAMEWORK.md)** - Data models and CLI structure
+### Community
+- **[Contributing](CONTRIBUTING.md)** - How to contribute
+- **[Code of Conduct](CODE_OF_CONDUCT.md)** - Community standards
+- **[Security](SECURITY.md)** - Security policy
+- **[Changelog](CHANGELOG.md)** - Version history
 
 ---
 
