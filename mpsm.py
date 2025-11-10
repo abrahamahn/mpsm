@@ -63,7 +63,8 @@ def init(path, auto_detect):
             if not click.confirm('Overwrite?'):
                 return
 
-        config = ConfigManager(config_path)
+        # Use create_if_missing=True to allow init to create new config
+        config = ConfigManager(config_path, create_if_missing=True)
         config.create_default_config()
 
         console.print(f"[green]✓[/green] Created configuration file: {config_path}")

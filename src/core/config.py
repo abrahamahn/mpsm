@@ -9,12 +9,13 @@ import yaml
 class ConfigManager:
     """Manages application configuration."""
 
-    def __init__(self, config_path: Optional[Path] = None):
+    def __init__(self, config_path: Optional[Path] = None, create_if_missing: bool = False):
         """
         Initialize configuration manager.
 
         Args:
             config_path: Path to configuration file. If None, uses default config.yaml
+            create_if_missing: If True, skip loading if file doesn't exist (for init command)
         """
         if config_path is None:
             # Default to config.yaml in project root
@@ -23,7 +24,14 @@ class ConfigManager:
 
         self.config_path = Path(config_path)
         self.config: Dict[str, Any] = {}
-        self.load_config()
+
+        # Only load config if file exists OR if we're not in create mode
+        if self.config_path.exists():
+            self.load_config()
+        elif not create_if_missing:
+            raise FileNotFoundError(
+                f"Configuration file not found: {self.config_path}"
+            )
 
     def load_config(self) -> Dict[str, Any]:
         """
@@ -36,11 +44,6 @@ class ConfigManager:
             FileNotFoundError: If config file doesn't exist
             yaml.YAMLError: If config file is invalid
         """
-        if not self.config_path.exists():
-            raise FileNotFoundError(
-                f"Configuration file not found: {self.config_path}"
-            )
-
         with open(self.config_path, 'r', encoding='utf-8') as f:
             self.config = yaml.safe_load(f)
 
