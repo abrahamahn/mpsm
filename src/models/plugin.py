@@ -100,7 +100,7 @@ class Plugin:
 
     # Classification
     plugin_type: PluginType = PluginType.UNKNOWN
-    category: PluginCategory = PluginCategory.OTHER
+    category: str = "unknown"  # Category string (fx_compressor, inst_synth, etc.)
 
     # Version
     version: Optional[Version] = None
@@ -138,7 +138,7 @@ class Plugin:
             'publisher': self.publisher,
             'plugin_id': self.plugin_id,
             'type': self.plugin_type.value,
-            'category': self.category.value,
+            'category': self.category,  # Now a string, not enum
             'version': str(self.version) if self.version else "Unknown",
             'file_path': str(self.file_path) if self.file_path else "",
             'registry_key': self.registry_key or "",

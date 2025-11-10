@@ -324,11 +324,26 @@ class MetadataExtractor:
         except:
             return False
 
-        # For VST2, optionally check exports
-        if file_path.suffix.lower() == '.dll':
+        # Type-specific validation
+        extension = file_path.suffix.lower()
+
+        # VST2 (DLL): Check for VST signatures
+        if extension == '.dll':
             # Lightweight check: scan file for VST signatures
             if not self.has_vst_signature(file_path):
                 return False
+
+        # VST3: Always valid (folder or bundle)
+        elif extension == '.vst3':
+            return True
+
+        # AAX: Always valid (Pro Tools plugins)
+        elif extension == '.aax':
+            return True
+
+        # CLAP: Always valid (CLAP format)
+        elif extension == '.clap':
+            return True
 
         return True
 
@@ -348,8 +363,8 @@ class MetadataExtractor:
         """
         try:
             with open(dll_path, 'rb') as f:
-                # Read first 8KB for efficiency
-                data = f.read(8192)
+                # Read first 128KB for better coverage (many VST2 plugins have signatures further in)
+                data = f.read(131072)
 
                 # Check for VST-related signatures
                 vst_signatures = [
@@ -358,13 +373,19 @@ class MetadataExtractor:
                     b'VST',
                     b'VSTXML',
                     b'AudioEffect',
+                    b'AEffect',
+                    b'VSTi',
+                    b'VSTx',
+                    # Additional common VST2 exports
+                    b'main',
+                    b'MAIN',
                 ]
 
                 for sig in vst_signatures:
                     if sig in data:
                         return True
 
-            # If no signatures found in first 8KB, likely not a plugin
+            # If no signatures found in first 128KB, likely not a plugin
             return False
 
         except Exception as e:
@@ -543,3 +564,292 @@ class MetadataExtractor:
         except (ValueError, IndexError) as e:
             self.logger.debug(f"Could not parse version string '{version_str}': {e}")
             return None
+
+    def extract_version_from_pe(self, file_path: Path) -> Optional[Version]:
+        """
+        Extract version information from PE file (DLL/EXE).
+
+        Args:
+            file_path: Path to PE file
+
+        Returns:
+            Version object or None if extraction fails
+        """
+        try:
+            # Try to use pefile if available
+            try:
+                import pefile
+                pe = pefile.PE(str(file_path), fast_load=True)
+                pe.parse_data_directories(directories=[
+                    pefile.DIRECTORY_ENTRY['IMAGE_DIRECTORY_ENTRY_RESOURCE']
+                ])
+
+                if hasattr(pe, 'FileInfo'):
+                    for file_info in pe.FileInfo:
+                        for entry in file_info:
+                            if hasattr(entry, 'StringTable'):
+                                for st_entry in entry.StringTable:
+                                    for key, value in st_entry.entries.items():
+                                        if key.decode('utf-8', errors='ignore').lower() in ['fileversion', 'productversion']:
+                                            version_str = value.decode('utf-8', errors='ignore')
+                                            version = self.parse_version_string(version_str)
+                                            if version:
+                                                return version
+
+            except ImportError:
+                # pefile not available, use alternative method
+                pass
+            except Exception as e:
+                self.logger.debug(f"Could not extract version from PE: {e}")
+
+            # Fallback: try to extract from filename
+            filename = file_path.stem
+            import re
+            # Look for version patterns like v1.2.3, 1.2.3, etc.
+            version_pattern = r'[vV]?(\d+)[\._](\d+)[\._]?(\d+)?[\._]?(\d+)?'
+            match = re.search(version_pattern, filename)
+            if match:
+                major = int(match.group(1))
+                minor = int(match.group(2))
+                patch = int(match.group(3)) if match.group(3) else 0
+                build = int(match.group(4)) if match.group(4) else None
+                return Version(major=major, minor=minor, patch=patch, build=build)
+
+        except Exception as e:
+            self.logger.debug(f"Could not extract version from {file_path}: {e}")
+
+        return None
+
+    def generate_plugin_id(self, file_path: Path, publisher: str, name: str) -> str:
+        """
+        Generate unique plugin ID.
+
+        Args:
+            file_path: Path to plugin file
+            publisher: Publisher name
+            name: Plugin name
+
+        Returns:
+            Unique plugin ID string
+        """
+        # Create ID based on publisher + name + file hash (first 8 chars)
+        try:
+            file_hash = self.calculate_file_hash(file_path)
+            plugin_id = f"{publisher}_{name}_{file_hash[:8]}".replace(' ', '_').replace('-', '_')
+            return plugin_id
+        except:
+            # Fallback to name-based ID
+            return f"{publisher}_{name}".replace(' ', '_').replace('-', '_')
+
+    def detect_plugin_category(self, file_path: Path, name: str, publisher: str) -> str:
+        """
+        Detect plugin category based on name and characteristics.
+
+        Args:
+            file_path: Path to plugin file
+            name: Plugin name
+            publisher: Publisher name
+
+        Returns:
+            Category string (e.g., 'fx_compressor', 'inst_synth', 'fx_reverb')
+        """
+        name_lower = name.lower()
+        path_lower = str(file_path).lower()
+
+        # Instrument categories
+        if any(keyword in name_lower for keyword in [
+            'piano', 'keys', 'keyboard', 'electric piano', 'grand', 'upright'
+        ]):
+            return 'inst_piano'
+
+        if any(keyword in name_lower for keyword in [
+            'synth', 'synthesizer', 'analog', 'wavetable', 'fm', 'additive',
+            'serum', 'sylenth', 'massive', 'omnisphere', 'diva', 'repro'
+        ]):
+            return 'inst_synth'
+
+        if any(keyword in name_lower for keyword in [
+            'drum', 'beat', 'percussion', 'kick', 'snare', 'hat',
+            'battery', 'superior drummer', 'addictive drums'
+        ]):
+            return 'inst_drums'
+
+        if any(keyword in name_lower for keyword in [
+            'strings', 'orchestra', 'violin', 'cello', 'brass', 'woodwind',
+            'kontakt', 'spitfire', 'orchestral'
+        ]):
+            return 'inst_orchestral'
+
+        if any(keyword in name_lower for keyword in [
+            'bass', 'sub', 'trilian', 'scarbee'
+        ]):
+            return 'inst_bass'
+
+        if any(keyword in name_lower for keyword in [
+            'guitar', 'strum', 'acoustic', 'electric guitar'
+        ]):
+            return 'inst_guitar'
+
+        if any(keyword in name_lower for keyword in [
+            'rompler', 'sample', 'sampler', 'library', 'multisample'
+        ]):
+            return 'inst_rompler'
+
+        # Effect categories
+        if any(keyword in name_lower for keyword in [
+            'eq', 'equalizer', 'equalization', 'filter', 'pro-q', 'fabfilter q'
+        ]):
+            return 'fx_eq'
+
+        if any(keyword in name_lower for keyword in [
+            'compressor', 'compression', 'dynamics', 'limiter', 'pro-c', 'pro-l',
+            '1176', 'la-2a', 'ssl comp', 'vca', 'opto'
+        ]):
+            return 'fx_compressor'
+
+        if any(keyword in name_lower for keyword in [
+            'reverb', 'room', 'hall', 'chamber', 'plate', 'spring',
+            'valhalla', 'convolution', 'altiverb'
+        ]):
+            return 'fx_reverb'
+
+        if any(keyword in name_lower for keyword in [
+            'delay', 'echo', 'repeat', 'tape delay', 'ping pong'
+        ]):
+            return 'fx_delay'
+
+        if any(keyword in name_lower for keyword in [
+            'distortion', 'saturation', 'overdrive', 'fuzz', 'clipper',
+            'decapitator', 'saturn'
+        ]):
+            return 'fx_distortion'
+
+        if any(keyword in name_lower for keyword in [
+            'modulation', 'chorus', 'flanger', 'phaser', 'tremolo', 'vibrato'
+        ]):
+            return 'fx_modulation'
+
+        if any(keyword in name_lower for keyword in [
+            'gate', 'noise gate', 'expander', 'transient'
+        ]):
+            return 'fx_gate'
+
+        if any(keyword in name_lower for keyword in [
+            'pitch', 'autotune', 'melodyne', 'pitch correct', 'tuning'
+        ]):
+            return 'fx_pitch'
+
+        if any(keyword in name_lower for keyword in [
+            'master', 'mastering', 'finalizer', 'ozone', 'isotope mastering'
+        ]):
+            return 'fx_mastering'
+
+        if any(keyword in name_lower for keyword in [
+            'utility', 'tool', 'meter', 'analyzer', 'spectrum', 'phase'
+        ]):
+            return 'fx_utility'
+
+        # Check if it's likely an instrument or effect based on common patterns
+        if any(keyword in name_lower for keyword in [
+            'vsti', 'instrument', 'inst', 'player'
+        ]) or 'vsti' in path_lower:
+            return 'inst_other'
+
+        if any(keyword in name_lower for keyword in [
+            'fx', 'effect', 'process'
+        ]):
+            return 'fx_other'
+
+        # Default
+        return 'unknown'
+
+    def find_registry_key_for_plugin(self, file_path: Path, plugin_name: str, plugin_type: PluginType) -> Optional[str]:
+        """
+        Find registry key associated with a plugin.
+
+        Args:
+            file_path: Path to plugin file
+            plugin_name: Plugin name
+            plugin_type: Plugin type (VST2, VST3, etc.)
+
+        Returns:
+            Registry key path or None if not found
+        """
+        try:
+            # Only works on Windows
+            import platform
+            if platform.system() != 'Windows':
+                return None
+
+            import winreg
+
+            # Common registry locations for plugins
+            registry_locations = []
+
+            if plugin_type == PluginType.VST2:
+                registry_locations = [
+                    (winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\VST'),
+                    (winreg.HKEY_CURRENT_USER, r'Software\VST'),
+                ]
+            elif plugin_type == PluginType.VST3:
+                registry_locations = [
+                    (winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\VST3'),
+                    (winreg.HKEY_CURRENT_USER, r'Software\VST3'),
+                ]
+
+            # Search for plugin in registry
+            file_path_str = str(file_path).lower()
+            plugin_name_lower = plugin_name.lower()
+
+            for hkey, subkey_path in registry_locations:
+                try:
+                    key = winreg.OpenKey(hkey, subkey_path, 0, winreg.KEY_READ)
+
+                    # Enumerate subkeys
+                    i = 0
+                    while True:
+                        try:
+                            subkey_name = winreg.EnumKey(key, i)
+
+                            # Check if subkey name matches plugin
+                            if plugin_name_lower in subkey_name.lower():
+                                full_path = f"{hkey}\\{subkey_path}\\{subkey_name}"
+                                winreg.CloseKey(key)
+                                return full_path
+
+                            # Open subkey and check values
+                            try:
+                                subkey = winreg.OpenKey(key, subkey_name, 0, winreg.KEY_READ)
+                                j = 0
+                                while True:
+                                    try:
+                                        value_name, value_data, value_type = winreg.EnumValue(subkey, j)
+
+                                        # Check if value contains file path
+                                        if isinstance(value_data, str) and value_data.lower() in file_path_str:
+                                            full_path = f"{hkey}\\{subkey_path}\\{subkey_name}"
+                                            winreg.CloseKey(subkey)
+                                            winreg.CloseKey(key)
+                                            return full_path
+
+                                        j += 1
+                                    except OSError:
+                                        break
+                                winreg.CloseKey(subkey)
+                            except:
+                                pass
+
+                            i += 1
+                        except OSError:
+                            break
+
+                    winreg.CloseKey(key)
+                except FileNotFoundError:
+                    continue
+                except PermissionError:
+                    continue
+
+        except Exception as e:
+            self.logger.debug(f"Could not find registry key for {plugin_name}: {e}")
+
+        return None

@@ -29,13 +29,24 @@ scan:
   # Directories to scan - TARGETED for music production software
   # These are common installation locations for plugins, DAWs, and audio software
   scan_paths:
-    # Plugin installation directories
+    # Plugin installation directories (VST2, VST3, AAX, CLAP)
     - "C:\\Program Files\\VSTPlugins"
+    - "C:\\Program Files\\VST"
+    - "C:\\Program Files\\VST2"
+    - "C:\\Program Files\\VST3"
     - "C:\\Program Files\\Steinberg"
+    - "C:\\Program Files\\Steinberg\\VSTPlugins"
+    - "C:\\Program Files\\Common Files\\VST2"
     - "C:\\Program Files\\Common Files\\VST3"
+    - "C:\\Program Files\\Common Files\\CLAP"
     - "C:\\Program Files\\Common Files\\Avid"
+    - "C:\\Program Files\\Common Files\\Avid\\Audio"
     - "C:\\Program Files (x86)\\VSTPlugins"
+    - "C:\\Program Files (x86)\\VST"
+    - "C:\\Program Files (x86)\\VST2"
     - "C:\\Program Files (x86)\\Steinberg"
+    - "C:\\Program Files (x86)\\Steinberg\\VSTPlugins"
+    - "C:\\Program Files (x86)\\Common Files\\VST2"
     - "C:\\Program Files (x86)\\Common Files\\VST3"
 
     # DAW installation directories
@@ -44,9 +55,10 @@ scan:
     - "C:\\Program Files\\Avid"
     - "C:\\Program Files\\PreSonus"
     - "C:\\Program Files\\Cakewalk"
+    - "C:\\Program Files\\Steinberg\\Cubase"
     - "C:\\Program Files (x86)\\Image-Line"
 
-    # Vendor-specific directories
+    # Vendor-specific directories (many contain VST2 DLLs)
     - "C:\\Program Files\\Native Instruments"
     - "C:\\Program Files\\Spectrasonics"
     - "C:\\Program Files\\Waves"
@@ -55,6 +67,13 @@ scan:
     - "C:\\Program Files\\Arturia"
     - "C:\\Program Files\\Xfer"
     - "C:\\Program Files\\Serum"
+    - "C:\\Program Files\\Slate Digital"
+    - "C:\\Program Files\\Soundtoys"
+    - "C:\\Program Files\\Plugin Alliance"
+    - "C:\\Program Files\\u-he"
+    - "C:\\Program Files\\Valhalla"
+    - "C:\\Program Files\\Output"
+    - "C:\\Program Files\\Reveal Sound"
 
     # User data directories (presets, licenses, user content)
     - "C:\\Users\\YOUR_USERNAME\\Documents"
@@ -114,6 +133,15 @@ scan:
     executables: [".exe"]
     documents: [".pdf", ".txt", ".rtf"]
     licenses: [".lic", ".key", ".license"]
+
+  # Plugin validation settings
+  validation:
+    min_plugin_size_mb: 0.05  # 50 KB minimum (some plugins are tiny)
+    max_plugin_size_mb: 1000  # 1 GB maximum
+    # Disable strict VST signature check for AAX and CLAP
+    require_vst_signature_for_dll: true
+    validate_aax: false  # AAX validation not yet implemented
+    validate_clap: false  # CLAP validation not yet implemented
 
   # Folder detection
   folder_patterns:

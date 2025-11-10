@@ -270,14 +270,30 @@ def scan(config, output, format, skip_plugins, skip_apps, skip_folders, skip_reg
                     product_name = metadata_extractor.get_product_name(file_path)
                     architecture = metadata_extractor.detect_architecture(file_path)
 
+                    # Extract additional metadata
+                    version = metadata_extractor.extract_version_from_pe(file_path)
+                    plugin_id = metadata_extractor.generate_plugin_id(file_path, publisher, product_name)
+                    category_str = metadata_extractor.detect_plugin_category(file_path, product_name, publisher)
+
+                    # Find registry key (only for VST2 and VST3)
+                    registry_key = None
+                    if plugin_type in [PluginType.VST2, PluginType.VST3]:
+                        registry_key = metadata_extractor.find_registry_key_for_plugin(
+                            file_path, product_name, plugin_type
+                        )
+
                     plugin = Plugin(
                         name=product_name,
                         publisher=publisher,
+                        plugin_id=plugin_id,
                         plugin_type=plugin_type,
+                        category=category_str,
+                        version=version,
                         file_path=file_path,
                         file_size=metadata['file_size'],
                         file_hash=metadata['file_hash'],
                         architecture=architecture,
+                        registry_key=registry_key,
                     )
                     scan_result.plugins.append(plugin)
                     validated_count += 1
