@@ -177,164 +177,34 @@ class ConfigManager:
 
     def create_default_config(self, output_path: Optional[Path] = None) -> None:
         """
-        Create default configuration file with OPTIMIZED targeted scan paths.
+        Create default configuration file from template.
+
+        Loads config/defaults.yaml template and replaces variables like {USERNAME}.
 
         Args:
             output_path: Where to save config. If None, uses self.config_path
         """
-        # Get current Windows username for user paths
+        # Find defaults.yaml template
+        template_path = Path(__file__).parent.parent.parent / 'config' / 'defaults.yaml'
+
+        if not template_path.exists():
+            raise FileNotFoundError(
+                f"Default config template not found: {template_path}\n"
+                "Please ensure config/defaults.yaml exists in the project root."
+            )
+
+        # Load template
+        with open(template_path, 'r', encoding='utf-8') as f:
+            template_content = f.read()
+
+        # Replace variables
         username = os.getenv('USERNAME', 'YOUR_USERNAME')
+        config_content = template_content.replace('{USERNAME}', username)
 
-        default_config = {
-            'version': '1.0',
-            'root_path': 'C:\\MusicProduction',
-            'custom_paths': {
-                'vst2': 'Plugins\\VST2',
-                'vst3': 'Plugins\\VST3',
-                'aax': 'Plugins\\AAX',
-                'clap': 'Plugins\\CLAP',
-            },
-            'scan': {
-                # PLUGIN BINARIES ONLY - Known installation directories
-                # These paths contain actual .dll/.vst3/.aaxplugin files
-                'plugin_paths': [
-                    # Common VST2/VST3/AAX installation directories
-                    'C:\\Program Files\\VSTPlugins',
-                    'C:\\Program Files\\Common Files\\VST3',
-                    'C:\\Program Files\\Common Files\\Avid\\Audio\\Plug-Ins',
-                    'C:\\Program Files (x86)\\VSTPlugins',
-                    'C:\\Program Files (x86)\\Steinberg\\VstPlugins',
-                    'C:\\Program Files (x86)\\Common Files\\VST3',
-                    # Known vendor plugin directories in Program Files
-                    'C:\\Program Files\\Waves\\Plug-Ins V12',
-                    'C:\\Program Files\\Waves\\Plug-Ins V13',
-                    'C:\\Program Files\\Waves\\Plug-Ins V14',
-                    'C:\\Program Files\\Native Instruments',
-                    'C:\\Program Files\\iZotope',
-                    'C:\\Program Files\\FabFilter',
-                    'C:\\Program Files\\Arturia',
-                    'C:\\Program Files\\Spectrasonics',
-                    'C:\\Program Files\\Xfer',
-                    'C:\\Program Files\\u-he',
-                    'C:\\Program Files\\Output',
-                    'C:\\Program Files\\Soundtoys',
-                    'C:\\Program Files\\Slate Digital',
-                    'C:\\Program Files\\Plugin Alliance',
-                    'C:\\Program Files\\Kilohearts',
-                    'C:\\Program Files\\Steinberg\\VSTPlugins',
-                    # DAW-specific plugin folders
-                    'C:\\Program Files\\Image-Line\\FL Studio\\Plugins',
-                    'C:\\Program Files\\Ableton\\Live\\Plug-Ins',
-                    'C:\\Program Files\\Avid\\Pro Tools\\Plug-Ins',
-                    'C:\\Program Files\\PreSonus\\Studio One\\Plug-Ins',
-                    # TARGETED AppData\Roaming vendor directories (plugins only)
-                    f'C:\\Users\\{username}\\AppData\\Roaming\\Ableton\\Live',
-                    f'C:\\Users\\{username}\\AppData\\Roaming\\Steinberg',
-                    f'C:\\Users\\{username}\\AppData\\Roaming\\Image-Line',
-                    # TARGETED AppData\Local vendor directories (plugins only)
-                    f'C:\\Users\\{username}\\AppData\\Local\\Ableton\\Live',
-                    f'C:\\Users\\{username}\\AppData\\Local\\Image-Line',
-                    f'C:\\Users\\{username}\\AppData\\Local\\FL Studio',
-                    # ProgramData vendor directories (plugins only)
-                    'C:\\ProgramData\\Ableton\\Live',
-                    'C:\\ProgramData\\Steinberg',
-                    # Custom organized directory
-                    'C:\\Production\\Applications',
-                ],
-                # DATA/PRESETS - Scanned with vendor name filtering only
-                # These contain presets, samples, licenses, NOT plugin binaries
-                'data_paths': [
-                    f'C:\\Users\\{username}\\AppData\\Roaming',
-                    'C:\\ProgramData',
-                    f'C:\\Users\\{username}\\Documents',
-                    'C:\\Production',
-                ],
-                # Backward compatibility - merges plugin_paths + data_paths if no plugin_paths exists
-                'scan_paths': [],  # Deprecated, kept for compatibility
-                'exclude_paths': [
-                    # System directories
-                    'C:\\Windows',
-                    'C:\\Windows\\System32',
-                    'C:\\Windows\\SysWOW64',
-                    'C:\\Windows\\WinSxS',
-                    # Temp and cache directories (CRITICAL)
-                    '**/AppData/Local/Temp/**',
-                    '**/AppData/Local/Cache/**',
-                    '**/Temp/**',
-                    '**/Cache/**',
-                    # Installer caches (CRITICAL - thousands of false positives)
-                    '**/Waves Audio/instl/**',
-                    '**/Native Access/Cache/**',
-                    '**/iZotope Product Portal/Cache/**',
-                    '**/Splice/Cache/**',
-                    # Microsoft directories (NOT music-related)
-                    '**/Microsoft/**',
-                    '**/Microsoft Corporation/**',
-                    '**/MicrosoftEdge/**',
-                    '**/OneDrive/**',
-                    '**/Windows Mail/**',
-                    '**/WindowsApps/**',
-                    # Development tools (NOT music-related)
-                    '**/VisualStudio/**',
-                    '**/Visual Studio Code/**',
-                    '**/Node.js/**',
-                    '**/Python/**',
-                    '**/npm/**',
-                    '**/pip/**',
-                    '**/conda/**',
-                    # Communication apps (NOT music-related)
-                    '**/Discord/**',
-                    '**/Slack/**',
-                    '**/Zoom/**',
-                    '**/Microsoft Teams/**',
-                    '**/Skype/**',
-                    # Browsers (NOT music-related)
-                    '**/Google/Chrome/**',
-                    '**/Mozilla Firefox/**',
-                    '**/Opera/**',
-                    '**/Brave/**',
-                    # Gaming platforms (NOT music-related)
-                    '**/Steam/**',
-                    '**/Epic Games/**',
-                    '**/Battle.net/**',
-                    # Cloud storage (NOT music-related)
-                    '**/Dropbox/**',
-                    '**/Google Drive/**',
-                    '**/Box/**',
-                    # Generic non-music apps
-                    '**/Adobe/Acrobat/**',
-                    '**/Notepad++/**',
-                    '**/VLC/**',
-                    '**/WinRAR/**',
-                    '**/7-Zip/**',
-                    # Resource DLLs and artifacts
-                    '**/*.resources.dll',
-                    '**/node_modules/**',
-                    '**/__pycache__/**',
-                    '**/bin/**',
-                    '**/obj/**',
-                ],
-                # File validation settings
-                'validation': {
-                    'check_vst2_exports': True,  # Verify VST2 DLLs have VSTPluginMain export
-                    'min_plugin_size_mb': 0.1,  # Skip suspiciously small files
-                    'max_plugin_size_mb': 500,  # Skip suspiciously large files
-                },
-                'parallel': True,
-                'max_workers': 4,
-                'max_depth': 5,
-            },
-            'logging': {
-                'level': 'INFO',
-                'log_to_console': True,
-                'log_to_file': True,
-            },
-            'safety': {
-                'dry_run': True,
-                'backup_before_move': True,
-            },
-        }
+        # Parse YAML to validate
+        default_config = yaml.safe_load(config_content)
 
+        # Save to output path
         save_path = output_path or self.config_path
         with open(save_path, 'w', encoding='utf-8') as f:
             yaml.dump(default_config, f, default_flow_style=False, sort_keys=False)

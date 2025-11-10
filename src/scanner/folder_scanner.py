@@ -9,6 +9,7 @@ import platform
 from ..core.logger import get_logger
 from ..core.config import ConfigManager
 from ..models.folder import DataFolder, FolderType
+from ..data.vendor_registry import vendor_registry
 
 
 IS_WINDOWS = platform.system() == 'Windows'
@@ -38,105 +39,6 @@ class FolderScanner:
         '**/Soundbanks/**',
         '**/Instruments/**',
     ]
-
-    # Known vendor data folder locations
-    VENDOR_DATA_FOLDERS = {
-        'Native Instruments': [
-            'Native Instruments',
-            'NI Resources',
-        ],
-        'Spectrasonics': [
-            'Spectrasonics',
-            'STEAM',
-        ],
-        'Waves': [
-            'Waves Audio',
-            'WavesData',
-        ],
-        'iZotope': [
-            'iZotope',
-        ],
-        'FabFilter': [
-            'FabFilter',
-        ],
-        'Arturia': [
-            'Arturia',
-        ],
-        'Image-Line': [
-            'Image-Line',
-            'FL Studio',
-        ],
-        # Additional vendors from user's installation
-        'Zynaptiq': ['Zynaptiq'],
-        'Air Music Technology': ['Air Music Technology'],
-        'Baby Audio': ['Baby Audio'],
-        'DeviousMachines': ['DeviousMachines'],
-        'discoDSP': ['discoDSP'],
-        'Eventide': ['Eventide'],
-        'Fielding DSP': ['Fielding DSP'],
-        'HOFA': ['HOFA'],
-        'Klanghelm': ['Klanghelm'],
-        'Klevgrand': ['Klevgrand'],
-        'KORG': ['KORG'],
-        'KV331 Audio': ['KV331 Audio'],
-        'LenndarDigital': ['LenndarDigital'],
-        'Newfangled Audio': ['Newfangled Audio'],
-        'Ohm Force': ['Ohm Force'],
-        'Plugin Alliance': ['Plugin Alliance'],
-        'Plugin Boutique': ['Plugin Boutique'],
-        'Press Play': ['Press Play'],
-        'Propellerhead': ['Propellerhead'],
-        'reFX': ['reFX'],
-        'Softube': ['Softube', 'Softube Central'],
-        'Sonarworks': ['Sonarworks'],
-        'Sonic Charge': ['Sonic Charge'],
-        'Sonnox': ['Sonnox'],
-        'Sononym': ['Sononym'],
-        'Tokyo Dawn Labs': ['Tokyo Dawn Labs'],
-        'u-he': ['u-he'],
-        'Vital': ['Vital'],
-        'Voxengo': ['Voxengo'],
-        'XLN Audio': ['XLN Audio'],
-        'Youlean': ['Youlean'],
-        # Additional vendors from user's comprehensive plugin list
-        'Aberrant DSP': ['Aberrant DSP'],
-        'Acustica Audio': ['Acustica Audio', 'Acustica'],
-        'Antelope Audio': ['Antelope Audio'],
-        'AudioThing': ['AudioThing'],
-        'Black Rooster Audio': ['Black Rooster Audio', 'Black Rooster'],
-        'Boz Digital Labs': ['Boz Digital Labs', 'Boz Digital'],
-        'Cableguys': ['Cableguys'],
-        'Caelum Audio': ['Caelum Audio'],
-        'D16': ['D16'],
-        'Dada Life': ['Dada Life'],
-        'Fiedler Audio': ['Fiedler Audio'],
-        'Future Audio Workshop': ['Future Audio Workshop', 'FAW'],
-        'Ignite Amps': ['Ignite Amps'],
-        'Kilohearts': ['Kilohearts'],
-        'MeldaProduction': ['MeldaProduction', 'Melda'],
-        'Mixed In Key': ['Mixed In Key'],
-        'Oeksound': ['Oeksound'],
-        'Output': ['Output'],
-        'Polyverse': ['Polyverse'],
-        'Reaper': ['Reaper', 'Cockos'],
-        'Reason Studios': ['Reason Studios'],
-        'Reveal Sound': ['Reveal Sound'],
-        'Schrammel': ['Schrammel'],
-        'Serato': ['Serato'],
-        'Shattered Glass Audio': ['Shattered Glass Audio', 'Shattered Glass'],
-        'Slate Digital': ['Slate Digital'],
-        'Sonible': ['Sonible'],
-        'Sonic Academy': ['Sonic Academy'],
-        'Soundtheory': ['Soundtheory'],
-        'Soundtoys': ['Soundtoys'],
-        'TAL': ['TAL'],
-        'Tokyo Dawn Records': ['Tokyo Dawn Records', 'TDR'],
-        'United Plugins': ['United Plugins'],
-        'Valhalla': ['Valhalla'],
-        'Vengeance': ['Vengeance'],
-        'Wavesfactory': ['Wavesfactory'],
-        'waveTracing': ['waveTracing'],
-    }
 
     def __init__(
         self,
@@ -282,16 +184,16 @@ class FolderScanner:
         ]):
             return FolderType.PROJECTS
 
-        # Check for known vendor folders
-        for vendor, folder_names in self.VENDOR_DATA_FOLDERS.items():
-            if any(name.lower() in folder_name_lower for name in folder_names):
-                # Determine more specific type based on subfolder
-                if 'preset' in folder_name_lower or 'user' in folder_name_lower:
-                    return FolderType.PRESETS
-                elif 'sample' in folder_name_lower:
-                    return FolderType.SAMPLES
-                else:
-                    return FolderType.LIBRARY
+        # Check for known vendor folders using VendorRegistry
+        vendor = vendor_registry.find_vendor_by_folder(folder_path.name)
+        if vendor:
+            # Determine more specific type based on subfolder
+            if 'preset' in folder_name_lower or 'user' in folder_name_lower:
+                return FolderType.PRESETS
+            elif 'sample' in folder_name_lower:
+                return FolderType.SAMPLES
+            else:
+                return FolderType.LIBRARY
 
         return None
 
@@ -363,49 +265,19 @@ class FolderScanner:
         """
         Determine folder owner/publisher.
 
+        Uses centralized VendorRegistry for vendor matching.
+
         Args:
             folder_path: Folder path
 
         Returns:
             Owner name
         """
-        # Check path for vendor names
-        path_str = str(folder_path).lower()
-
-        for vendor, folder_names in self.VENDOR_DATA_FOLDERS.items():
-            if any(name.lower() in path_str for name in folder_names):
-                return vendor
-
-        # Check for common vendor names in path
-        vendors = [
-            # Original vendors
-            'Native Instruments', 'Spectrasonics', 'Waves', 'iZotope',
-            'FabFilter', 'Arturia', 'Image-Line', 'Steinberg', 'Ableton',
-            'Avid', 'Xfer', 'Serum', 'Kontakt', 'Omnisphere',
-            # Additional vendors from user's installation
-            'Zynaptiq', 'Air Music Technology', 'Baby Audio', 'DeviousMachines',
-            'discoDSP', 'Eventide', 'Fielding DSP', 'HOFA', 'Klanghelm',
-            'Klevgrand', 'KORG', 'KV331 Audio', 'LenndarDigital', 'Newfangled Audio',
-            'Ohm Force', 'Plugin Alliance', 'Plugin Boutique', 'Press Play',
-            'Propellerhead', 'reFX', 'Softube', 'Sonarworks', 'Sonic Charge',
-            'Sonnox', 'Sononym', 'Tokyo Dawn Labs', 'u-he', 'Vital',
-            'Voxengo', 'XLN Audio', 'Youlean', 'FL Cloud Plugins',
-            # Additional vendors from user's comprehensive plugin list
-            'Aberrant DSP', 'Acustica Audio', 'Antelope Audio', 'AudioThing',
-            'Black Rooster Audio', 'Boz Digital Labs', 'Cableguys', 'Caelum Audio',
-            'D16', 'Dada Life', 'Fiedler Audio', 'Future Audio Workshop',
-            'Ignite Amps', 'Kilohearts', 'MeldaProduction', 'Mixed In Key',
-            'Oeksound', 'Output', 'Polyverse', 'Reaper', 'Reason Studios',
-            'Reveal Sound', 'Schrammel', 'Serato', 'Shattered Glass Audio',
-            'Slate Digital', 'Sonible', 'Sonic Academy', 'Soundtheory',
-            'Soundtoys', 'TAL', 'Tokyo Dawn Records', 'United Plugins',
-            'Valhalla', 'Vengeance', 'Wavesfactory', 'waveTracing', 'Cockos',
-            'PreSonus',
-        ]
-
-        for vendor in vendors:
-            if vendor.lower() in path_str:
-                return vendor
+        # Check path for vendor names using VendorRegistry
+        path_str = str(folder_path)
+        vendor = vendor_registry.find_vendor_by_pattern(path_str)
+        if vendor:
+            return vendor
 
         # Try to extract from folder name or parent
         if len(folder_path.parts) > 1:

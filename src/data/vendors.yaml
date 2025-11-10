@@ -1,0 +1,942 @@
+# Centralized Vendor/Publisher Registry
+# Single source of truth for all vendor information across MPSM
+#
+# Each vendor entry contains:
+# - name: Display name for the vendor
+# - patterns: Search patterns for path/metadata matching (lowercase)
+# - folders: Expected folder names in AppData/ProgramData
+# - executables: DAW/plugin manager executable patterns
+# - daw_executables: DAW-specific executables (if applicable)
+# - standalone_executables: Standalone plugin executables (if applicable)
+
+vendors:
+  # ============================================================================
+  # MAJOR DAW MANUFACTURERS
+  # ============================================================================
+
+  steinberg:
+    name: "Steinberg"
+    patterns:
+      - steinberg
+      - cubase
+      - nuendo
+    folders:
+      - Steinberg
+    executables: []
+    daw_executables:
+      - Cubase*.exe
+      - Nuendo*.exe
+
+  avid:
+    name: "Avid"
+    patterns:
+      - avid
+      - pro tools
+      - protools
+      - sibelius
+    folders:
+      - Avid
+    executables: []
+    daw_executables:
+      - ProTools.exe
+
+  image_line:
+    name: "Image-Line"
+    patterns:
+      - image-line
+      - fl studio
+      - flstudio
+      - fruity
+    folders:
+      - Image-Line
+      - FL Studio
+    executables: []
+    daw_executables:
+      - FL64.exe
+      - FL.exe
+
+  ableton:
+    name: "Ableton"
+    patterns:
+      - ableton
+      - live
+    folders:
+      - Ableton
+    executables: []
+    daw_executables:
+      - Ableton Live*.exe
+
+  presonus:
+    name: "PreSonus"
+    patterns:
+      - presonus
+      - studio one
+    folders:
+      - PreSonus
+    executables: []
+    daw_executables:
+      - Studio One.exe
+
+  apple:
+    name: "Apple"
+    patterns:
+      - apple
+      - logic
+      - mainstage
+      - garageband
+    folders:
+      - Apple
+    executables: []
+    daw_executables:
+      - Logic Pro X
+      - GarageBand
+
+  propellerhead:
+    name: "Propellerhead"
+    patterns:
+      - propellerhead
+      - reason
+    folders:
+      - Propellerhead
+    executables: []
+    daw_executables:
+      - Reason.exe
+
+  reason_studios:
+    name: "Reason Studios"
+    patterns:
+      - reason studios
+    folders:
+      - Reason Studios
+    executables: []
+
+  bitwig:
+    name: "Bitwig"
+    patterns:
+      - bitwig
+    folders:
+      - Bitwig
+    executables: []
+    daw_executables:
+      - Bitwig Studio.exe
+
+  reaper:
+    name: "Reaper"
+    patterns:
+      - reaper
+      - cockos
+    folders:
+      - Reaper
+      - Cockos
+    executables: []
+    daw_executables:
+      - reaper.exe
+
+  cakewalk:
+    name: "Cakewalk"
+    patterns:
+      - cakewalk
+      - sonar
+    folders:
+      - Cakewalk
+    executables: []
+    daw_executables:
+      - Cakewalk.exe
+      - SONAR.exe
+
+  # ============================================================================
+  # MAJOR PLUGIN MANUFACTURERS
+  # ============================================================================
+
+  native_instruments:
+    name: "Native Instruments"
+    patterns:
+      - native instruments
+      - ni-racks
+      - komplete
+      - kontakt
+      - massive
+    folders:
+      - Native Instruments
+      - NI Resources
+    executables:
+      - Native Access.exe
+      - Komplete Kontrol.exe
+    standalone_executables:
+      - Kontakt*.exe
+      - Komplete Kontrol*.exe
+      - Battery*.exe
+      - Reaktor*.exe
+      - Maschine*.exe
+
+  spectrasonics:
+    name: "Spectrasonics"
+    patterns:
+      - spectrasonics
+      - omnisphere
+      - trilian
+      - keyscape
+    folders:
+      - Spectrasonics
+      - STEAM
+    executables: []
+    standalone_executables:
+      - Omnisphere*.exe
+      - Keyscape*.exe
+      - Trilian*.exe
+
+  waves:
+    name: "Waves"
+    patterns:
+      - waves audio
+      - waves
+    folders:
+      - Waves Audio
+      - WavesData
+    executables:
+      - WavesCentral.exe
+
+  izotope:
+    name: "iZotope"
+    patterns:
+      - izotope
+      - ozone
+      - neutron
+      - rx
+    folders:
+      - iZotope
+    executables:
+      - iZotope Product Portal.exe
+
+  fabfilter:
+    name: "FabFilter"
+    patterns:
+      - fabfilter
+    folders:
+      - FabFilter
+    executables: []
+
+  arturia:
+    name: "Arturia"
+    patterns:
+      - arturia
+    folders:
+      - Arturia
+    executables:
+      - Arturia Software Center.exe
+
+  xfer_records:
+    name: "Xfer Records"
+    patterns:
+      - xfer
+      - serum
+    folders:
+      - Xfer
+    executables: []
+    standalone_executables:
+      - Serum*.exe
+
+  valhalla:
+    name: "Valhalla DSP"
+    patterns:
+      - valhalla
+      - valhalladsp
+    folders:
+      - Valhalla
+
+  u_he:
+    name: "u-he"
+    patterns:
+      - u-he
+      - uhe
+      - diva
+      - zebra
+    folders:
+      - u-he
+    executables: []
+
+  output:
+    name: "Output"
+    patterns:
+      - output
+    folders:
+      - Output
+    executables:
+      - Output Hub.exe
+
+  soundtoys:
+    name: "Soundtoys"
+    patterns:
+      - soundtoys
+    folders:
+      - Soundtoys
+    executables:
+      - Soundtoys*.exe
+
+  slate_digital:
+    name: "Slate Digital"
+    patterns:
+      - slate digital
+    folders:
+      - Slate Digital
+    executables: []
+
+  plugin_alliance:
+    name: "Plugin Alliance"
+    patterns:
+      - plugin alliance
+      - brainworx
+    folders:
+      - Plugin Alliance
+    executables:
+      - Plugin Alliance*.exe
+
+  kilohearts:
+    name: "Kilohearts"
+    patterns:
+      - kilohearts
+    folders:
+      - Kilohearts
+    executables: []
+
+  pspaudioware:
+    name: "PSPaudioware"
+    patterns:
+      - pspaudioware
+      - psp
+    folders:
+      - PSPaudioware
+
+  cytomic:
+    name: "Cytomic"
+    patterns:
+      - cytomic
+      - the glue
+    folders:
+      - Cytomic
+
+  dmgaudio:
+    name: "DMGAudio"
+    patterns:
+      - dmgaudio
+    folders:
+      - DMGAudio
+
+  softube:
+    name: "Softube"
+    patterns:
+      - softube
+    folders:
+      - Softube
+      - Softube Central
+    executables: []
+
+  universal_audio:
+    name: "Universal Audio"
+    patterns:
+      - universal audio
+      - uad
+    folders:
+      - Universal Audio
+
+  eventide:
+    name: "Eventide"
+    patterns:
+      - eventide
+    folders:
+      - Eventide
+    executables: []
+
+  lexicon:
+    name: "Lexicon"
+    patterns:
+      - lexicon
+    folders:
+      - Lexicon
+
+  tc_electronic:
+    name: "TC Electronic"
+    patterns:
+      - tc electronic
+    folders:
+      - TC Electronic
+
+  # ============================================================================
+  # ORCHESTRAL LIBRARIES
+  # ============================================================================
+
+  spitfire_audio:
+    name: "Spitfire Audio"
+    patterns:
+      - spitfire audio
+      - spitfire
+    folders:
+      - Spitfire Audio
+
+  eastwest:
+    name: "EastWest"
+    patterns:
+      - eastwest
+      - quantum leap
+    folders:
+      - EastWest
+
+  vienna:
+    name: "Vienna Symphonic Library"
+    patterns:
+      - vienna
+      - vsl
+    folders:
+      - Vienna Symphonic Library
+    executables:
+      - Vienna Assistant.exe
+
+  eight_dio:
+    name: "8Dio"
+    patterns:
+      - 8dio
+    folders:
+      - 8Dio
+
+  orchestral_tools:
+    name: "Orchestral Tools"
+    patterns:
+      - orchestral tools
+    folders:
+      - Orchestral Tools
+
+  projectsam:
+    name: "ProjectSAM"
+    patterns:
+      - projectsam
+    folders:
+      - ProjectSAM
+
+  # ============================================================================
+  # SYNTH MANUFACTURERS
+  # ============================================================================
+
+  lennar_digital:
+    name: "Lennar Digital"
+    patterns:
+      - lennar digital
+      - lennardigital
+      - sylenth
+    folders:
+      - LenndarDigital
+      - Lennar Digital
+
+  rob_papen:
+    name: "Rob Papen"
+    patterns:
+      - rob papen
+    folders:
+      - Rob Papen
+
+  reveal_sound:
+    name: "Reveal Sound"
+    patterns:
+      - reveal sound
+      - spire
+    folders:
+      - Reveal Sound
+
+  tone2:
+    name: "Tone2"
+    patterns:
+      - tone2
+    folders:
+      - Tone2
+
+  synapse_audio:
+    name: "Synapse Audio"
+    patterns:
+      - synapse audio
+      - dune
+    folders:
+      - Synapse Audio
+
+  camel_audio:
+    name: "Camel Audio"
+    patterns:
+      - camel audio
+      - alchemy
+    folders:
+      - Camel Audio
+
+  # ============================================================================
+  # AMP SIMS & GUITAR
+  # ============================================================================
+
+  ik_multimedia:
+    name: "IK Multimedia"
+    patterns:
+      - ik multimedia
+      - amplitube
+      - t-racks
+    folders:
+      - IK Multimedia
+
+  positive_grid:
+    name: "Positive Grid"
+    patterns:
+      - positive grid
+      - bias
+    folders:
+      - Positive Grid
+
+  neural_dsp:
+    name: "Neural DSP"
+    patterns:
+      - neural dsp
+    folders:
+      - Neural DSP
+
+  line_6:
+    name: "Line 6"
+    patterns:
+      - line 6
+      - helix
+    folders:
+      - Line 6
+
+  overloud:
+    name: "Overloud"
+    patterns:
+      - overloud
+      - th3
+    folders:
+      - Overloud
+
+  # ============================================================================
+  # ADDITIONAL VENDORS (USER'S INSTALLATION)
+  # ============================================================================
+
+  zynaptiq:
+    name: "Zynaptiq"
+    patterns:
+      - zynaptiq
+    folders:
+      - Zynaptiq
+
+  air_music_technology:
+    name: "Air Music Technology"
+    patterns:
+      - air music technology
+    folders:
+      - Air Music Technology
+
+  baby_audio:
+    name: "Baby Audio"
+    patterns:
+      - baby audio
+    folders:
+      - Baby Audio
+
+  deviousmachines:
+    name: "DeviousMachines"
+    patterns:
+      - deviousmachines
+    folders:
+      - DeviousMachines
+
+  discodsp:
+    name: "discoDSP"
+    patterns:
+      - discodsp
+    folders:
+      - discoDSP
+
+  fielding_dsp:
+    name: "Fielding DSP"
+    patterns:
+      - fielding dsp
+    folders:
+      - Fielding DSP
+
+  hofa:
+    name: "HOFA"
+    patterns:
+      - hofa
+    folders:
+      - HOFA
+
+  klanghelm:
+    name: "Klanghelm"
+    patterns:
+      - klanghelm
+    folders:
+      - Klanghelm
+
+  klevgrand:
+    name: "Klevgrand"
+    patterns:
+      - klevgrand
+    folders:
+      - Klevgrand
+
+  korg:
+    name: "KORG"
+    patterns:
+      - korg
+    folders:
+      - KORG
+
+  kv331_audio:
+    name: "KV331 Audio"
+    patterns:
+      - kv331 audio
+    folders:
+      - KV331 Audio
+
+  newfangled_audio:
+    name: "Newfangled Audio"
+    patterns:
+      - newfangled audio
+    folders:
+      - Newfangled Audio
+
+  ohm_force:
+    name: "Ohm Force"
+    patterns:
+      - ohm force
+    folders:
+      - Ohm Force
+
+  plugin_boutique:
+    name: "Plugin Boutique"
+    patterns:
+      - plugin boutique
+    folders:
+      - Plugin Boutique
+
+  press_play:
+    name: "Press Play"
+    patterns:
+      - press play
+    folders:
+      - Press Play
+
+  refx:
+    name: "reFX"
+    patterns:
+      - refx
+    folders:
+      - reFX
+
+  sonarworks:
+    name: "Sonarworks"
+    patterns:
+      - sonarworks
+    folders:
+      - Sonarworks
+
+  sonic_charge:
+    name: "Sonic Charge"
+    patterns:
+      - sonic charge
+    folders:
+      - Sonic Charge
+
+  sonnox:
+    name: "Sonnox"
+    patterns:
+      - sonnox
+    folders:
+      - Sonnox
+
+  sononym:
+    name: "Sononym"
+    patterns:
+      - sononym
+    folders:
+      - Sononym
+
+  tokyo_dawn_labs:
+    name: "Tokyo Dawn Labs"
+    patterns:
+      - tokyo dawn labs
+    folders:
+      - Tokyo Dawn Labs
+
+  tokyo_dawn_records:
+    name: "Tokyo Dawn Records"
+    patterns:
+      - tokyo dawn records
+      - tdr
+    folders:
+      - Tokyo Dawn Records
+
+  vital:
+    name: "Vital"
+    patterns:
+      - vital
+    folders:
+      - Vital
+
+  voxengo:
+    name: "Voxengo"
+    patterns:
+      - voxengo
+    folders:
+      - Voxengo
+
+  xln_audio:
+    name: "XLN Audio"
+    patterns:
+      - xln audio
+    folders:
+      - XLN Audio
+
+  youlean:
+    name: "Youlean"
+    patterns:
+      - youlean
+    folders:
+      - Youlean
+
+  aberrant_dsp:
+    name: "Aberrant DSP"
+    patterns:
+      - aberrant dsp
+    folders:
+      - Aberrant DSP
+
+  acustica_audio:
+    name: "Acustica Audio"
+    patterns:
+      - acustica audio
+      - acustica
+    folders:
+      - Acustica Audio
+      - Acustica
+
+  antelope_audio:
+    name: "Antelope Audio"
+    patterns:
+      - antelope audio
+    folders:
+      - Antelope Audio
+
+  audiothing:
+    name: "AudioThing"
+    patterns:
+      - audiothing
+    folders:
+      - AudioThing
+
+  black_rooster_audio:
+    name: "Black Rooster Audio"
+    patterns:
+      - black rooster audio
+      - black rooster
+    folders:
+      - Black Rooster Audio
+      - Black Rooster
+
+  boz_digital_labs:
+    name: "Boz Digital Labs"
+    patterns:
+      - boz digital labs
+      - boz digital
+    folders:
+      - Boz Digital Labs
+      - Boz Digital
+
+  cableguys:
+    name: "Cableguys"
+    patterns:
+      - cableguys
+    folders:
+      - Cableguys
+
+  caelum_audio:
+    name: "Caelum Audio"
+    patterns:
+      - caelum audio
+    folders:
+      - Caelum Audio
+
+  d16:
+    name: "D16"
+    patterns:
+      - d16
+    folders:
+      - D16
+
+  dada_life:
+    name: "Dada Life"
+    patterns:
+      - dada life
+    folders:
+      - Dada Life
+
+  fiedler_audio:
+    name: "Fiedler Audio"
+    patterns:
+      - fiedler audio
+    folders:
+      - Fiedler Audio
+
+  future_audio_workshop:
+    name: "Future Audio Workshop"
+    patterns:
+      - future audio workshop
+      - faw
+    folders:
+      - Future Audio Workshop
+      - FAW
+
+  ignite_amps:
+    name: "Ignite Amps"
+    patterns:
+      - ignite amps
+    folders:
+      - Ignite Amps
+
+  meldaproduction:
+    name: "MeldaProduction"
+    patterns:
+      - meldaproduction
+      - melda
+    folders:
+      - MeldaProduction
+      - Melda
+
+  mixed_in_key:
+    name: "Mixed In Key"
+    patterns:
+      - mixed in key
+    folders:
+      - Mixed In Key
+
+  oeksound:
+    name: "Oeksound"
+    patterns:
+      - oeksound
+    folders:
+      - Oeksound
+
+  polyverse:
+    name: "Polyverse"
+    patterns:
+      - polyverse
+    folders:
+      - Polyverse
+
+  schrammel:
+    name: "Schrammel"
+    patterns:
+      - schrammel
+    folders:
+      - Schrammel
+
+  serato:
+    name: "Serato"
+    patterns:
+      - serato
+    folders:
+      - Serato
+
+  shattered_glass_audio:
+    name: "Shattered Glass Audio"
+    patterns:
+      - shattered glass audio
+      - shattered glass
+    folders:
+      - Shattered Glass Audio
+      - Shattered Glass
+
+  sonible:
+    name: "Sonible"
+    patterns:
+      - sonible
+    folders:
+      - Sonible
+
+  sonic_academy:
+    name: "Sonic Academy"
+    patterns:
+      - sonic academy
+    folders:
+      - Sonic Academy
+
+  soundtheory:
+    name: "Soundtheory"
+    patterns:
+      - soundtheory
+    folders:
+      - Soundtheory
+
+  tal:
+    name: "TAL"
+    patterns:
+      - tal
+    folders:
+      - TAL
+
+  united_plugins:
+    name: "United Plugins"
+    patterns:
+      - united plugins
+    folders:
+      - United Plugins
+
+  vengeance:
+    name: "Vengeance"
+    patterns:
+      - vengeance
+    folders:
+      - Vengeance
+
+  wavesfactory:
+    name: "Wavesfactory"
+    patterns:
+      - wavesfactory
+    folders:
+      - Wavesfactory
+
+  wavetracing:
+    name: "waveTracing"
+    patterns:
+      - wavetracing
+    folders:
+      - waveTracing
+
+  # ============================================================================
+  # ADDITIONAL TOOLS & MANAGERS
+  # ============================================================================
+
+  ilok:
+    name: "iLok License Manager"
+    patterns:
+      - ilok
+    folders:
+      - iLok
+    executables:
+      - iLokLicenseManager.exe
+      - iLok License Manager
+
+  splice:
+    name: "Splice"
+    patterns:
+      - splice
+    folders:
+      - Splice
+    executables:
+      - Splice.exe
+
+  roland_cloud:
+    name: "Roland Cloud Manager"
+    patterns:
+      - roland cloud
+    folders:
+      - Roland
+    executables:
+      - Roland Cloud Manager.exe
+
+  ozone:
+    name: "Ozone"
+    patterns:
+      - ozone
+    folders: []

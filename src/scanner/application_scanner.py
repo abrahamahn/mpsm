@@ -9,58 +9,18 @@ import platform
 from ..core.logger import get_logger
 from ..core.config import ConfigManager
 from ..models.application import Application, ApplicationType
+from ..data.vendor_registry import vendor_registry
 
 
 IS_WINDOWS = platform.system() == 'Windows'
 
 
 class ApplicationScanner:
-    """Scans for music production applications and DAWs."""
+    """
+    Scans for music production applications and DAWs.
 
-    # Known DAW executables
-    DAW_EXECUTABLES = {
-        'FL Studio': ['FL64.exe', 'FL.exe'],
-        'Ableton Live': ['Ableton Live*.exe'],
-        'Cubase': ['Cubase*.exe'],
-        'Nuendo': ['Nuendo*.exe'],
-        'Pro Tools': ['ProTools.exe'],
-        'Logic Pro': ['Logic Pro X'],
-        'Studio One': ['Studio One.exe'],
-        'Reaper': ['reaper.exe'],
-        'Bitwig Studio': ['Bitwig Studio.exe'],
-        'Reason': ['Reason.exe'],
-        'Cakewalk': ['Cakewalk.exe', 'SONAR.exe'],
-        'GarageBand': ['GarageBand'],
-    }
-
-    # Known plugin managers and utilities
-    PLUGIN_MANAGERS = {
-        'Waves Central': ['WavesCentral.exe'],
-        'Native Access': ['Native Access.exe'],
-        'iLok License Manager': ['iLokLicenseManager.exe', 'iLok License Manager'],
-        'Plugin Alliance': ['Plugin Alliance*.exe'],
-        'Arturia Software Center': ['Arturia Software Center.exe'],
-        'Splice': ['Splice.exe'],
-        'Output Hub': ['Output Hub.exe'],
-        'Roland Cloud Manager': ['Roland Cloud Manager.exe'],
-        'Komplete Kontrol': ['Komplete Kontrol.exe'],
-        'Vienna Assistant': ['Vienna Assistant.exe'],
-        'Soundtoys': ['Soundtoys*.exe'],
-        'iZotope Product Portal': ['iZotope Product Portal.exe'],
-    }
-
-    # Known standalone instruments/effects
-    STANDALONE_PLUGINS = {
-        'Kontakt': ['Kontakt*.exe'],
-        'Komplete Kontrol': ['Komplete Kontrol*.exe'],
-        'Battery': ['Battery*.exe'],
-        'Reaktor': ['Reaktor*.exe'],
-        'Maschine': ['Maschine*.exe'],
-        'Serum': ['Serum*.exe'],
-        'Omnisphere': ['Omnisphere*.exe'],
-        'Keyscape': ['Keyscape*.exe'],
-        'Trilian': ['Trilian*.exe'],
-    }
+    Uses centralized VendorRegistry for executable pattern matching.
+    """
 
     def __init__(
         self,
@@ -172,6 +132,8 @@ class ApplicationScanner:
         """
         Identify if file is a known music production application.
 
+        Uses centralized VendorRegistry for executable pattern matching.
+
         Args:
             file_path: File path to check
 
@@ -180,8 +142,9 @@ class ApplicationScanner:
         """
         filename = file_path.name
 
-        # Check DAWs
-        for daw_name, executables in self.DAW_EXECUTABLES.items():
+        # Check DAWs using VendorRegistry
+        daw_executables = vendor_registry.get_all_daw_executables()
+        for daw_name, executables in daw_executables.items():
             for exe_pattern in executables:
                 if self._match_pattern(filename, exe_pattern):
                     return self._create_application(
@@ -190,8 +153,9 @@ class ApplicationScanner:
                         ApplicationType.DAW
                     )
 
-        # Check plugin managers
-        for manager_name, executables in self.PLUGIN_MANAGERS.items():
+        # Check plugin managers using VendorRegistry
+        plugin_managers = vendor_registry.get_all_plugin_manager_executables()
+        for manager_name, executables in plugin_managers.items():
             for exe_pattern in executables:
                 if self._match_pattern(filename, exe_pattern):
                     return self._create_application(
@@ -200,8 +164,9 @@ class ApplicationScanner:
                         ApplicationType.PLUGIN_MANAGER
                     )
 
-        # Check standalone plugins
-        for plugin_name, executables in self.STANDALONE_PLUGINS.items():
+        # Check standalone plugins using VendorRegistry
+        standalone_plugins = vendor_registry.get_all_standalone_executables()
+        for plugin_name, executables in standalone_plugins.items():
             for exe_pattern in executables:
                 if self._match_pattern(filename, exe_pattern):
                     return self._create_application(
