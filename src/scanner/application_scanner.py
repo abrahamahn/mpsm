@@ -10,12 +10,13 @@ from ..core.logger import get_logger
 from ..core.config import ConfigManager
 from ..models.application import Application, ApplicationType
 from ..data.vendor_registry import vendor_registry
+from .base_scanner import BaseScanner
 
 
 IS_WINDOWS = platform.system() == 'Windows'
 
 
-class ApplicationScanner:
+class ApplicationScanner(BaseScanner[Application]):
     """
     Scans for music production applications and DAWs.
 
@@ -34,12 +35,49 @@ class ApplicationScanner:
             config: Configuration manager
             max_workers: Maximum parallel scan workers
         """
-        self.logger = get_logger()
-        self.config = config or ConfigManager()
-        self.max_workers = max_workers
+        super().__init__(config, max_workers)
 
-        # Discovered applications
-        self.applications: List[Application] = []
+    # ========================================================================
+    # BaseScanner abstract methods implementation
+    # ========================================================================
+
+    def _get_default_scan_paths(self) -> List[str]:
+        """
+        Get default paths to scan for applications.
+
+        Returns:
+            List of common application installation paths
+        """
+        return self._get_common_installation_paths()
+
+    def _identify_item(self, path: Path) -> Optional[Application]:
+        """
+        Identify if path is a known music production application.
+
+        Args:
+            path: Path to check
+
+        Returns:
+            Application object if identified, None otherwise
+        """
+        if not path.is_file():
+            return None
+
+        return self._identify_application(path)
+
+    # ========================================================================
+    # Public API (maintains backward compatibility)
+    # ========================================================================
+
+    @property
+    def applications(self) -> List[Application]:
+        """Get discovered applications (backward compatibility)."""
+        return self.items
+
+    @applications.setter
+    def applications(self, value: List[Application]):
+        """Set discovered applications (backward compatibility)."""
+        self.items = value
 
     def scan_for_applications(
         self,
@@ -48,25 +86,15 @@ class ApplicationScanner:
         """
         Scan for music production applications.
 
+        Uses BaseScanner's scan() method for consistent behavior.
+
         Args:
             scan_paths: Paths to scan. If None, uses common installation paths.
 
         Returns:
             List of discovered applications
         """
-        if scan_paths is None:
-            scan_paths = self._get_common_installation_paths()
-
-        self.logger.info(f"Scanning for applications in {len(scan_paths)} paths...")
-        self.applications = []
-
-        for path_str in scan_paths:
-            path = Path(path_str)
-            if path.exists() and path.is_dir():
-                self._scan_directory_for_applications(path)
-
-        self.logger.info(f"Found {len(self.applications)} applications")
-        return self.applications
+        return self.scan(scan_paths)
 
     def _get_common_installation_paths(self) -> List[str]:
         """
@@ -99,34 +127,9 @@ class ApplicationScanner:
 
         return paths
 
-    def _scan_directory_for_applications(self, directory: Path, depth: int = 0, max_depth: int = 3) -> None:
-        """
-        Scan a directory for applications.
-
-        Args:
-            directory: Directory to scan
-            depth: Current recursion depth
-            max_depth: Maximum recursion depth
-        """
-        if depth > max_depth:
-            return
-
-        try:
-            for item in directory.iterdir():
-                if item.is_file():
-                    # Check if file is a known application
-                    app = self._identify_application(item)
-                    if app:
-                        self.applications.append(app)
-
-                elif item.is_dir():
-                    # Recurse into subdirectories
-                    self._scan_directory_for_applications(item, depth + 1, max_depth)
-
-        except PermissionError:
-            self.logger.debug(f"Permission denied scanning {directory}")
-        except Exception as e:
-            self.logger.warning(f"Error scanning {directory}: {e}")
+    # ========================================================================
+    # Helper methods (application-specific logic)
+    # ========================================================================
 
     def _identify_application(self, file_path: Path) -> Optional[Application]:
         """

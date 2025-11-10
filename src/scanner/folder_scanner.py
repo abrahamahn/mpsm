@@ -10,12 +10,13 @@ from ..core.logger import get_logger
 from ..core.config import ConfigManager
 from ..models.folder import DataFolder, FolderType
 from ..data.vendor_registry import vendor_registry
+from .base_scanner import BaseScanner
 
 
 IS_WINDOWS = platform.system() == 'Windows'
 
 
-class FolderScanner:
+class FolderScanner(BaseScanner[DataFolder]):
     """Scans for music production data folders (presets, samples, libraries)."""
 
     # Known folder patterns for different types
@@ -52,12 +53,53 @@ class FolderScanner:
             config: Configuration manager
             max_workers: Maximum parallel scan workers
         """
-        self.logger = get_logger()
-        self.config = config or ConfigManager()
-        self.max_workers = max_workers
+        super().__init__(config, max_workers)
 
-        # Discovered folders
-        self.data_folders: List[DataFolder] = []
+    # ========================================================================
+    # BaseScanner abstract methods implementation
+    # ========================================================================
+
+    def _get_default_scan_paths(self) -> List[str]:
+        """
+        Get default paths to scan for data folders.
+
+        Returns:
+            List of common data folder locations
+        """
+        return self._get_common_data_paths()
+
+    def _identify_item(self, path: Path) -> Optional[DataFolder]:
+        """
+        Identify if path is a valid data folder.
+
+        Args:
+            path: Path to check
+
+        Returns:
+            DataFolder object if identified, None otherwise
+        """
+        if not path.is_dir():
+            return None
+
+        folder_type = self._identify_folder_type(path)
+        if folder_type:
+            return self._create_data_folder(path, folder_type)
+
+        return None
+
+    # ========================================================================
+    # Public API (maintains backward compatibility)
+    # ========================================================================
+
+    @property
+    def data_folders(self) -> List[DataFolder]:
+        """Get discovered data folders (backward compatibility)."""
+        return self.items
+
+    @data_folders.setter
+    def data_folders(self, value: List[DataFolder]):
+        """Set discovered data folders (backward compatibility)."""
+        self.items = value
 
     def scan_for_data_folders(
         self,
@@ -66,25 +108,15 @@ class FolderScanner:
         """
         Scan for music production data folders.
 
+        Uses BaseScanner's scan() method for consistent behavior.
+
         Args:
             scan_paths: Paths to scan. If None, uses common data locations.
 
         Returns:
             List of discovered data folders
         """
-        if scan_paths is None:
-            scan_paths = self._get_common_data_paths()
-
-        self.logger.info(f"Scanning for data folders in {len(scan_paths)} paths...")
-        self.data_folders = []
-
-        for path_str in scan_paths:
-            path = Path(path_str)
-            if path.exists() and path.is_dir():
-                self._scan_directory_for_data(path)
-
-        self.logger.info(f"Found {len(self.data_folders)} data folders")
-        return self.data_folders
+        return self.scan(scan_paths)
 
     def _get_common_data_paths(self) -> List[str]:
         """
@@ -118,35 +150,9 @@ class FolderScanner:
 
         return paths
 
-    def _scan_directory_for_data(self, directory: Path, depth: int = 0, max_depth: int = 4) -> None:
-        """
-        Scan a directory for data folders.
-
-        Args:
-            directory: Directory to scan
-            depth: Current recursion depth
-            max_depth: Maximum recursion depth
-        """
-        if depth > max_depth:
-            return
-
-        try:
-            for item in directory.iterdir():
-                if item.is_dir():
-                    # Check if this is a data folder
-                    folder_type = self._identify_folder_type(item)
-                    if folder_type:
-                        data_folder = self._create_data_folder(item, folder_type)
-                        if data_folder:
-                            self.data_folders.append(data_folder)
-
-                    # Recurse into subdirectories
-                    self._scan_directory_for_data(item, depth + 1, max_depth)
-
-        except PermissionError:
-            self.logger.debug(f"Permission denied scanning {directory}")
-        except Exception as e:
-            self.logger.warning(f"Error scanning {directory}: {e}")
+    # ========================================================================
+    # Helper methods (folder-specific logic)
+    # ========================================================================
 
     def _identify_folder_type(self, folder_path: Path) -> Optional[FolderType]:
         """
