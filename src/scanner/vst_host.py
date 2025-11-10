@@ -1,12 +1,19 @@
-"""Minimal VST2 host for safe plugin metadata extraction.
+"""[DEPRECATED] Direct VST2 Host using ctypes - DO NOT USE
 
-This module provides a lightweight VST host that can load plugins
-and extract metadata without requiring a full DAW environment.
+WARNING: This module is DEPRECATED and should not be used.
+Loading VST DLLs directly with ctypes is unsafe and can crash the entire process.
 
-SAFETY WARNINGS:
+USE INSTEAD: src/scanner/external_vst_host.py
+This uses a separate JUCE-based process that safely loads plugins without
+risking crashes in MPSM.
+
+See: JUCE_VST_HOST_PROTOCOL.md for details on the new architecture.
+
+ORIGINAL SAFETY WARNINGS (why this is deprecated):
 - Loading unknown DLLs can crash the process
 - Some plugins require audio drivers or GUI
-- Always run in a separate process for isolation
+- Cannot isolate crashes - entire MPSM crashes
+- Unstable plugins can corrupt memory
 """
 
 import ctypes

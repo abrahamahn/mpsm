@@ -29,20 +29,22 @@ class MetadataExtractor:
         'helper', 'util', 'common.dll', 'shared.dll',
     ]
 
-    def __init__(self, enable_vst_host: bool = False, enable_registry: bool = True):
+    def __init__(self, enable_vst_host: bool = False, enable_registry: bool = True, juce_host_path: Optional[Path] = None):
         """
         Initialize metadata extractor.
 
         Args:
-            enable_vst_host: Enable VST host for dynamic metadata (slower, riskier)
+            enable_vst_host: Enable external JUCE VST host for plugin_id extraction (safe)
             enable_registry: Enable Windows registry scanning
+            juce_host_path: Path to JUCE VST scanner executable (optional)
         """
         self.logger = get_logger()
         self.enable_vst_host = enable_vst_host
         self.enable_registry = enable_registry
+        self.juce_host_path = juce_host_path
 
         # Lazy-load optional components
-        self._vst_host = None
+        self._external_vst_host = None
         self._registry_scanner = None
 
     def extract_file_metadata(self, file_path: Path) -> Dict[str, Any]:
@@ -962,28 +964,46 @@ class MetadataExtractor:
 
     def _get_vst_host_metadata(self, file_path: Path) -> Optional[Dict[str, Any]]:
         """
-        Get metadata by loading plugin in VST host.
+        Get metadata by loading plugin via external JUCE host.
 
-        WARNING: This loads the DLL and can crash if plugin is unstable.
+        This is SAFE - uses a separate JUCE process that won't crash MPSM.
 
         Args:
-            file_path: Path to VST2 plugin
+            file_path: Path to VST2/VST3 plugin
 
         Returns:
             Metadata dict or None
         """
         try:
-            from .vst_host import extract_vst_metadata, format_plugin_id
+            # Lazy-load external VST host
+            if not self._external_vst_host:
+                from .external_vst_host import ExternalVSTHost, find_juce_host
 
-            vst_data = extract_vst_metadata(file_path, timeout=5)
+                # Find JUCE host executable
+                juce_path = self.juce_host_path or find_juce_host()
+                if not juce_path:
+                    self.logger.warning(
+                        "JUCE VST Scanner not found. Please build it first. "
+                        "Place VSTScanner.exe in bin/ or tools/ directory."
+                    )
+                    self.enable_vst_host = False  # Disable for this session
+                    return None
+
+                self._external_vst_host = ExternalVSTHost(juce_host_path=juce_path)
+                self._external_vst_host.start()
+
+            # Extract metadata via external host
+            vst_data = self._external_vst_host.extract_metadata(file_path)
 
             if vst_data:
-                # Map VST host data to our metadata format
+                # Map JUCE host data to our metadata format
                 metadata = {}
 
                 if vst_data.get('plugin_id'):
-                    metadata['plugin_id'] = format_plugin_id(vst_data['plugin_id'])
-                    metadata['plugin_id_int'] = vst_data['plugin_id']
+                    metadata['plugin_id'] = vst_data['plugin_id']
+
+                if vst_data.get('plugin_id_hex'):
+                    metadata['plugin_id_hex'] = vst_data['plugin_id_hex']
 
                 if vst_data.get('name'):
                     metadata['vst_name'] = vst_data['name']
@@ -997,9 +1017,18 @@ class MetadataExtractor:
                 if vst_data.get('version'):
                     metadata['vst_version'] = vst_data['version']
 
+                if vst_data.get('num_inputs'):
+                    metadata['num_inputs'] = vst_data['num_inputs']
+
+                if vst_data.get('num_outputs'):
+                    metadata['num_outputs'] = vst_data['num_outputs']
+
+                if vst_data.get('is_synth'):
+                    metadata['is_synth'] = vst_data['is_synth']
+
                 return metadata
 
         except Exception as e:
-            self.logger.debug(f"VST host metadata extraction failed: {e}")
+            self.logger.debug(f"External VST host metadata extraction failed: {e}")
 
         return None

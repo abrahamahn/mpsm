@@ -154,7 +154,7 @@ def _auto_detect_scan_paths() -> list:
 @click.option('--skip-folders', is_flag=True, help='Skip data folder scanning')
 @click.option('--skip-registry', is_flag=True, help='Skip registry scanning')
 @click.option('--skip-licenses', is_flag=True, help='Skip license scanning')
-@click.option('--enable-vst-host', is_flag=True, help='Enable VST host for plugin_id extraction (slower, may crash on unstable plugins)')
+@click.option('--enable-vst-host', is_flag=True, help='Enable external JUCE VST host for plugin_id extraction (requires VSTScanner.exe)')
 @click.option('--enable-registry', is_flag=True, default=True, help='Enable Windows registry metadata extraction')
 def scan(config, output, format, skip_plugins, skip_apps, skip_folders, skip_registry, skip_licenses, enable_vst_host, enable_registry):
     """Comprehensive scan for music production software, plugins, DAWs, and data."""
@@ -227,7 +227,7 @@ def scan(config, output, format, skip_plugins, skip_apps, skip_folders, skip_reg
 
             # Show metadata extraction settings
             if enable_vst_host:
-                console.print("  [yellow]⚠ VST Host enabled[/yellow] - May be slower, can crash on unstable plugins")
+                console.print("  [cyan]🔌 External VST Host enabled[/cyan] - Requires JUCE VSTScanner.exe")
             if enable_registry:
                 console.print("  [cyan]ℹ Registry scanning enabled[/cyan]")
 
