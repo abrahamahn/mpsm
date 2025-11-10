@@ -1,0 +1,83 @@
+name: Pull Request Tests
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+    types: [opened, synchronize, reopened]
+
+jobs:
+  quick-test:
+    name: Quick Tests
+    runs-on: windows-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e .[dev]
+
+    - name: Run unit tests only
+      run: |
+        pytest tests/unit/ -v --tb=short
+
+    - name: Check test coverage
+      run: |
+        pytest tests/ --cov=src --cov-report=term-missing --cov-fail-under=10
+
+    - name: Comment PR with coverage
+      uses: py-cov-action/python-coverage-comment-action@v3
+      if: github.event_name == 'pull_request'
+      with:
+        GITHUB_TOKEN: ${{ github.token }}
+      continue-on-error: true  # Don't fail if comment fails
+
+  integration-test:
+    name: Integration Tests
+    runs-on: windows-latest
+    needs: quick-test
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e .[dev]
+
+    - name: Run integration tests
+      run: |
+        pytest tests/integration/ -v --tb=short
+
+  validate:
+    name: Validate Changes
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Check for merge conflicts
+      run: |
+        git fetch origin ${{ github.base_ref }}
+        git merge-base --is-ancestor origin/${{ github.base_ref }} HEAD || echo "::warning::Branch may have merge conflicts"
+
+    - name: Check file sizes
+      run: |
+        find . -type f -size +1M -not -path "./.git/*" -exec ls -lh {} \; | awk '{print $5 " " $9}' | sort -rh
+        if [ $(find . -type f -size +5M -not -path "./.git/*" | wc -l) -gt 0 ]; then
+          echo "::error::Files larger than 5MB detected"
+          exit 1
+        fi
