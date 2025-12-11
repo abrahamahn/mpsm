@@ -1,0 +1,286 @@
+# MPSM Configuration File
+#
+# IMPORTANT: Before running a scan, update the scan_paths below:
+# 1. Replace "YOUR_USERNAME" with your actual Windows username
+# 2. Add any custom plugin/sample library directories you use
+# 3. Remove paths that don't exist on your system (won't cause errors, just inefficiency)
+#
+# Performance: Targeted scanning is 10-100x faster than scanning entire C:\ drive!
+#
+version: "1.0"
+
+# Root directory for music production files
+root_path: "C:\\MusicProduction"
+
+# Custom paths (relative to root_path)
+custom_paths:
+  vst2: "Plugins\\VST2"
+  vst3: "Plugins\\VST3"
+  aax: "Plugins\\AAX"
+  clap: "Plugins\\CLAP"
+  daw_fl: "DAWs\\FLStudio"
+  daw_ableton: "DAWs\\Ableton"
+  libraries: "Libraries"
+  licenses: "Licenses"
+  temp: "Temp"
+
+# Scan configuration
+scan:
+  # Directories to scan - TARGETED for music production software
+  # These are common installation locations for plugins, DAWs, and audio software
+  scan_paths:
+    # Plugin installation directories (VST2, VST3, AAX, CLAP)
+    - "C:\\Program Files\\VSTPlugins"
+    - "C:\\Program Files\\VST"
+    - "C:\\Program Files\\VST2"
+    - "C:\\Program Files\\VST3"
+    - "C:\\Program Files\\Steinberg"
+    - "C:\\Program Files\\Steinberg\\VSTPlugins"
+    - "C:\\Program Files\\Common Files\\VST2"
+    - "C:\\Program Files\\Common Files\\VST3"
+    - "C:\\Program Files\\Common Files\\CLAP"
+    - "C:\\Program Files\\Common Files\\Avid"
+    - "C:\\Program Files\\Common Files\\Avid\\Audio"
+    - "C:\\Program Files (x86)\\VSTPlugins"
+    - "C:\\Program Files (x86)\\VST"
+    - "C:\\Program Files (x86)\\VST2"
+    - "C:\\Program Files (x86)\\Steinberg"
+    - "C:\\Program Files (x86)\\Steinberg\\VSTPlugins"
+    - "C:\\Program Files (x86)\\Common Files\\VST2"
+    - "C:\\Program Files (x86)\\Common Files\\VST3"
+
+    # DAW installation directories
+    - "C:\\Program Files\\Image-Line"
+    - "C:\\Program Files\\Ableton"
+    - "C:\\Program Files\\Avid"
+    - "C:\\Program Files\\PreSonus"
+    - "C:\\Program Files\\Cakewalk"
+    - "C:\\Program Files\\Steinberg\\Cubase"
+    - "C:\\Program Files (x86)\\Image-Line"
+
+    # Vendor-specific directories (many contain VST2 DLLs)
+    - "C:\\Program Files\\Native Instruments"
+    - "C:\\Program Files\\Spectrasonics"
+    - "C:\\Program Files\\Waves"
+    - "C:\\Program Files\\iZotope"
+    - "C:\\Program Files\\FabFilter"
+    - "C:\\Program Files\\Arturia"
+    - "C:\\Program Files\\Xfer"
+    - "C:\\Program Files\\Serum"
+    - "C:\\Program Files\\Slate Digital"
+    - "C:\\Program Files\\Soundtoys"
+    - "C:\\Program Files\\Plugin Alliance"
+    - "C:\\Program Files\\u-he"
+    - "C:\\Program Files\\Valhalla"
+    - "C:\\Program Files\\Output"
+    - "C:\\Program Files\\Reveal Sound"
+
+    # User data directories (presets, licenses, user content)
+    - "C:\\Users\\YOUR_USERNAME\\Documents"
+    - "C:\\Users\\YOUR_USERNAME\\AppData\\Roaming"
+    - "C:\\Users\\YOUR_USERNAME\\AppData\\Local"
+    - "C:\\ProgramData"
+
+    # CUSTOM: User's organized production directory
+    # This user has moved all applications to a custom organized structure
+    - "C:\\Production"
+    - "C:\\Production\\Applications"
+    - "C:\\Production\\Plugins"
+    - "C:\\Production\\VST"
+    - "C:\\Production\\VST2"
+    - "C:\\Production\\VST3"
+
+    # Add any additional custom directories here
+    # - "D:\\Audio\\Plugins"
+    # - "D:\\Sample Libraries"
+
+  # Directories to exclude (performance optimization)
+  exclude_paths:
+    # System directories (no audio software here)
+    - "C:\\Windows"
+    - "C:\\Windows\\System32"
+    - "C:\\Windows\\SysWOW64"
+    - "C:\\Windows\\WinSxS"
+    - "C:\\Windows\\Temp"
+
+    # Microsoft/Cloud directories
+    - "C:\\ProgramData\\Microsoft\\OneDrive"
+    - "C:\\ProgramData\\Microsoft\\Windows"
+
+    # Other
+    - "C:\\$Recycle.Bin"
+    - "C:\\System Volume Information"
+
+    # User AppData exclusions (reduce noise)
+    - "**/AppData/Local/Temp"
+    - "**/AppData/Local/Microsoft"
+    - "**/AppData/Local/Google"
+    - "**/AppData/Roaming/Microsoft"
+
+  # Performance tuning
+  max_workers: 4  # Parallel scanning threads (increase for faster scans on multi-core CPUs)
+  max_depth: 5    # Maximum folder depth to scan (prevents infinite recursion)
+
+  # Component types to scan
+  components:
+    plugin_files: true
+    applications: true
+    folders: true
+    registry: true
+
+  # File extensions to scan
+  extensions:
+    plugins:
+      vst2: [".dll"]
+      vst3: [".vst3"]
+      aax: [".aax"]
+      clap: [".clap"]
+    executables: [".exe"]
+    documents: [".pdf", ".txt", ".rtf"]
+    licenses: [".lic", ".key", ".license"]
+
+  # Plugin validation settings
+  validation:
+    min_plugin_size_mb: 0.05  # 50 KB minimum (some plugins are tiny)
+    max_plugin_size_mb: 1000  # 1 GB maximum
+    # Disable strict VST signature check for AAX and CLAP
+    require_vst_signature_for_dll: true
+    validate_aax: false  # AAX validation not yet implemented
+    validate_clap: false  # CLAP validation not yet implemented
+
+  # Folder detection
+  folder_patterns:
+    installation:
+      - "**/Program Files/**"
+      - "**/Program Files (x86)/**"
+      - "**/VSTPlugins/**"
+      - "**/Steinberg/**"
+    presets:
+      - "**/Presets/**"
+      - "**/User Presets/**"
+      - "**/.vstpreset"
+    samples:
+      - "**/Samples/**"
+      - "**/Libraries/**"
+      - "**/Content/**"
+    user_data:
+      - "**/Documents/**/**/Presets/**"
+      - "**/AppData/**/**/Presets/**"
+
+  # Application detection
+  known_applications:
+    plugin_managers:
+      - "Waves Central"
+      - "Native Access"
+      - "iLok License Manager"
+      - "Plugin Alliance"
+      - "Arturia Software Center"
+      - "Splice"
+      - "Output Hub"
+      - "Roland Cloud Manager"
+      - "Komplete Kontrol"
+    daws:
+      - "FL Studio"
+      - "Ableton Live"
+      - "Cubase"
+      - "Studio One"
+      - "Logic Pro"
+      - "Reaper"
+
+  # Registry scan
+  registry_scan:
+    enabled: true
+    depth: "deep"
+    target_keys:
+      - "HKLM\\SOFTWARE\\VST"
+      - "HKLM\\SOFTWARE\\VST3"
+      - "HKCU\\Software\\VST"
+      - "HKCU\\Software\\Image-Line"
+      - "HKCU\\Software\\Ableton"
+      - "HKLM\\SOFTWARE\\Waves"
+      - "HKLM\\SOFTWARE\\iZotope"
+      - "HKLM\\SOFTWARE\\Native Instruments"
+      - "HKLM\\SOFTWARE\\Arturia"
+      - "HKLM\\SOFTWARE\\FabFilter"
+      - "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall"
+    detect_orphans: true
+
+  # Performance
+  parallel: true
+  max_workers: 4
+  max_folder_depth: 10
+  max_file_size_mb: 5000
+  skip_cache_folders: true
+
+# DAW configuration
+daws:
+  enabled:
+    - "FLStudio"
+    - "AbletonLive"
+  fl_studio:
+    exe_path: "C:\\Program Files\\Image-Line\\FL Studio 21\\FL64.exe"
+    plugin_db: "C:\\Users\\{USER}\\Documents\\Image-Line\\FL Studio\\Settings\\Plugin database.xml"
+  ableton:
+    exe_path: "C:\\ProgramData\\Ableton\\Live 12\\Program\\Ableton Live.exe"
+
+# Update configuration
+updates:
+  enabled: true
+  auto_update: false
+  check_frequency: "daily"
+  check_time: "02:00"
+  vendors:
+    - "Waves"
+    - "iZotope"
+    - "FabFilter"
+    - "Native Instruments"
+    - "Arturia"
+    - "Plugin Alliance"
+
+# License configuration
+licenses:
+  centralize: true
+  verify_on_scan: true
+  backup_licenses: true
+  ilok:
+    enabled: true
+    check_cloud: true
+
+# Registry configuration
+registry:
+  backup_enabled: true
+  backup_retention_days: 30
+  verify_after_update: true
+  keys:
+    - "HKEY_LOCAL_MACHINE\\SOFTWARE\\VST"
+    - "HKEY_CURRENT_USER\\Software\\Image-Line\\FL Studio"
+    - "HKEY_CURRENT_USER\\Software\\Ableton"
+
+# Safety configuration
+safety:
+  dry_run: true
+  backup_before_move: true
+  verify_after_move: true
+  rollback_on_error: true
+  max_file_size_mb: 5000
+
+# Logging configuration
+logging:
+  level: "INFO"
+  max_log_size_mb: 100
+  log_retention_days: 90
+  log_to_console: true
+  log_to_file: true
+
+# Export configuration
+export:
+  formats: ["csv", "xlsx"]
+  include_metadata: true
+  compress_exports: false
+
+# Performance configuration
+performance:
+  cache_enabled: true
+  cache_ttl_hours: 24
+  database_type: "sqlite"
+  optimize_scans: true

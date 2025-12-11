@@ -1,248 +1,409 @@
-# Music Production Software Manager (MPSM)  
-### Comprehensive Automation Plan for Windows 11 (Zephyrus G14)
+# MPSM - Music Production Software Manager
 
-> **Goal**: Fully automate scanning, organizing, relocating, updating, and managing 450+ VST plugins, DAWs (FL Studio, Ableton), plugin managers, and licenses — with zero clutter and full registry control.
+[![CI Status](https://github.com/abrahamahn/mpsm/workflows/CI/badge.svg)](https://github.com/abrahamahn/mpsm/actions)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
+> **Automate scanning, organizing, and managing 450+ VST plugins, DAWs, and music production software on Windows 11**
 
 ---
 
 ## Overview
 
-**MPSM** is a **Python-based CLI tool** that:
-- Scans the entire drive for music production files.
-- Centralizes everything into a clean, logical folder structure.
-- Automatically fixes broken registry paths after moving files.
-- Detects and applies plugin updates.
-- Tracks and verifies licenses.
-- Enforces custom installation paths for new plugins.
+**MPSM** is a comprehensive Python-based CLI tool designed for music producers who need to manage large plugin collections. It automates the tedious tasks of:
 
-**Target User**: You — on a **Windows 11 ASUS ROG Zephyrus G14** used **exclusively for music production**.
+- 🔍 **Scanning** your entire system for VST2, VST3, AAX plugins and DAWs
+- 📊 **Cataloging** plugins with metadata extraction (version, publisher, format)
+- 📁 **Organizing** files into a clean, centralized folder structure
+- 🔧 **Updating** Windows registry paths after moving files
+- 🎫 **Tracking** licenses and activations (iLok, proprietary)
+- 📈 **Exporting** results to CSV/Excel for analysis
 
----
-
-## Target Folder Structure (Enforced)
-
-```
-C:\Production\                  # Configurable root
-├── DAWs\
-│   ├── FLStudio\
-│   │   ├── InstallDir\
-│   │   ├── Plugins\
-│   │   └── Presets\
-│   └── Ableton\
-│       ├── InstallDir\
-│       ├── Packs\
-│       └── Plugins\
-├── Plugins\
-│   ├── VST2\                    # .dll files
-│   │   ├── Waves\
-│   │   ├── iZotope\
-│   │   └── Individual\
-│   ├── VST3\                    # .vst3 bundles
-│   ├── AAX\                     # Pro Tools
-│   └── Managers\                # Waves Central, etc.
-├── Libraries\                   # Samples, PDFs, manuals
-├── Licenses\                    # .lic, .key, iLok data
-└── Temp\                        # Downloads, installers
-```
+**Target Platform:** Windows 11 (primary), Windows 10 (supported)
 
 ---
 
-## MPSM Tool Structure
+## Features
 
-```
-C:\MPSM\
-├── mpsm.py                      # Main CLI script
-├── config.yaml                  # User settings
-├── backups\                     # Registry + file backups
-├── logs\                        # Scan/update logs
-├── data\                        # Exported tables (CSV/Excel)
-└── requirements.txt
-```
+### Core Functionality
 
----
+| Feature | Status | Description |
+|---------|--------|-------------|
+| **Plugin Scanner** | ✅ Production | Scans VST2 (.dll), VST3 (.vst3), AAX plugins across all drives |
+| **Metadata Extraction** | ✅ Production | Extracts version, publisher, format from PE headers |
+| **Vendor Detection** | ✅ Production | Identifies 50+ major vendors (Native Instruments, Waves, etc.) |
+| **Registry Management** | ✅ Production | Backs up, updates, validates Windows registry entries |
+| **License Tracking** | ✅ Production | Scans and validates .lic, .key, iLok activations |
+| **File Organization** | ✅ Beta | Centralizes plugins to custom directory structure |
+| **CI/CD & Testing** | ✅ Production | 96 automated tests, GitHub Actions workflows |
 
-## Core Features & Implementation
+### Advanced Features
 
-| Feature | Module | Key Functions | Output |
-|--------|--------|---------------|--------|
-| **1. System Scanner** | `scanner.py` | `scan_files()`, `extract_metadata()`, `query_registry()` | CSV table: Name, Publisher, Format, Location, Registry, License |
-| **2. Registry Updater** | `registry_manager.py` | `backup_registry()`, `update_paths()` | Auto-fixes broken DAW/plugin paths |
-| **3. Version Control** | `updater.py` | `check_updates()`, `download_update()` | Auto-fetch latest plugin versions |
-| **4. License Tracker** | `license_tracker.py` | `verify_status()`, `centralize_licenses()` | License status in scan table |
-| **5. Custom Installer** | `installer.py` | `set_custom_paths()`, `intercept_installer()` | New plugins install to correct folder |
+- **Parallel Scanning**: Multi-threaded file system traversal
+- **Type-Safe Architecture**: Generic base classes with Python type hints
+- **Centralized Vendor Data**: YAML-based vendor registry (50+ vendors)
+- **Comprehensive Testing**: 96 tests (90 passing, 6 documented bugs)
+- **Modular Design**: Clean separation of CLI, core, scanners, models
 
 ---
 
-## 1. System Scanner
+## Quick Start
 
-```text
-Scans: C:\ (excludes Windows, System32, OneDrive sync)
-Detects:
-- .dll → VST2
-- .vst3 → VST3 bundle
-- FL Studio / Ableton folders
-- Plugin managers
-- PDFs, uninstallers, startup junk
-```
+### Installation
 
-**Table Columns**:
-| Name | Publisher | Type | Format | License | File Path | Registry Path |
-|------|-----------|------|--------|---------|-----------|---------------|
-| Serum | Xfer Records | Individual | VST3 | Verified | `C:\Program Files\Common Files\VST3\Serum.vst3` | `HKCU\Software\VST\Serum` |
-
-Export: `data/scan_results.csv` or `.xlsx`
-
----
-
-## 2. Registry Updater
-
-**Problem**: Moving a `.dll` breaks DAW scanning.  
-**Solution**: Auto-update registry entries.
-
-```text
-Actions:
-- Backup registry key → .reg file
-- Find all path references
-- Replace old path → new path
-- Test DAW load (optional)
-- Rollback on failure
-```
-
-**Common Keys**:
-```reg
-HKEY_LOCAL_MACHINE\SOFTWARE\VST
-HKEY_CURRENT_USER\Software\Image-Line\FL Studio\Locations
-HKEY_CURRENT_USER\Software\Ableton
-```
-
----
-
-## 3. Version Control & Auto-Update
-
-```text
-For each plugin:
-→ Scrape vendor site (Waves, iZotope, etc.)
-→ Compare current vs latest version
-→ Download installer
-→ Run silent install (/S, /quiet)
-→ Re-scan & verify
-```
-
-**Scheduled**: Daily at 2 AM via Windows Task Scheduler
-
----
-
-## 4. License Tracking
-
-```text
-Detects:
-- .lic, .key, .iLok files
-- PACE/iLok activation status (via CLI tools)
-- Serial numbers in registry
-```
-
-**Status**:
-- Verified (Green)
-- Pending (Yellow)
-- Expired/Missing (Red)
-
-Centralized in `C:\MusicProduction\Licenses\`
-
----
-
-## 5. Custom Installation Paths
-
-```text
-Before installing new plugin:
-→ Create symbolic links:
-    mklink /J "C:\Program Files\Common Files\VST3" "C:\MusicProduction\Plugins\VST3"
-→ Set environment variables
-→ Run installer with pre-defined paths
-```
-
-**CLI Command**:
 ```bash
-python mpsm.py install --plugin "Serum" --path "C:\MusicProduction\Plugins\VST3"
+# Clone repository
+git clone https://github.com/abrahamahn/mpsm.git
+cd mpsm
+
+# Create virtual environment (recommended)
+python -m venv venv
+venv\Scripts\activate  # Windows
+
+# Install MPSM
+pip install -e .
+
+# Verify installation
+mpsm --version
+```
+
+**Detailed instructions:** See [INSTALLATION.md](docs/INSTALLATION.md)
+
+### Basic Usage
+
+```bash
+# Initialize configuration
+mpsm init --auto-detect
+
+# Scan your system
+mpsm scan
+
+# View results
+type scan_results.csv  # Windows
+
+# Organize files (dry run first!)
+mpsm organize --dry-run
+
+# Registry backup
+mpsm registry backup
+
+# Check licenses
+mpsm license scan
 ```
 
 ---
 
-## Configuration (`config.yaml`)
+## Project Structure
+
+```
+mpsm/
+├── mpsm.py                     # Main CLI entry point (180 lines, 87% reduction)
+├── config.yaml                 # User configuration (generated)
+├── src/
+│   ├── cli/                    # CLI command handlers
+│   │   ├── scan_command.py     # Plugin/DAW scanning
+│   │   ├── organize_command.py # File organization
+│   │   ├── registry_commands.py # Windows registry management
+│   │   └── license_commands.py # License tracking
+│   ├── core/                   # Core utilities
+│   │   ├── config.py           # Configuration management
+│   │   ├── logger.py           # Logging setup
+│   │   └── exceptions.py       # Custom exceptions
+│   ├── scanner/                # Scanning infrastructure
+│   │   ├── base_scanner.py     # Abstract base class (type-safe)
+│   │   ├── folder_scanner.py   # Data folder scanner
+│   │   ├── application_scanner.py # Plugin/DAW scanner
+│   │   └── metadata/           # Metadata extraction
+│   │       ├── extractor.py    # Main metadata extractor
+│   │       ├── pe_parser.py    # PE header parsing
+│   │       ├── vst_detector.py # VST signature detection
+│   │       └── publisher_identifier.py # Publisher detection
+│   ├── data/                   # Data files
+│   │   └── vendor_registry.py  # Centralized vendor database (50+)
+│   ├── models/                 # Data models
+│   │   ├── plugin.py           # Plugin model
+│   │   ├── application.py      # Application model
+│   │   ├── folder.py           # Data folder model
+│   │   └── license.py          # License model
+│   ├── registry/               # Windows registry operations
+│   ├── license/                # License management
+│   └── organizer/              # File organization
+├── tests/                      # Test suite (96 tests)
+│   ├── unit/                   # Unit tests (52 tests)
+│   ├── integration/            # Integration tests (14 tests)
+│   └── conftest.py             # Shared test fixtures
+├── docs/                       # Documentation
+│   ├── INSTALLATION.md         # Installation guide
+│   ├── BASESCANNER_ARCHITECTURE.md # Scanner architecture
+│   ├── TESTING_SUMMARY.md      # Testing documentation
+│   ├── REFACTORING_SUMMARY.md  # Refactoring history
+│   └── FRAMEWORK.md            # Framework design
+├── .github/workflows/          # CI/CD
+│   ├── ci.yml                  # Main CI workflow
+│   └── test-pr.yml             # Pull request tests
+├── setup.py                    # Package setup (pip install)
+├── pyproject.toml              # Modern Python project config
+├── requirements.txt            # Dependencies
+└── README.md                   # This file
+```
+
+---
+
+## Documentation
+
+### User Manual (`docs/manual/`)
+- **[Installation Guide](docs/manual/INSTALLATION.md)** - Complete setup instructions
+- **[Configuration](docs/manual/CUSTOM_PATHS.md)** - Customizing scan paths
+- **[Metadata Extraction](docs/manual/METADATA_EXTRACTION_GUIDE.md)** - How metadata works
+- **[VST Protocol](docs/manual/JUCE_VST_HOST_PROTOCOL.md)** - Technical reference
+
+### Developer Documentation (`docs/dev/`)
+- **[Architecture](docs/dev/BASESCANNER_ARCHITECTURE.md)** - Scanner design patterns
+- **[Framework](docs/dev/FRAMEWORK.md)** - Overall system design
+- **[Testing](docs/dev/TESTING_SUMMARY.md)** - Test infrastructure (96 tests)
+- **[Refactoring History](docs/dev/REFACTORING_SUMMARY.md)** - Code evolution
+- **[Scalability](docs/dev/SCALABILITY_ANALYSIS.md)** - Performance analysis
+- **[Improvements](docs/dev/IMPROVEMENTS.md)** - Roadmap and ideas
+
+### Community
+- **[Contributing](CONTRIBUTING.md)** - How to contribute
+- **[Code of Conduct](CODE_OF_CONDUCT.md)** - Community standards
+- **[Security](SECURITY.md)** - Security policy
+- **[Changelog](CHANGELOG.md)** - Version history
+
+---
+
+## Development
+
+### Setup Development Environment
+
+```bash
+# Clone and install with dev dependencies
+git clone https://github.com/abrahamahn/mpsm.git
+cd mpsm
+python -m venv venv
+venv\Scripts\activate
+pip install -e .[dev]
+
+# Run tests
+pytest tests/ -v
+
+# Check coverage
+pytest tests/ --cov=src --cov-report=html
+start htmlcov/index.html
+
+# Format code
+black src/ tests/ mpsm.py
+
+# Type check
+mypy src/ --ignore-missing-imports
+
+# Lint
+pylint src/
+```
+
+### Running Tests
+
+```bash
+# All tests
+pytest tests/
+
+# Unit tests only
+pytest tests/unit/
+
+# Integration tests only
+pytest tests/integration/
+
+# Specific test file
+pytest tests/unit/test_vendor_registry.py -v
+
+# With coverage
+pytest tests/ --cov=src --cov-report=term-missing
+```
+
+**Current Test Status:**
+- ✅ 90 tests passing
+- ⚠️ 6 tests skipped (documented scanner bugs)
+- 📊 Coverage: 13% overall, 92% on VendorRegistry, 74% on BaseScanner
+
+---
+
+## Architecture Highlights
+
+### BaseScanner Pattern
+MPSM uses an **Abstract Base Class with Generics** for type-safe scanner implementations:
+
+```python
+from abc import ABC, abstractmethod
+from typing import TypeVar, Generic, List, Optional
+
+T = TypeVar('T')
+
+class BaseScanner(ABC, Generic[T]):
+    """Type-safe scanner base class."""
+
+    def __init__(self, config, max_workers):
+        self.items: List[T] = []
+
+    @abstractmethod
+    def _get_default_scan_paths(self) -> List[str]:
+        """Return default paths to scan."""
+        pass
+
+    @abstractmethod
+    def _identify_item(self, path: Path) -> Optional[T]:
+        """Identify and create item from path."""
+        pass
+```
+
+**Benefits:**
+- ✅ **110 lines of duplicate code eliminated**
+- ✅ **Type safety** with Python generics
+- ✅ **Consistent behavior** across all scanners
+- ✅ **Easy extensibility** (implement 2 methods, inherit everything else)
+
+**Details:** [BASESCANNER_ARCHITECTURE.md](docs/BASESCANNER_ARCHITECTURE.md)
+
+### Centralized Vendor Registry
+50+ music software vendors in YAML format:
 
 ```yaml
-root_path: C:\MusicProduction
-custom_paths:
-  vst2: Plugins\VST2
-  vst3: Plugins\VST3
-  daw_fl: DAWs\FLStudio
-  daw_ableton: DAWs\Ableton
-daws: [FLStudio, AbletonLive]
-auto_update: true
-auto_update_time: "02:00"
-dry_run: true
-backup_enabled: true
+native_instruments:
+  name: "Native Instruments"
+  patterns:
+    - "Native Instruments"
+    - "NI Audio"
+  folder_names:
+    - "Native Instruments"
+    - "NI"
+  daw_executables: []
 ```
 
----
-
-## CLI Commands
-
-```bash
-python mpsm.py init              # Setup config + folders
-python mpsm.py scan              # Full system scan
-python mpsm.py organize          # Move + fix registry
-python mpsm.py update            # Check all plugin updates
-python mpsm.py license-check     # Verify all licenses
-python mpsm.py install --plugin "Ozone 11" --type vst3
-python mpsm.py run-all           # Full cycle
-```
+**Coverage:** Native Instruments, Waves, iZotope, FabFilter, Arturia, Spectrasonics, and 45+ more
 
 ---
 
-## Safety & Testing
+## Testing Infrastructure
 
-- **Dry-run mode** (default): Simulate all actions
-- **Backups**: Registry + file copies before changes
-- **Logging**: `logs/mpsm_YYYYMMDD.log`
-- **Rollback**: Restore from backup if DAW fails to load
+### Test Suite (96 Tests)
 
----
+| Category | Tests | Status | Coverage |
+|----------|-------|--------|----------|
+| **VendorRegistry** | 21 | ✅ Passing | 92% |
+| **Config** | 14 | ✅ Passing | 58% |
+| **Publisher ID** | 17 | ✅ Passing | 100% |
+| **Scanner Integration** | 14 | ✅ Passing | 74% BaseScanner |
+| **FolderScanner** | 30 | 24 ✅, 6 ⚠️ | 73% |
 
-## Dependencies (`requirements.txt`)
+**Total:** 90 passing, 6 skipped (documented bugs)
 
-```txt
-pandas
-pyyaml
-requests
-beautifulsoup4
-pefile
-schedule
-tqdm
-cryptography
-```
+### CI/CD Workflows
 
-Install with:
-```bash
-pip install -r requirements.txt
-```
+**GitHub Actions:**
+- ✅ **CI** - Runs on every push to main/develop/claude/** branches
+- ✅ **PR Tests** - Quick tests + integration tests on pull requests
+- ✅ **Code Quality** - Black, MyPy, Pylint checks
+- ✅ **Coverage Upload** - Codecov integration
+
+**Test on 3 Python versions:** 3.9, 3.10, 3.11
 
 ---
 
-## Deployment
+## Roadmap
 
-1. Save all files in `C:\MPSM\`
-2. Run: `python mpsm.py init`
-3. Review `scan_results.csv`
-4. Run: `python mpsm.py organize --approve`
-5. Schedule daily: `python mpsm.py run-all`
+### Phase 1: Foundation ✅ **COMPLETED**
+- [x] Scanner infrastructure (BaseScanner pattern)
+- [x] Vendor registry centralization
+- [x] Config externalization
+- [x] Testing infrastructure (96 tests)
+- [x] CI/CD setup (GitHub Actions)
 
-**Optional**: Package as `.exe` with PyInstaller
+### Phase 2: Current Work 🚧
+- [ ] Fix documented scanner bugs (FolderType enum, DataFolder model)
+- [ ] Increase scanner test coverage to 75%+
+- [ ] Add ApplicationScanner unit tests
+- [ ] Performance optimization (large directories)
+
+### Phase 3: Features (Next)
+- [ ] Auto-update plugin versions
+- [ ] Enhanced iLok integration
+- [ ] Cloud storage support
+- [ ] GUI (PyQt/Tkinter)
+
+### Phase 4: Polish
+- [ ] 80%+ overall test coverage
+- [ ] Performance benchmarks
+- [ ] Windows installer (.exe)
+- [ ] Documentation website
 
 ---
 
-## Next Steps
+## Contributing
 
-1. **Start with Scanner module** (I can provide full code)
-2. Test on **1 plugin** (e.g., free VST)
-3. Expand to **top 10 vendors**
-4. Automate full cleanup
+We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) (coming soon).
+
+### How to Contribute
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes
+4. Run tests (`pytest tests/`)
+5. Format code (`black src/ tests/`)
+6. Commit (`git commit -m 'Add amazing feature'`)
+7. Push (`git push origin feature/amazing-feature`)
+8. Open a Pull Request
+
+### Development Guidelines
+- Follow Black code style (100 char line length)
+- Write tests for new features
+- Update documentation
+- Ensure all CI checks pass
+
+---
+
+## License
+
+MIT License - see [LICENSE](LICENSE) file for details.
+
+---
+
+## Support
+
+### Getting Help
+- 📖 **Documentation**: [docs/](docs/)
+- 🐛 **Bug Reports**: [GitHub Issues](https://github.com/abrahamahn/mpsm/issues)
+- 💬 **Discussions**: [GitHub Discussions](https://github.com/abrahamahn/mpsm/discussions)
+
+### Author
+**Abraham Ahn**
+- GitHub: [@abrahamahn](https://github.com/abrahamahn)
+
+---
+
+## Acknowledgments
+
+- **pefile** - PE file format parsing
+- **Click** - Command-line interface framework
+- **Rich** - Terminal formatting and tables
+- **pytest** - Testing framework
+
+---
+
+## Statistics
+
+**Project Metrics:**
+- **Lines of Code**: 4,535 (excluding tests)
+- **Test Lines**: 1,464
+- **Test Coverage**: 13% overall, 92% on critical modules
+- **Main CLI Size**: 180 lines (87% reduction from 1,400 lines)
+- **Code Quality**: 110 lines of duplicate code eliminated
+
+**Refactoring Impact:**
+- ✅ 87% reduction in main file size
+- ✅ 100% elimination of code duplication
+- ✅ 45% increase in test count (66 → 96 tests)
+- ✅ Professional structure with industry-standard patterns
+
+---
+
+**Made with ❤️ for music producers who love clean, organized systems**

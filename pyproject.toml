@@ -1,0 +1,155 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mpsm"
+version = "1.0.0"
+description = "Music Production Software Manager - Automate VST plugin management"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [
+    {name = "Abraham Ahn", email = "your.email@example.com"}
+]
+keywords = ["vst", "audio", "music-production", "plugin-manager", "daw"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: End Users/Desktop",
+    "Topic :: Multimedia :: Sound/Audio",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Operating System :: Microsoft :: Windows",
+]
+
+dependencies = [
+    "pandas>=2.0.0",
+    "pyyaml>=6.0",
+    "requests>=2.31.0",
+    "beautifulsoup4>=4.12.0",
+    "lxml>=4.9.0",
+    "pefile>=2023.2.7",
+    "python-dotenv>=1.0.0",
+    "schedule>=1.2.0",
+    "apscheduler>=3.10.0",
+    "click>=8.1.0",
+    "rich>=13.0.0",
+    "tqdm>=4.66.0",
+    "pydantic>=2.0.0",
+    "jsonschema>=4.19.0",
+    "cryptography>=41.0.0",
+    "sqlalchemy>=2.0.0",
+    "openpyxl>=3.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.11.0",
+    "black>=23.7.0",
+    "mypy>=1.5.0",
+    "pylint>=2.17.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/abrahamahn/mpsm"
+Documentation = "https://github.com/abrahamahn/mpsm/blob/main/docs/"
+Repository = "https://github.com/abrahamahn/mpsm"
+Issues = "https://github.com/abrahamahn/mpsm/issues"
+
+[project.scripts]
+mpsm = "mpsm:cli"
+
+[tool.setuptools]
+packages = ["src", "src.cli", "src.core", "src.data", "src.license", "src.models", "src.organizer", "src.registry", "src.scanner", "src.scanner.metadata"]
+
+[tool.setuptools.package-data]
+src = ["config/defaults.yaml", "data/vendors.yaml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "--verbose --cov=src --cov-report=html --cov-report=xml --cov-report=term-missing"
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "slow: Slow-running tests",
+    "windows: Windows-only tests",
+    "requires_registry: Tests requiring Windows registry access",
+]
+
+[tool.black]
+line-length = 100
+target-version = ["py39", "py310", "py311"]
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | mpsm_old.py
+  | metadata_extractor_old.py
+)/
+'''
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+strict_optional = true
+
+[[tool.mypy.overrides]]
+module = [
+    "pefile.*",
+    "pydantic.*",
+    "sqlalchemy.*",
+]
+ignore_missing_imports = true
+
+[tool.pylint.messages_control]
+disable = [
+    "C0111",  # missing-docstring
+    "C0103",  # invalid-name
+    "R0913",  # too-many-arguments
+    "R0914",  # too-many-locals
+]
+
+[tool.pylint.format]
+max-line-length = 100
+
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "*/tests/*",
+    "*/mpsm_old.py",
+    "*/metadata_extractor_old.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]

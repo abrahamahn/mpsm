@@ -1,0 +1,44 @@
+# Core Dependencies
+pandas>=2.0.0
+pyyaml>=6.0
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+lxml>=4.9.0
+
+# File Operations
+pefile>=2023.2.7
+
+# Environment Variables
+python-dotenv>=1.0.0
+
+# Scheduling
+schedule>=1.2.0
+apscheduler>=3.10.0
+
+# CLI & Output
+click>=8.1.0
+rich>=13.0.0
+tqdm>=4.66.0
+
+# Validation
+pydantic>=2.0.0
+jsonschema>=4.19.0
+
+# Security
+cryptography>=41.0.0
+
+# Database
+sqlalchemy>=2.0.0
+
+# Excel Export
+openpyxl>=3.1.0
+
+# Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-mock>=3.11.0
+
+# Development
+black>=23.7.0
+mypy>=1.5.0
+pylint>=2.17.0
