@@ -1,20 +1,21 @@
 """Organize command - consolidate and organize music production software."""
 
-import json
 import sys
-from pathlib import Path
+import uuid
+from datetime import datetime
 
 import click
 from rich.console import Console
-from rich.panel import Panel
 from rich.table import Table
 
 from ..core.config import ConfigManager
-from ..core.logger import get_logger
+from ..core.exceptions import MPSMException
+from ..models.plugin import Plugin
 from ..models.scan_result import ComprehensiveScanResult
 from ..organizer.consolidator import Consolidator
-from ..organizer.file_mover import FileMover
 from ..organizer.structure_builder import StructureBuilder
+from ..scanner.file_scanner import FileScanner
+from ..scanner.metadata import MetadataExtractor
 
 console = Console()
 

@@ -4,8 +4,10 @@ from pathlib import Path
 
 import pytest
 
-from src.scanner.metadata.publisher_identifier import (identify_publisher_from_metadata,
-                                                       identify_publisher_from_path)
+from src.scanner.metadata.publisher_identifier import (
+    identify_publisher_from_metadata,
+    identify_publisher_from_path,
+)
 
 
 class TestPublisherIdentifierFromPath:

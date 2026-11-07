@@ -7,6 +7,7 @@ from typing import Any, Dict, Optional
 from ...core.exceptions import MetadataExtractionException
 from ...core.logger import get_logger
 from ...models.plugin import PluginType, Version
+
 # Import modular components
 from . import pe_parser, publisher_identifier, vst_detector
 

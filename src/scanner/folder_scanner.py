@@ -163,7 +163,7 @@ class FolderScanner(BaseScanner[DataFolder]):
         folder_name_lower = folder_path.name.lower()
 
         # Check for preset folders
-        if any(
+        if "soundbank" not in folder_name_lower and any(
             pattern in folder_name_lower for pattern in ["preset", "fxp", "fxb", "patch", "sound"]
         ):
             return FolderType.PRESETS

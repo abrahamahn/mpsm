@@ -45,7 +45,6 @@ repos:
         args:
           - --max-line-length=100
           - --ignore=E203,W503,E501  # Black compatibility
-          - --exclude=mpsm_old.py,metadata_extractor_old.py
 
   # Type checking (optional - can be slow)
   - repo: https://github.com/pre-commit/mirrors-mypy
@@ -54,7 +53,7 @@ repos:
       - id: mypy
         additional_dependencies: [types-all]
         args: [--ignore-missing-imports, --no-strict-optional]
-        exclude: ^(tests/|mpsm_old\.py|metadata_extractor_old\.py)
+        exclude: ^tests/
 
   # Security checks
   - repo: https://github.com/PyCQA/bandit

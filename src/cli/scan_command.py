@@ -202,8 +202,7 @@ def scan(
                         status = "Processing" if raw_output else "Validating"
                         sys.stdout.write(
                             f"\r  🔬 {status}: {percent:3d}% ({i+1:,}/{len(plugin_files):,}) | "
-                            f"✓ {validated_count:,} processed"
-                            + " " * 20
+                            f"✓ {validated_count:,} processed" + " " * 20
                         )
                         sys.stdout.flush()
 
@@ -332,9 +331,7 @@ def scan(
             # Show VST host statistics if enabled
             if enable_vst_host and vst_host_attempts > 0:
                 success_rate = (
-                    (vst_host_successes / vst_host_attempts * 100)
-                    if vst_host_attempts > 0
-                    else 0
+                    (vst_host_successes / vst_host_attempts * 100) if vst_host_attempts > 0 else 0
                 )
                 console.print(
                     f"  🔌 VST Host: {vst_host_successes}/{vst_host_attempts}"

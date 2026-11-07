@@ -14,9 +14,21 @@ import click
 from rich.console import Console
 
 # Import CLI command handlers
-from src.cli import (license, license_ilok, license_info, license_scan, license_validate, organize,
-                     registry, registry_backup, registry_list, registry_restore, registry_scan,
-                     registry_validate, scan)
+from src.cli import (
+    license,
+    license_ilok,
+    license_info,
+    license_scan,
+    license_validate,
+    organize,
+    registry,
+    registry_backup,
+    registry_list,
+    registry_restore,
+    registry_scan,
+    registry_validate,
+    scan,
+)
 
 console = Console()
 

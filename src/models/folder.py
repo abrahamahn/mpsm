@@ -13,6 +13,8 @@ class FolderType(Enum):
     PLUGIN_INSTALLATION = "Plugin Installation"
     PRESETS = "Presets"
     SAMPLES = "Samples"
+    LIBRARY = "Library"
+    PROJECTS = "Projects"
     USER_DATA = "User Data"
     FACTORY_DATA = "Factory Data"
     CONFIGURATION = "Configuration"
@@ -27,6 +29,7 @@ class DataFolder:
 
     # Identification
     path: Path
+    name: Optional[str] = None
     folder_type: FolderType = FolderType.UNKNOWN
     owner: Optional[str] = None  # Plugin/App that owns this folder
 

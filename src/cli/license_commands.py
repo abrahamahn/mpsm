@@ -8,10 +8,12 @@ from rich.console import Console
 from rich.table import Table
 
 from ..core.config import ConfigManager
-from ..core.logger import get_logger
 from ..license.ilok_manager import iLokManager
 from ..license.license_scanner import LicenseScanner
 from ..license.license_validator import LicenseValidator
+from ..models.plugin import Plugin
+from ..scanner.file_scanner import FileScanner
+from ..scanner.metadata import MetadataExtractor
 
 console = Console()
 
