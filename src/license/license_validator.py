@@ -3,10 +3,10 @@
 import hashlib
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Tuple
 
 from ..core.logger import get_logger
-from ..models.license import License, LicenseFormat, LicenseStatus, LicenseType
+from ..models.license import License, LicenseFormat, LicenseStatus
 
 
 class LicenseValidator:
@@ -186,7 +186,7 @@ class LicenseValidator:
 
         return invalid
 
-    def check_license_conflicts(self, licenses: List[License]) -> List[Dict[str, any]]:
+    def check_license_conflicts(self, licenses: List[License]) -> List[Dict[str, Any]]:
         """
         Check for license conflicts (duplicates, mismatches, etc.).
 
@@ -196,10 +196,10 @@ class LicenseValidator:
         Returns:
             List of conflicts found
         """
-        conflicts = []
+        conflicts: List[Dict[str, Any]] = []
 
         # Check for duplicate license files
-        file_hashes = {}
+        file_hashes: Dict[str, License] = {}
         for license in licenses:
             if license.file_path and license.file_hash:
                 if license.file_hash in file_hashes:
@@ -215,7 +215,7 @@ class LicenseValidator:
                     file_hashes[license.file_hash] = license
 
         # Check for multiple licenses for same product
-        products = {}
+        products: Dict[Tuple[str, str], List[License]] = {}
         for license in licenses:
             product_key = (license.owner, license.publisher)
             if product_key in products:
@@ -258,7 +258,7 @@ class LicenseValidator:
 
         return False
 
-    def generate_validation_report(self, licenses: List[License]) -> Dict[str, any]:
+    def generate_validation_report(self, licenses: List[License]) -> Dict[str, Any]:
         """
         Generate comprehensive validation report.
 

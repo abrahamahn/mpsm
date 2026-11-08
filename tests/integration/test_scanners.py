@@ -1,7 +1,5 @@
 """Integration tests for refactored scanners."""
 
-from pathlib import Path
-
 import pytest
 
 from src.scanner.application_scanner import ApplicationScanner

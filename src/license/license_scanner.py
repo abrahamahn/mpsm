@@ -2,13 +2,13 @@
 
 import hashlib
 import uuid
-from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 from ..core.config import ConfigManager
 from ..core.logger import get_logger
+from ..data.vendor_registry import vendor_registry
 from ..models.license import License, LicenseFormat, LicenseScanResult, LicenseStatus, LicenseType
 
 
@@ -182,7 +182,6 @@ class LicenseScanner:
 
             # Try to read license key from file
             key_string = None
-            activation_code = None
             if file_path.stat().st_size < 10 * 1024:  # Only read small files
                 try:
                     with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
@@ -224,33 +223,18 @@ class LicenseScanner:
         Returns:
             Owner name
         """
-        # Try to find vendor name in path
         path_parts = file_path.parts
 
-        # Common vendor folder names
-        vendors = [
-            "Native Instruments",
-            "iZotope",
-            "Waves",
-            "Arturia",
-            "FabFilter",
-            "Xfer",
-            "Spectrasonics",
-            "Serum",
-            "Kontakt",
-            "iLok",
-            "Steinberg",
-            "Image-Line",
-            "FL Studio",
-        ]
-
         for part in path_parts:
-            # Check if part matches known vendor
-            for vendor in vendors:
-                if vendor.lower() in part.lower():
-                    return vendor
+            vendor = vendor_registry.find_vendor_by_folder(
+                part
+            ) or vendor_registry.find_vendor_by_pattern(part)
+            if vendor:
+                return vendor
+            for extra in ("Serum", "Kontakt", "iLok", "FL Studio"):
+                if extra.lower() in part.lower():
+                    return extra
 
-        # If no vendor found, use parent folder name
         if len(path_parts) > 1:
             return path_parts[-2]
 
@@ -338,7 +322,7 @@ class LicenseScanner:
         Returns:
             List of matching licenses
         """
-        return [l for l in self.licenses if owner.lower() in l.owner.lower()]
+        return [lic for lic in self.licenses if owner.lower() in lic.owner.lower()]
 
     def find_licenses_by_format(self, license_format: LicenseFormat) -> List[License]:
         """
@@ -350,7 +334,7 @@ class LicenseScanner:
         Returns:
             List of matching licenses
         """
-        return [l for l in self.licenses if l.license_format == license_format]
+        return [lic for lic in self.licenses if lic.license_format == license_format]
 
     def find_expired_licenses(self) -> List[License]:
         """
@@ -359,7 +343,7 @@ class LicenseScanner:
         Returns:
             List of expired licenses
         """
-        return [l for l in self.licenses if l.status == LicenseStatus.EXPIRED]
+        return [lic for lic in self.licenses if lic.status == LicenseStatus.EXPIRED]
 
     def find_expiring_soon(self, days: int = 30) -> List[License]:
         """
@@ -371,7 +355,7 @@ class LicenseScanner:
         Returns:
             List of licenses expiring soon
         """
-        return [l for l in self.licenses if l.is_expiring_soon(days)]
+        return [lic for lic in self.licenses if lic.is_expiring_soon(days)]
 
     def scan_registry_licenses(self) -> List[License]:
         """

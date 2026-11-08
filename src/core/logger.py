@@ -146,7 +146,7 @@ class MPSMLogger:
 
         # Combine matching logs
         with open(output_path, "w", encoding="utf-8") as outfile:
-            outfile.write(f"# MPSM Logs Export\n")
+            outfile.write("# MPSM Logs Export\n")
             outfile.write(f"# Period: {start_date} to {end_date}\n")
             outfile.write(f"# Files included: {len(matching_logs)}\n\n")
 

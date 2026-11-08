@@ -1,7 +1,6 @@
 """Comprehensive Windows Registry scanner."""
 
 import platform
-import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -12,14 +11,15 @@ from ..models.registry import RegistryEntry
 
 # Platform-specific imports
 IS_WINDOWS = platform.system() == "Windows"
+winreg: Any = None
 
 if IS_WINDOWS:
     try:
-        import winreg
+        import winreg as _winreg
+
+        winreg = _winreg
     except ImportError:
         winreg = None
-else:
-    winreg = None
 
 
 class RegistryReader:
@@ -504,7 +504,7 @@ class RegistryReader:
         all_entries = self.scan_all_music_production_keys()
 
         with open(output_path, "w", encoding="utf-8") as f:
-            f.write(f"# MPSM Registry Snapshot\n")
+            f.write("# MPSM Registry Snapshot\n")
             f.write(f"# Date: {datetime.now().isoformat()}\n")
             f.write(f"# Total keys: {len(all_entries)}\n\n")
 

@@ -70,17 +70,9 @@ packages = ["src", "src.cli", "src.core", "src.data", "src.license", "src.models
 [tool.setuptools.package-data]
 src = ["config/defaults.yaml", "data/vendors.yaml"]
 
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-python_files = ["test_*.py"]
-addopts = "--verbose --cov=src --cov-report=html --cov-report=xml --cov-report=term-missing"
-markers = [
-    "unit: Unit tests",
-    "integration: Integration tests",
-    "slow: Slow-running tests",
-    "windows: Windows-only tests",
-    "requires_registry: Tests requiring Windows registry access",
-]
+[tool.isort]
+profile = "black"
+line_length = 100
 
 [tool.black]
 line-length = 100
@@ -116,8 +108,6 @@ strict_optional = true
 [[tool.mypy.overrides]]
 module = [
     "pefile.*",
-    "pydantic.*",
-    "sqlalchemy.*",
 ]
 ignore_missing_imports = true
 

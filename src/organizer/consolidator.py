@@ -6,12 +6,12 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from ..core.config import ConfigManager
-from ..core.exceptions import FileOperationException
 from ..core.logger import get_logger
+from ..models.application import Application, ApplicationType
 from ..models.folder import PluginInstallation
-from ..models.plugin import Plugin
+from ..models.plugin import Plugin, PluginType
 from ..models.scan_result import ComprehensiveScanResult
-from .file_mover import FileMover, MoveOperation
+from .file_mover import FileMover
 from .structure_builder import StructureBuilder
 
 
@@ -311,8 +311,6 @@ class Consolidator:
         # Map plugin files
         for i, plugin_file in enumerate(installation.plugin_files):
             # Create a temporary Plugin object to get target location
-            from ..models.plugin import Plugin, PluginType
-
             plugin = Plugin(
                 name=installation.plugin_name,
                 publisher=installation.publisher,
@@ -332,8 +330,6 @@ class Consolidator:
 
         # Map executables
         for i, exe_file in enumerate(installation.executables):
-            from ..models.application import Application, ApplicationType
-
             app = Application(
                 name=installation.plugin_name,
                 publisher=installation.publisher,

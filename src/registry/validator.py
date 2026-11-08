@@ -1,7 +1,8 @@
 """Registry path validation."""
 
+from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 from ..core.logger import get_logger
 from .registry_reader import RegistryReader
@@ -148,7 +149,7 @@ class PathValidator:
         self.logger.info(f"Found {len(orphaned)} orphaned registry entries")
         return orphaned
 
-    def generate_validation_report(self) -> Dict[str, any]:
+    def generate_validation_report(self) -> Dict[str, Any]:
         """
         Generate comprehensive validation report.
 
@@ -157,16 +158,14 @@ class PathValidator:
         """
         self.logger.info("Generating validation report...")
 
-        report = {
-            "timestamp": str(Path.ctime),
-            "broken_paths": self.validate_registry_paths(),
-            "summary": {},
-        }
-
-        # Add summary statistics
-        report["summary"] = {
-            "total_broken_paths": len(report["broken_paths"]),
-            "issues_found": len(report["broken_paths"]) > 0,
+        broken_paths = self.validate_registry_paths()
+        report: Dict[str, Any] = {
+            "timestamp": datetime.now().isoformat(),
+            "broken_paths": broken_paths,
+            "summary": {
+                "total_broken_paths": len(broken_paths),
+                "issues_found": len(broken_paths) > 0,
+            },
         }
 
         return report

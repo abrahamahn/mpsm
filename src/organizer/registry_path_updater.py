@@ -1,7 +1,7 @@
 """Registry path updater for file moves."""
 
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from ..core.logger import get_logger
 from ..models.registry import PathUpdate
@@ -120,7 +120,7 @@ class RegistryPathUpdater:
             updates, description="File consolidation registry updates"
         )
 
-    def verify_updates(self, updates: List[Dict[str, str]]) -> List[Dict[str, any]]:
+    def verify_updates(self, updates: List[Dict[str, str]]) -> List[Dict[str, Any]]:
         """
         Verify that registry updates were successful.
 

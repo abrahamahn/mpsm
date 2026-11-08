@@ -6,7 +6,7 @@ and application_scanner modules.
 """
 
 from pathlib import Path
-from typing import Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional
 
 import yaml
 
@@ -22,7 +22,7 @@ class VendorRegistry:
     """
 
     _instance: Optional["VendorRegistry"] = None
-    _vendors: Dict[str, Dict] = {}
+    _vendors: Dict[str, Dict[str, Any]] = {}
     _loaded: bool = False
 
     def __new__(cls):
@@ -79,7 +79,7 @@ class VendorRegistry:
             patterns = vendor_data.get("patterns", [])
             for pattern in patterns:
                 if pattern.lower() in text_lower:
-                    return vendor_data.get("name", "Unknown")
+                    return str(vendor_data.get("name", "Unknown"))
 
         return None
 
@@ -103,7 +103,7 @@ class VendorRegistry:
             folders = vendor_data.get("folders", [])
             for folder in folders:
                 if folder.lower() == folder_lower or folder.lower() in folder_lower:
-                    return vendor_data.get("name", "Unknown")
+                    return str(vendor_data.get("name", "Unknown"))
 
         return None
 
@@ -121,7 +121,7 @@ class VendorRegistry:
         Returns:
             List of search patterns
         """
-        return self._vendors.get(vendor_key, {}).get("patterns", [])
+        return list(self._vendors.get(vendor_key, {}).get("patterns", []))
 
     def get_folders(self, vendor_key: str) -> List[str]:
         """
@@ -133,7 +133,7 @@ class VendorRegistry:
         Returns:
             List of expected folder names
         """
-        return self._vendors.get(vendor_key, {}).get("folders", [])
+        return list(self._vendors.get(vendor_key, {}).get("folders", []))
 
     def get_executables(self, vendor_key: str) -> List[str]:
         """
@@ -145,7 +145,7 @@ class VendorRegistry:
         Returns:
             List of executable patterns
         """
-        return self._vendors.get(vendor_key, {}).get("executables", [])
+        return list(self._vendors.get(vendor_key, {}).get("executables", []))
 
     def get_daw_executables(self, vendor_key: str) -> List[str]:
         """
@@ -157,7 +157,7 @@ class VendorRegistry:
         Returns:
             List of DAW executable patterns
         """
-        return self._vendors.get(vendor_key, {}).get("daw_executables", [])
+        return list(self._vendors.get(vendor_key, {}).get("daw_executables", []))
 
     def get_standalone_executables(self, vendor_key: str) -> List[str]:
         """
@@ -169,7 +169,7 @@ class VendorRegistry:
         Returns:
             List of standalone executable patterns
         """
-        return self._vendors.get(vendor_key, {}).get("standalone_executables", [])
+        return list(self._vendors.get(vendor_key, {}).get("standalone_executables", []))
 
     # ========================================================================
     # AGGREGATE DATA METHODS (for scanners)
@@ -266,7 +266,7 @@ class VendorRegistry:
         Returns:
             Sorted list of vendor display names
         """
-        names = [v.get("name") for v in self._vendors.values() if v.get("name")]
+        names = [str(v.get("name")) for v in self._vendors.values() if v.get("name")]
         return sorted(names)
 
     def vendor_count(self) -> int:

@@ -1,34 +1,23 @@
 #!/usr/bin/env python3
 """
 MPSM - Music Production Software Manager
-Main CLI entry point (refactored)
+Main CLI entry point
 """
 
-import sys
+import os
+import platform
 from pathlib import Path
-
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent))
+from typing import List
 
 import click
 from rich.console import Console
+from rich.table import Table
 
-# Import CLI command handlers
-from src.cli import (
-    license,
-    license_ilok,
-    license_info,
-    license_scan,
-    license_validate,
-    organize,
-    registry,
-    registry_backup,
-    registry_list,
-    registry_restore,
-    registry_scan,
-    registry_validate,
-    scan,
-)
+from src.cli.license_commands import license
+from src.cli.organize_command import organize
+from src.cli.registry_commands import registry
+from src.cli.scan_command import scan
+from src.core.config import ConfigManager
 
 console = Console()
 
@@ -50,8 +39,6 @@ def cli():
 @click.option("--auto-detect", is_flag=True, help="Auto-detect common paths")
 def init(path, auto_detect):
     """Initialize MPSM configuration."""
-    from src.core.config import ConfigManager
-
     console.print("\n[bold cyan]MPSM Initialization[/bold cyan]")
     console.print("=" * 50)
 
@@ -73,7 +60,6 @@ def init(path, auto_detect):
             console.print("[red]Aborted[/red]")
             return
 
-    # Create config
     config_manager = ConfigManager(config_path, create_if_missing=True)
     config_manager.create_default_config()
 
@@ -82,18 +68,14 @@ def init(path, auto_detect):
     console.print("[dim]Then run: mpsm scan[/dim]")
 
 
-def _auto_detect_scan_paths() -> list:
+def _auto_detect_scan_paths() -> List[str]:
     """Auto-detect common music production paths."""
-    import os
-    import platform
-
-    detected = []
+    detected: List[str] = []
     is_windows = platform.system() == "Windows"
 
     if not is_windows:
         return detected
 
-    # Common paths to check
     common_paths = [
         "C:\\Program Files\\VSTPlugins",
         "C:\\Program Files\\Common Files\\VST3",
@@ -111,19 +93,16 @@ def _auto_detect_scan_paths() -> list:
         "C:\\Program Files\\Arturia",
     ]
 
-    # Add user-specific paths
-    if is_windows:
-        username = os.getenv("USERNAME")
-        if username:
-            common_paths.extend(
-                [
-                    f"C:\\Users\\{username}\\Documents",
-                    f"C:\\Users\\{username}\\AppData\\Roaming",
-                    f"C:\\Users\\{username}\\AppData\\Local",
-                ]
-            )
+    username = os.getenv("USERNAME")
+    if username:
+        common_paths.extend(
+            [
+                f"C:\\Users\\{username}\\Documents",
+                f"C:\\Users\\{username}\\AppData\\Roaming",
+                f"C:\\Users\\{username}\\AppData\\Local",
+            ]
+        )
 
-    # Check which paths exist
     for path_str in common_paths:
         path = Path(path_str)
         if path.exists() and path.is_dir():
@@ -135,10 +114,6 @@ def _auto_detect_scan_paths() -> list:
 @cli.command()
 def status():
     """Show current MPSM status and configuration."""
-    from rich.table import Table
-
-    from src.core.config import ConfigManager
-
     console.print("\n[bold cyan]MPSM Status[/bold cyan]")
     console.print("=" * 50)
 
@@ -146,7 +121,6 @@ def status():
         config_manager = ConfigManager()
         console.print("\n[green]✓ Configuration loaded[/green]")
 
-        # Show paths
         plugin_paths = config_manager.get_plugin_paths()
         data_paths = config_manager.get_data_paths()
 
@@ -171,19 +145,6 @@ cli.add_command(scan)
 cli.add_command(organize)
 cli.add_command(registry)
 cli.add_command(license)
-
-# Add registry subcommands
-registry.add_command(registry_backup, "backup")
-registry.add_command(registry_restore, "restore")
-registry.add_command(registry_list, "list")
-registry.add_command(registry_validate, "validate")
-registry.add_command(registry_scan, "scan")
-
-# Add license subcommands
-license.add_command(license_scan, "scan")
-license.add_command(license_validate, "validate")
-license.add_command(license_ilok, "ilok")
-license.add_command(license_info, "info")
 
 
 if __name__ == "__main__":

@@ -5,7 +5,6 @@ Provides common functionality for folder_scanner and application_scanner.
 
 import platform
 from abc import ABC, abstractmethod
-from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Callable, Generic, List, Optional, TypeVar
 
@@ -126,7 +125,7 @@ class BaseScanner(ABC, Generic[T]):
         Returns:
             List of items found in this path
         """
-        items = []
+        items: List[T] = []
 
         if depth > max_depth:
             return items
@@ -170,7 +169,7 @@ class BaseScanner(ABC, Generic[T]):
         """
         return len(self.items)
 
-    def clear(self):
+    def clear(self) -> None:
         """Clear discovered items."""
         self.items = []
 

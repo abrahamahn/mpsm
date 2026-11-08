@@ -1,16 +1,17 @@
 """Application and DAW scanner."""
 
+import fnmatch
 import platform
-from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 from ..core.config import ConfigManager
-from ..core.logger import get_logger
 from ..data.vendor_registry import vendor_registry
 from ..models.application import Application, ApplicationType
+from ..models.plugin import Version
 from .base_scanner import BaseScanner
+from .metadata.pe_parser import extract_version_from_pe, parse_version_string
 
 IS_WINDOWS = platform.system() == "Windows"
 
@@ -70,7 +71,7 @@ class ApplicationScanner(BaseScanner[Application]):
         return self.items
 
     @applications.setter
-    def applications(self, value: List[Application]):
+    def applications(self, value: List[Application]) -> None:
         """Set discovered applications (backward compatibility)."""
         self.items = value
 
@@ -95,7 +96,7 @@ class ApplicationScanner(BaseScanner[Application]):
         Returns:
             List of common installation paths
         """
-        paths = []
+        paths: List[str] = []
 
         if IS_WINDOWS:
             paths.extend(
@@ -112,7 +113,6 @@ class ApplicationScanner(BaseScanner[Application]):
                 ]
             )
         else:
-            # Mac/Linux paths
             paths.extend(
                 [
                     "/Applications",
@@ -163,7 +163,7 @@ class ApplicationScanner(BaseScanner[Application]):
             for exe_pattern in executables:
                 if self._match_pattern(filename, exe_pattern):
                     return self._create_application(
-                        file_path, plugin_name, ApplicationType.STANDALONE_PLUGIN
+                        file_path, plugin_name, ApplicationType.STANDALONE
                     )
 
         return None
@@ -179,8 +179,6 @@ class ApplicationScanner(BaseScanner[Application]):
         Returns:
             True if matches
         """
-        import fnmatch
-
         return fnmatch.fnmatch(filename.lower(), pattern.lower())
 
     def _create_application(
@@ -198,15 +196,11 @@ class ApplicationScanner(BaseScanner[Application]):
             Application object
         """
         try:
-            # Get file stats
             stats = file_path.stat()
             file_size = stats.st_size
             install_date = datetime.fromtimestamp(stats.st_ctime)
 
-            # Extract version if possible
             version = self._extract_version(file_path)
-
-            # Determine publisher
             publisher = self._determine_publisher(name, file_path)
 
             app = Application(
@@ -217,7 +211,7 @@ class ApplicationScanner(BaseScanner[Application]):
                 executable_path=file_path,
                 install_path=file_path.parent,
                 file_size=file_size,
-                installation_date=install_date,
+                install_date=install_date,
             )
 
             self.logger.debug(f"Identified application: {name} at {file_path}")
@@ -227,37 +221,33 @@ class ApplicationScanner(BaseScanner[Application]):
             self.logger.warning(f"Error creating application object for {file_path}: {e}")
             raise
 
-    def _extract_version(self, file_path: Path) -> Optional[str]:
+    def _extract_version(self, file_path: Path) -> Optional[Version]:
         """
-        Extract version from executable.
+        Extract version from executable PE header or filename/directory.
 
         Args:
             file_path: Path to executable
 
         Returns:
-            Version string or None
+            Version object or None
         """
-        # This would require reading PE headers on Windows
-        # For now, try to extract from filename or parent directory
+        pe_version = extract_version_from_pe(file_path)
+        if pe_version:
+            return pe_version
 
-        # Check filename for version
-        parts = file_path.stem.split()
-        for part in parts:
-            if part[0].isdigit() and any(c in part for c in [".", "v"]):
-                return part.replace("v", "").replace("V", "")
-
-        # Check parent directory for version
-        parent = file_path.parent.name
-        parts = parent.split()
-        for part in parts:
-            if part[0].isdigit() and "." in part:
-                return part
+        for text in (file_path.stem, file_path.parent.name):
+            for part in text.split():
+                if part and (part[0].isdigit() or part.lower().startswith("v")):
+                    if "." in part:
+                        parsed = parse_version_string(part)
+                        if parsed:
+                            return parsed
 
         return None
 
     def _determine_publisher(self, app_name: str, file_path: Path) -> str:
         """
-        Determine application publisher.
+        Determine application publisher using centralized VendorRegistry.
 
         Args:
             app_name: Application name
@@ -266,145 +256,14 @@ class ApplicationScanner(BaseScanner[Application]):
         Returns:
             Publisher name
         """
-        # Map of applications to publishers
-        publishers = {
-            "FL Studio": "Image-Line",
-            "Ableton Live": "Ableton",
-            "Cubase": "Steinberg",
-            "Nuendo": "Steinberg",
-            "Pro Tools": "Avid",
-            "Logic Pro": "Apple",
-            "Studio One": "PreSonus",
-            "Reaper": "Cockos",
-            "Bitwig Studio": "Bitwig",
-            "Reason": "Reason Studios",
-            "Cakewalk": "BandLab",
-            "GarageBand": "Apple",
-            "Waves Central": "Waves",
-            "Native Access": "Native Instruments",
-            "iLok License Manager": "PACE",
-            "Plugin Alliance": "Plugin Alliance",
-            "Arturia Software Center": "Arturia",
-            "Kontakt": "Native Instruments",
-            "Komplete Kontrol": "Native Instruments",
-            "Battery": "Native Instruments",
-            "Reaktor": "Native Instruments",
-            "Maschine": "Native Instruments",
-            "Serum": "Xfer Records",
-            "Omnisphere": "Spectrasonics",
-            "Keyscape": "Spectrasonics",
-            "Trilian": "Spectrasonics",
-        }
+        vendor = vendor_registry.find_vendor_by_pattern(f"{app_name} {file_path}")
+        if vendor:
+            return vendor
 
-        # Check if known application
-        for known_app, publisher in publishers.items():
-            if known_app.lower() in app_name.lower():
-                return publisher
-
-        # Try to extract from path
-        path_parts = file_path.parts
-        for part in path_parts:
-            if part in publishers.values():
-                return part
-
-        # Check for common publisher names in path
-        common_publishers = [
-            # DAWs and Major Vendors
-            "Steinberg",
-            "Image-Line",
-            "Ableton",
-            "Avid",
-            "Native Instruments",
-            "Waves",
-            "iZotope",
-            "FabFilter",
-            "Plugin Alliance",
-            "Arturia",
-            "Spectrasonics",
-            "Xfer",
-            "Cockos",
-            "PreSonus",
-            "Bitwig",
-            # Additional Vendors (from user's custom installation)
-            "Zynaptiq",
-            "Air Music Technology",
-            "Baby Audio",
-            "DeviousMachines",
-            "discoDSP",
-            "Eventide",
-            "Fielding DSP",
-            "FL Cloud Plugins",
-            "HOFA",
-            "Klanghelm",
-            "Klevgrand",
-            "KORG",
-            "KV331 Audio",
-            "LenndarDigital",
-            "Newfangled Audio",
-            "Ohm Force",
-            "Plugin Boutique",
-            "Press Play",
-            "Propellerhead",
-            "reFX",
-            "Softube",
-            "Sonarworks",
-            "Sonic Charge",
-            "Sonnox",
-            "Sononym",
-            "Tokyo Dawn Labs",
-            "u-he",
-            "Vital",
-            "Voxengo",
-            "XLN Audio",
-            "Youlean",
-            "Softube Central",
-            "FAW",
-            "FlexASIO",
-            "ASIO4ALL",
-            # Additional vendors from user's comprehensive plugin list
-            "Aberrant DSP",
-            "Acustica Audio",
-            "Antelope Audio",
-            "AudioThing",
-            "Black Rooster Audio",
-            "Boz Digital Labs",
-            "Cableguys",
-            "Caelum Audio",
-            "D16",
-            "Dada Life",
-            "Fiedler Audio",
-            "Future Audio Workshop",
-            "Ignite Amps",
-            "Kilohearts",
-            "MeldaProduction",
-            "Mixed In Key",
-            "Oeksound",
-            "Output",
-            "Polyverse",
-            "Reaper",
-            "Reason Studios",
-            "Reveal Sound",
-            "Schrammel",
-            "Serato",
-            "Shattered Glass Audio",
-            "Slate Digital",
-            "Sonible",
-            "Sonic Academy",
-            "Soundtheory",
-            "Soundtoys",
-            "TAL",
-            "Tokyo Dawn Records",
-            "United Plugins",
-            "Valhalla",
-            "Vengeance",
-            "Wavesfactory",
-            "waveTracing",
-        ]
-
-        for part in path_parts:
-            for publisher in common_publishers:
-                if publisher.lower() in part.lower():
-                    return publisher
+        for part in file_path.parts:
+            folder_vendor = vendor_registry.find_vendor_by_folder(part)
+            if folder_vendor:
+                return folder_vendor
 
         return "Unknown"
 
@@ -433,9 +292,7 @@ class ApplicationScanner(BaseScanner[Application]):
         Returns:
             List of standalone plugin applications
         """
-        return [
-            app for app in self.applications if app.app_type == ApplicationType.STANDALONE_PLUGIN
-        ]
+        return [app for app in self.applications if app.app_type == ApplicationType.STANDALONE]
 
     def get_by_publisher(self, publisher: str) -> List[Application]:
         """

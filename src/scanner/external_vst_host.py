@@ -36,11 +36,6 @@ class ExternalVSTHost:
 
     The external host loads VST plugins safely in a separate process,
     preventing crashes from unstable plugins.
-
-    Example usage:
-        >>> host = ExternalVSTHost(juce_host_path="VSTScanner.exe")
-        >>> metadata = host.extract_metadata("C:/VST/MyPlugin.dll")
-        >>> print(metadata['plugin_id'])  # 'abcd'
     """
 
     def __init__(
@@ -65,10 +60,8 @@ class ExternalVSTHost:
         self.timeout = timeout
         self.http_url = http_url
 
-        # Process handle for subprocess method
-        self._process: Optional[subprocess.Popen] = None
+        self._process: Optional[subprocess.Popen[str]] = None
 
-        # Validate configuration
         if communication_method == CommunicationMethod.SUBPROCESS:
             if not juce_host_path or not Path(juce_host_path).exists():
                 raise FileNotFoundError(
@@ -85,7 +78,7 @@ class ExternalVSTHost:
         """
         if self.communication_method == CommunicationMethod.SUBPROCESS:
             return self._start_subprocess()
-        elif self.communication_method == CommunicationMethod.HTTP:
+        if self.communication_method == CommunicationMethod.HTTP:
             return self._check_http_available()
 
         return False
@@ -99,7 +92,7 @@ class ExternalVSTHost:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
-                bufsize=1,  # Line buffered
+                bufsize=1,
             )
             self.logger.info(f"Started JUCE VST host: {self.juce_host_path}")
             return True
@@ -113,11 +106,11 @@ class ExternalVSTHost:
             import requests
 
             response = requests.get(f"{self.http_url}/health", timeout=1)
-            return response.status_code == 200
+            return bool(response.status_code == 200)
         except Exception:
             return False
 
-    def stop(self):
+    def stop(self) -> None:
         """Stop the external VST host process."""
         if self._process:
             try:
@@ -137,48 +130,29 @@ class ExternalVSTHost:
 
         Returns:
             Metadata dictionary or None if extraction failed
-
-        Example response:
-            {
-                "plugin_id": "abcd",           # 4-char VST2 ID or VST3 UUID
-                "plugin_id_hex": "61626364",   # Hex representation
-                "name": "SuperCompressor",
-                "vendor": "AudioCo",
-                "version": "1.2.3",
-                "category": "Effect",
-                "num_inputs": 2,
-                "num_outputs": 2,
-                "is_synth": false,
-                "plugin_type": "VST2"          # VST2, VST3, AAX
-            }
         """
         if self.communication_method == CommunicationMethod.SUBPROCESS:
             return self._extract_via_subprocess(plugin_path)
-        elif self.communication_method == CommunicationMethod.HTTP:
+        if self.communication_method == CommunicationMethod.HTTP:
             return self._extract_via_http(plugin_path)
 
         return None
 
     def _extract_via_subprocess(self, plugin_path: Path) -> Optional[Dict[str, Any]]:
-        """
-        Extract via subprocess stdin/stdout.
-
-        Protocol:
-            Send: {"command": "scan", "path": "C:/VST/Plugin.dll", "timeout": 5}
-            Recv: {"success": true, "data": {...metadata...}}
-        """
+        """Extract via subprocess stdin/stdout."""
         if not self._process:
             if not self.start():
                 return None
 
+        if not self._process or not self._process.stdin or not self._process.stdout:
+            return None
+
         try:
-            # Send request
             request = {"command": "scan", "path": str(plugin_path), "timeout": self.timeout}
 
             self._process.stdin.write(json.dumps(request) + "\n")
             self._process.stdin.flush()
 
-            # Read response (with timeout)
             start_time = time.time()
             while time.time() - start_time < self.timeout:
                 line = self._process.stdout.readline()
@@ -186,13 +160,12 @@ class ExternalVSTHost:
                     response = json.loads(line.strip())
 
                     if response.get("success"):
-                        return response.get("data")
-                    else:
-                        error = response.get("error", "Unknown error")
-                        self.logger.debug(f"Plugin scan failed: {error}")
-                        return None
+                        data = response.get("data")
+                        return dict(data) if isinstance(data, dict) else None
+                    error = response.get("error", "Unknown error")
+                    self.logger.debug(f"Plugin scan failed: {error}")
+                    return None
 
-            # Timeout
             self.logger.warning(f"Timeout scanning {plugin_path}")
             return None
 
@@ -201,13 +174,7 @@ class ExternalVSTHost:
             return None
 
     def _extract_via_http(self, plugin_path: Path) -> Optional[Dict[str, Any]]:
-        """
-        Extract via HTTP REST API.
-
-        Endpoint: POST /scan
-        Body: {"path": "C:/VST/Plugin.dll", "timeout": 5}
-        Response: {"success": true, "data": {...}}
-        """
+        """Extract via HTTP REST API."""
         try:
             import requests
 
@@ -220,7 +187,8 @@ class ExternalVSTHost:
             if response.status_code == 200:
                 result = response.json()
                 if result.get("success"):
-                    return result.get("data")
+                    data = result.get("data")
+                    return dict(data) if isinstance(data, dict) else None
 
             return None
 
@@ -238,9 +206,8 @@ class ExternalVSTHost:
         Returns:
             Dictionary mapping path to metadata (or None if failed)
         """
-        results = {}
+        results: Dict[str, Optional[Dict[str, Any]]] = {}
 
-        # Start host once for all plugins
         if not self.start():
             return {str(path): None for path in plugin_paths}
 
@@ -252,12 +219,12 @@ class ExternalVSTHost:
 
         return results
 
-    def __enter__(self):
+    def __enter__(self) -> "ExternalVSTHost":
         """Context manager entry."""
         self.start()
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         """Context manager exit."""
         self.stop()
 
@@ -265,11 +232,6 @@ class ExternalVSTHost:
 def find_juce_host() -> Optional[Path]:
     """
     Find JUCE VST host executable.
-
-    Searches in:
-    - ./bin/VSTScanner.exe
-    - ./tools/VSTScanner.exe
-    - Configured path in config.yaml
 
     Returns:
         Path to JUCE host or None
@@ -288,19 +250,3 @@ def find_juce_host() -> Optional[Path]:
             return candidate.resolve()
 
     return None
-
-
-# Example usage and testing
-if __name__ == "__main__":
-    # Example: Scan a plugin
-    juce_host = find_juce_host()
-
-    if juce_host:
-        with ExternalVSTHost(juce_host) as host:
-            metadata = host.extract_metadata(Path("C:/VST/MyPlugin.dll"))
-            if metadata:
-                print(f"Plugin ID: {metadata.get('plugin_id')}")
-                print(f"Vendor: {metadata.get('vendor')}")
-                print(f"Version: {metadata.get('version')}")
-    else:
-        print("JUCE VST Scanner not found. Please build it first.")

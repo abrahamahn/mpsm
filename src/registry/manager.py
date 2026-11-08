@@ -2,7 +2,7 @@
 
 import platform
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from ..core.exceptions import RegistryException
 from ..core.logger import get_logger
@@ -11,14 +11,15 @@ from .backup import RegistryBackupManager
 from .registry_reader import RegistryReader
 
 IS_WINDOWS = platform.system() == "Windows"
+winreg: Any = None
 
 if IS_WINDOWS:
     try:
-        import winreg
+        import winreg as _winreg
+
+        winreg = _winreg
     except ImportError:
         winreg = None
-else:
-    winreg = None
 
 
 class RegistryManager:

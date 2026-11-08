@@ -7,10 +7,7 @@ import click
 from rich.console import Console
 from rich.table import Table
 
-from ..core.config import ConfigManager
 from ..core.exceptions import RegistryException
-from ..core.logger import get_logger
-from ..registry.backup import RegistryBackup
 from ..registry.manager import RegistryManager
 from ..registry.registry_reader import RegistryReader
 from ..registry.validator import PathValidator
@@ -33,14 +30,13 @@ def registry_backup(keys, description):
         console.print("[bold cyan]Registry Backup[/bold cyan]")
         console.print("=" * 50)
 
-        # Initialize registry manager
         manager = RegistryManager()
 
-        # If no keys specified, backup all known music production keys
         if not keys:
             reader = RegistryReader()
             console.print(
-                "\n[yellow]No keys specified, backing up all known music production keys...[/yellow]"
+                "\n[yellow]No keys specified, backing up all known "
+                "music production keys...[/yellow]"
             )
             keys = []
             for base_key in reader.KNOWN_KEYS:
@@ -51,10 +47,9 @@ def registry_backup(keys, description):
 
         console.print(f"\nBacking up {len(keys)} keys...")
 
-        # Create backup
         backup_id = manager.backup_keys(list(keys), description)
 
-        console.print(f"\n[bold green]✓ Backup created successfully![/bold green]")
+        console.print("\n[bold green]✓ Backup created successfully![/bold green]")
         console.print(f"Backup ID: {backup_id}")
         console.print(f"Keys backed up: {len(keys)}")
 
@@ -76,7 +71,6 @@ def registry_restore(backup_id):
 
         manager = RegistryManager()
 
-        # Get backup info
         backup_info = manager.backup_manager.get_backup_info(backup_id)
         if not backup_info:
             console.print(f"[red]Backup not found: {backup_id}[/red]")
@@ -95,9 +89,9 @@ def registry_restore(backup_id):
         success = manager.rollback(backup_id)
 
         if success:
-            console.print(f"\n[bold green]✓ Backup restored successfully![/bold green]")
+            console.print("\n[bold green]✓ Backup restored successfully![/bold green]")
         else:
-            console.print(f"\n[red]✗ Restore failed[/red]")
+            console.print("\n[red]✗ Restore failed[/red]")
             sys.exit(1)
 
     except RegistryException as e:
@@ -130,9 +124,9 @@ def registry_list():
         for backup in backups:
             table.add_row(
                 backup["backup_id"],
-                backup["backup_date"][:19],  # Truncate timestamp
+                backup["backup_date"][:19],
                 str(backup["keys_count"]),
-                backup.get("description", "")[:50],  # Truncate long descriptions
+                backup.get("description", "")[:50],
             )
 
         console.print(table)
@@ -166,9 +160,9 @@ def registry_validate():
         table.add_column("Path", style="red")
         table.add_column("Reason", style="white")
 
-        for broken in broken_paths[:20]:  # Show first 20
+        for broken in broken_paths[:20]:
             table.add_row(
-                broken["key_path"][-50:],  # Truncate long paths
+                broken["key_path"][-50:],
                 broken["value_name"],
                 broken["path"][-50:],
                 broken["reason"],
@@ -199,10 +193,10 @@ def registry_scan(export):
 
         total_entries = sum(len(entries) for entries in all_entries.values())
         console.print(
-            f"\n[bold green]Found {len(all_entries)} keys with {total_entries} total entries[/bold green]"
+            f"\n[bold green]Found {len(all_entries)} keys with "
+            f"{total_entries} total entries[/bold green]"
         )
 
-        # Display summary
         table = Table(show_header=True, header_style="bold magenta")
         table.add_column("Registry Key", style="cyan")
         table.add_column("Values", style="yellow")
@@ -215,7 +209,6 @@ def registry_scan(export):
         if len(all_entries) > 15:
             console.print(f"\n[yellow]... and {len(all_entries) - 15} more keys[/yellow]")
 
-        # Export if requested
         if export:
             reader.export_registry_snapshot(Path(export))
             console.print(f"\n[green]✓[/green] Exported to {export}")

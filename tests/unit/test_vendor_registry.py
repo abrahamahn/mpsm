@@ -1,7 +1,5 @@
 """Unit tests for VendorRegistry."""
 
-from pathlib import Path
-
 import pytest
 
 from src.data.vendor_registry import VendorRegistry, vendor_registry

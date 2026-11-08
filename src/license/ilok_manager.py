@@ -2,12 +2,12 @@
 
 import json
 import platform
-import subprocess
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from ..core.logger import get_logger
+from ..data.vendor_registry import vendor_registry
 from ..models.license import License, LicenseFormat, LicenseStatus, LicenseType, iLokLicense
 
 IS_WINDOWS = platform.system() == "Windows"
@@ -187,23 +187,8 @@ class iLokManager:
             product_name = file_path.stem
             publisher = "Unknown"
 
-            # Try to extract publisher from path
-            path_parts = file_path.parts
-            for part in path_parts:
-                if any(
-                    vendor in part
-                    for vendor in [
-                        "Waves",
-                        "iZotope",
-                        "FabFilter",
-                        "Native Instruments",
-                        "Plugin Alliance",
-                        "Slate Digital",
-                        "Softube",
-                    ]
-                ):
-                    publisher = part
-                    break
+            # Try to extract publisher from path via centralized vendor registry
+            publisher = vendor_registry.find_vendor_by_pattern(str(file_path)) or "Unknown"
 
             license = iLokLicense(
                 license_id=file_path.stem,
@@ -243,14 +228,14 @@ class iLokManager:
             last_verified=datetime.now(),
         )
 
-    def get_ilok_info(self) -> Dict[str, any]:
+    def get_ilok_info(self) -> Dict[str, Any]:
         """
         Get information about iLok installation.
 
         Returns:
             Dictionary with iLok info
         """
-        info = {
+        info: Dict[str, Any] = {
             "installed": self.is_installed,
             "installation_path": str(self.ilok_path) if self.ilok_path else None,
             "version": self._get_ilok_version(),
@@ -280,7 +265,7 @@ class iLokManager:
         Returns:
             List of connected iLok devices
         """
-        devices = []
+        devices: List[Dict[str, str]] = []
 
         # On Windows, check for iLok USB devices in Device Manager
         # On Mac, check for iLok devices in system_profiler

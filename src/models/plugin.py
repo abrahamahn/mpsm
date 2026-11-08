@@ -1,6 +1,6 @@
 """Plugin data model."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
@@ -183,7 +183,10 @@ class Plugin:
 
     def __repr__(self) -> str:
         """String representation."""
-        return f"Plugin(name='{self.name}', publisher='{self.publisher}', type={self.plugin_type.value})"
+        return (
+            f"Plugin(name='{self.name}', publisher='{self.publisher}', "
+            f"type={self.plugin_type.value})"
+        )
 
     def __str__(self) -> str:
         """User-friendly string representation."""

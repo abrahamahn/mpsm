@@ -11,8 +11,28 @@ from typing import Any, Dict, List, Optional
 
 from ..core.logger import get_logger
 
-if platform.system() == "Windows":
-    import winreg
+IS_WINDOWS = platform.system() == "Windows"
+winreg: Any = None
+if IS_WINDOWS:
+    try:
+        import winreg as _winreg
+
+        winreg = _winreg
+    except ImportError:
+        pass
+
+HKEY_CLASSES_ROOT = winreg.HKEY_CLASSES_ROOT if winreg is not None else 0x80000000
+HKEY_CURRENT_USER = winreg.HKEY_CURRENT_USER if winreg is not None else 0x80000001
+HKEY_LOCAL_MACHINE = winreg.HKEY_LOCAL_MACHINE if winreg is not None else 0x80000002
+
+
+def _query_optional_str(key: Any, value_name: str) -> Optional[str]:
+    """Read an optional string value from an open registry key."""
+    try:
+        val, _ = winreg.QueryValueEx(key, value_name)
+        return str(val) if val else None
+    except OSError:
+        return None
 
 
 class RegistryMetadataScanner:
@@ -20,50 +40,56 @@ class RegistryMetadataScanner:
 
     # Common registry locations for plugin information
     VST_REGISTRY_PATHS = [
-        (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\VST"),
-        (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\WOW6432Node\VST"),
-        (winreg.HKEY_CURRENT_USER, r"Software\VST"),
-        (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\VST3"),
-        (winreg.HKEY_CURRENT_USER, r"Software\VST3"),
+        (HKEY_LOCAL_MACHINE, r"SOFTWARE\VST"),
+        (HKEY_LOCAL_MACHINE, r"SOFTWARE\WOW6432Node\VST"),
+        (HKEY_CURRENT_USER, r"Software\VST"),
+        (HKEY_LOCAL_MACHINE, r"SOFTWARE\VST3"),
+        (HKEY_CURRENT_USER, r"Software\VST3"),
     ]
 
     DAW_PLUGIN_PATHS = [
         # Steinberg/Cubase
-        (winreg.HKEY_CURRENT_USER, r"Software\Steinberg\Vst2x"),
-        (winreg.HKEY_CURRENT_USER, r"Software\Steinberg\VST3Preferences"),
+        (HKEY_CURRENT_USER, r"Software\Steinberg\Vst2x"),
+        (HKEY_CURRENT_USER, r"Software\Steinberg\VST3Preferences"),
         # Image-Line/FL Studio
-        (winreg.HKEY_CURRENT_USER, r"Software\Image-Line\FL Studio\Locations"),
-        (winreg.HKEY_CURRENT_USER, r"Software\Image-Line\Shared\Paths"),
+        (HKEY_CURRENT_USER, r"Software\Image-Line\FL Studio\Locations"),
+        (HKEY_CURRENT_USER, r"Software\Image-Line\Shared\Paths"),
         # Ableton Live
-        (winreg.HKEY_CURRENT_USER, r"Software\Ableton\Live"),
+        (HKEY_CURRENT_USER, r"Software\Ableton\Live"),
         # Reaper
-        (winreg.HKEY_CURRENT_USER, r"Software\REAPER"),
+        (HKEY_CURRENT_USER, r"Software\REAPER"),
     ]
 
     UNINSTALL_PATHS = [
-        (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"),
+        (HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"),
         (
-            winreg.HKEY_LOCAL_MACHINE,
+            HKEY_LOCAL_MACHINE,
             r"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall",
         ),
-        (winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Uninstall"),
+        (HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Uninstall"),
     ]
 
     LICENSE_PATHS = [
         # iLok/PACE
-        (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\PACE Anti-Piracy"),
-        (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\WOW6432Node\PACE Anti-Piracy"),
+        (HKEY_LOCAL_MACHINE, r"SOFTWARE\PACE Anti-Piracy"),
+        (HKEY_LOCAL_MACHINE, r"SOFTWARE\WOW6432Node\PACE Anti-Piracy"),
         # Waves
-        (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Waves"),
-        (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\WOW6432Node\Waves"),
+        (HKEY_LOCAL_MACHINE, r"SOFTWARE\Waves"),
+        (HKEY_LOCAL_MACHINE, r"SOFTWARE\WOW6432Node\Waves"),
         # Native Instruments
-        (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Native Instruments"),
+        (HKEY_LOCAL_MACHINE, r"SOFTWARE\Native Instruments"),
     ]
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize registry scanner."""
         self.logger = get_logger()
-        self.is_windows = platform.system() == "Windows"
+        self.is_windows = IS_WINDOWS and winreg is not None
+
+    def find_plugin_metadata(
+        self, plugin_path: Path, plugin_name: Optional[str] = None
+    ) -> Optional[Dict[str, Any]]:
+        """Find plugin metadata in registry by file path."""
+        return self.find_plugin_in_registry(plugin_path, plugin_name or plugin_path.stem)
 
     def find_plugin_in_registry(
         self, plugin_path: Path, plugin_name: str
@@ -81,7 +107,7 @@ class RegistryMetadataScanner:
         if not self.is_windows:
             return None
 
-        metadata = {
+        metadata: Dict[str, Any] = {
             "registry_key": None,
             "install_date": None,
             "description": None,
@@ -119,26 +145,22 @@ class RegistryMetadataScanner:
         Returns:
             Metadata dict or None
         """
-        path_str = str(plugin_path).lower()
         name_lower = plugin_name.lower()
 
         for hkey, subkey_path in self.DAW_PLUGIN_PATHS:
             try:
                 key = winreg.OpenKey(hkey, subkey_path, 0, winreg.KEY_READ)
 
-                # Enumerate all subkeys
                 i = 0
                 while True:
                     try:
                         subkey_name = winreg.EnumKey(key, i)
 
-                        # Check if this subkey relates to our plugin
                         if name_lower in subkey_name.lower():
                             full_path = (
                                 f"{self._hkey_to_string(hkey)}\\{subkey_path}\\{subkey_name}"
                             )
 
-                            # Try to get more info from this key
                             plugin_key = winreg.OpenKey(key, subkey_name, 0, winreg.KEY_READ)
                             info = self._extract_key_values(plugin_key)
                             winreg.CloseKey(plugin_key)
@@ -154,9 +176,7 @@ class RegistryMetadataScanner:
 
                 winreg.CloseKey(key)
 
-            except FileNotFoundError:
-                continue
-            except PermissionError:
+            except (FileNotFoundError, PermissionError):
                 continue
             except Exception as e:
                 self.logger.debug(f"Error searching DAW registry: {e}")
@@ -184,70 +204,42 @@ class RegistryMetadataScanner:
                 while True:
                     try:
                         subkey_name = winreg.EnumKey(key, i)
-
-                        # Open the uninstall entry
                         entry_key = winreg.OpenKey(key, subkey_name, 0, winreg.KEY_READ)
 
-                        # Check DisplayName
-                        try:
-                            display_name, _ = winreg.QueryValueEx(entry_key, "DisplayName")
-                            if name_lower in display_name.lower():
-                                # Extract useful info
-                                metadata = {}
+                        display_name = _query_optional_str(entry_key, "DisplayName")
+                        if display_name and name_lower in display_name.lower():
+                            metadata: Dict[str, Any] = {}
 
-                                # Publisher
+                            publisher = _query_optional_str(entry_key, "Publisher")
+                            if publisher:
+                                metadata["publisher"] = publisher
+
+                            install_date = _query_optional_str(entry_key, "InstallDate")
+                            if install_date:
                                 try:
-                                    publisher, _ = winreg.QueryValueEx(entry_key, "Publisher")
-                                    metadata["publisher"] = publisher
-                                except:
+                                    metadata["install_date"] = datetime.strptime(
+                                        install_date, "%Y%m%d"
+                                    ).isoformat()
+                                except ValueError:
                                     pass
 
-                                # Install date
-                                try:
-                                    install_date, _ = winreg.QueryValueEx(entry_key, "InstallDate")
-                                    # Format: YYYYMMDD
-                                    if install_date:
-                                        metadata["install_date"] = datetime.strptime(
-                                            install_date, "%Y%m%d"
-                                        ).isoformat()
-                                except:
-                                    pass
+                            website = _query_optional_str(
+                                entry_key, "URLInfoAbout"
+                            ) or _query_optional_str(entry_key, "HelpLink")
+                            if website:
+                                metadata["website"] = website
 
-                                # Website
-                                try:
-                                    url, _ = winreg.QueryValueEx(entry_key, "URLInfoAbout")
-                                    metadata["website"] = url
-                                except:
-                                    pass
+                            version = _query_optional_str(entry_key, "DisplayVersion")
+                            if version:
+                                metadata["version_string"] = version
 
-                                # Help link (alternative to website)
-                                try:
-                                    help_link, _ = winreg.QueryValueEx(entry_key, "HelpLink")
-                                    if "website" not in metadata:
-                                        metadata["website"] = help_link
-                                except:
-                                    pass
+                            comments = _query_optional_str(entry_key, "Comments")
+                            if comments:
+                                metadata["description"] = comments
 
-                                # Version
-                                try:
-                                    version, _ = winreg.QueryValueEx(entry_key, "DisplayVersion")
-                                    metadata["version_string"] = version
-                                except:
-                                    pass
-
-                                # Description
-                                try:
-                                    comments, _ = winreg.QueryValueEx(entry_key, "Comments")
-                                    metadata["description"] = comments
-                                except:
-                                    pass
-
-                                winreg.CloseKey(entry_key)
-                                winreg.CloseKey(key)
-                                return metadata
-
-                        except:
-                            pass
+                            winreg.CloseKey(entry_key)
+                            winreg.CloseKey(key)
+                            return metadata
 
                         winreg.CloseKey(entry_key)
                         i += 1
@@ -257,9 +249,7 @@ class RegistryMetadataScanner:
 
                 winreg.CloseKey(key)
 
-            except FileNotFoundError:
-                continue
-            except PermissionError:
+            except (FileNotFoundError, PermissionError):
                 continue
             except Exception as e:
                 self.logger.debug(f"Error searching uninstall registry: {e}")
@@ -287,13 +277,10 @@ class RegistryMetadataScanner:
                 i = 0
                 while True:
                     try:
-                        value_name, value_data, value_type = winreg.EnumValue(key, i)
-
+                        value_name, _, _ = winreg.EnumValue(key, i)
                         if name_lower in value_name.lower():
-                            # Found something related to this plugin
                             winreg.CloseKey(key)
                             return {"status": "registered"}
-
                         i += 1
                     except OSError:
                         break
@@ -303,20 +290,16 @@ class RegistryMetadataScanner:
                 while True:
                     try:
                         subkey_name = winreg.EnumKey(key, i)
-
                         if name_lower in subkey_name.lower():
                             winreg.CloseKey(key)
                             return {"status": "registered"}
-
                         i += 1
                     except OSError:
                         break
 
                 winreg.CloseKey(key)
 
-            except FileNotFoundError:
-                continue
-            except PermissionError:
+            except (FileNotFoundError, PermissionError):
                 continue
             except Exception as e:
                 self.logger.debug(f"Error searching license registry: {e}")
@@ -324,7 +307,7 @@ class RegistryMetadataScanner:
 
         return None
 
-    def _extract_key_values(self, key) -> Dict[str, Any]:
+    def _extract_key_values(self, key: Any) -> Dict[str, Any]:
         """
         Extract all values from a registry key.
 
@@ -334,13 +317,13 @@ class RegistryMetadataScanner:
         Returns:
             Dictionary of values
         """
-        values = {}
+        values: Dict[str, Any] = {}
 
         try:
             i = 0
             while True:
                 try:
-                    value_name, value_data, value_type = winreg.EnumValue(key, i)
+                    value_name, value_data, _ = winreg.EnumValue(key, i)
                     if value_name and value_data:
                         values[value_name] = value_data
                     i += 1
@@ -351,16 +334,15 @@ class RegistryMetadataScanner:
 
         return values
 
-    def _hkey_to_string(self, hkey) -> str:
+    def _hkey_to_string(self, hkey: int) -> str:
         """Convert HKEY constant to string."""
-        if hkey == winreg.HKEY_LOCAL_MACHINE:
+        if hkey == HKEY_LOCAL_MACHINE:
             return "HKLM"
-        elif hkey == winreg.HKEY_CURRENT_USER:
+        if hkey == HKEY_CURRENT_USER:
             return "HKCU"
-        elif hkey == winreg.HKEY_CLASSES_ROOT:
+        if hkey == HKEY_CLASSES_ROOT:
             return "HKCR"
-        else:
-            return "HK??"
+        return "HK??"
 
     def get_vst_install_paths(self) -> List[str]:
         """
@@ -372,28 +354,22 @@ class RegistryMetadataScanner:
         if not self.is_windows:
             return []
 
-        paths = []
+        paths: List[str] = []
 
         for hkey, subkey_path in self.VST_REGISTRY_PATHS:
             try:
                 key = winreg.OpenKey(hkey, subkey_path, 0, winreg.KEY_READ)
 
-                try:
-                    # Try to get VSTPluginsPath value
-                    path, _ = winreg.QueryValueEx(key, "VSTPluginsPath")
-                    if path and path not in paths:
-                        paths.append(path)
-                except:
-                    pass
+                vst_path = _query_optional_str(key, "VSTPluginsPath")
+                if vst_path and vst_path not in paths:
+                    paths.append(vst_path)
 
-                # Enumerate all values
                 i = 0
                 while True:
                     try:
-                        value_name, value_data, value_type = winreg.EnumValue(key, i)
+                        _, value_data, _ = winreg.EnumValue(key, i)
 
                         if isinstance(value_data, str) and "\\" in value_data:
-                            # Looks like a path
                             if Path(value_data).exists() and value_data not in paths:
                                 paths.append(value_data)
 
@@ -403,9 +379,7 @@ class RegistryMetadataScanner:
 
                 winreg.CloseKey(key)
 
-            except FileNotFoundError:
-                continue
-            except PermissionError:
+            except (FileNotFoundError, PermissionError):
                 continue
 
         return paths

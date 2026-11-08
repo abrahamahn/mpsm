@@ -1,15 +1,13 @@
 """Safe file mover with backup and verification."""
 
-import hashlib
 import shutil
 import time
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
-from ..core.exceptions import DiskSpaceException, FileOperationException
 from ..core.logger import get_logger
 
 
@@ -406,7 +404,7 @@ class FileMover:
         estimated_seconds = size_mb / sample_speed_mbps
         return estimated_seconds
 
-    def get_operation_stats(self) -> Dict[str, any]:
+    def get_operation_stats(self) -> Dict[str, Any]:
         """Get statistics for all operations."""
         total = len(self.operations)
         completed = sum(1 for op in self.operations if op.completed)

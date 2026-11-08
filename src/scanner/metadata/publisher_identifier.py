@@ -1,7 +1,6 @@
 """Publisher identification from file paths and metadata."""
 
 from pathlib import Path
-from typing import Optional
 
 from ...data.vendor_registry import vendor_registry
 

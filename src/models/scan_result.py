@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 import pandas as pd
 
@@ -27,8 +27,6 @@ class ComprehensiveScanResult:
     data_folders: List[DataFolder] = field(default_factory=list)
     plugin_installations: List[PluginInstallation] = field(default_factory=list)
     licenses: List[License] = field(default_factory=list)
-    # daws: List[DAW] = field(default_factory=list)  # TODO: Implement DAW model
-    # registry_entries: List[RegistryEntry] = field(default_factory=list)  # TODO: Implement RegistryEntry model
 
     # Statistics
     total_files_scanned: int = 0
@@ -71,7 +69,7 @@ class ComprehensiveScanResult:
         Convert to pandas DataFrame for export.
 
         Args:
-            item_type: Type of items to export ('plugins', 'applications', 'folders', 'licenses', etc.)
+            item_type: Type of items to export ('plugins', 'applications', 'folders', 'licenses')
 
         Returns:
             DataFrame with scan results
@@ -85,7 +83,7 @@ class ComprehensiveScanResult:
         elif item_type == "installations":
             return pd.DataFrame([i.to_dict() for i in self.plugin_installations])
         elif item_type == "licenses":
-            return pd.DataFrame([l.to_dict() for l in self.licenses])
+            return pd.DataFrame([lic.to_dict() for lic in self.licenses])
         else:
             raise ValueError(f"Unknown item type: {item_type}")
 
@@ -250,7 +248,10 @@ Issues:
 
     def __repr__(self) -> str:
         """String representation."""
-        return f"ComprehensiveScanResult(scan_id='{self.scan_id}', plugins={len(self.plugins)}, apps={len(self.applications)})"
+        return (
+            f"ComprehensiveScanResult(scan_id='{self.scan_id}', "
+            f"plugins={len(self.plugins)}, apps={len(self.applications)})"
+        )
 
     def __str__(self) -> str:
         """User-friendly string representation."""

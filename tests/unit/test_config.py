@@ -150,18 +150,9 @@ class TestConfigExternalization:
 
     def test_config_template_missing_raises_error(self, temp_dir):
         """Test that missing template raises appropriate error."""
-        # Temporarily move template to test error handling
-        from pathlib import Path as P
-
         config = ConfigManager(create_if_missing=True)
 
-        # Override template path to non-existent location
-        original_method = config.create_default_config
-
         def patched_create_default_config(output_path=None):
-            # Patch to use non-existent template
-            from pathlib import Path
-
             template_path = Path("/nonexistent/defaults.yaml")
 
             if not template_path.exists():

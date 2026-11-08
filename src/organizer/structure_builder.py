@@ -1,7 +1,7 @@
 """Target folder structure builder."""
 
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from ..core.config import ConfigManager
 from ..core.exceptions import ValidationException
@@ -59,10 +59,10 @@ class StructureBuilder:
             except Exception as e:
                 self.logger.error(f"Failed to create {path}: {e}")
                 raise ValidationException(
-                    f"Could not create directory", {"path": str(path), "error": str(e)}
+                    "Could not create directory", {"path": str(path), "error": str(e)}
                 )
 
-        self.logger.info(f"✓ Folder structure created successfully")
+        self.logger.info("✓ Folder structure created successfully")
 
     def validate_structure(self) -> List[str]:
         """
@@ -109,18 +109,18 @@ class StructureBuilder:
         """
         # Get base path for plugin type
         if plugin.plugin_type == PluginType.VST2:
-            base_path = self.root_path / self.config.get("custom_paths.vst2", "Plugins/VST2")
+            base_path = self.root_path / str(self.config.get("custom_paths.vst2", "Plugins/VST2"))
         elif plugin.plugin_type == PluginType.VST3:
-            base_path = self.root_path / self.config.get("custom_paths.vst3", "Plugins/VST3")
+            base_path = self.root_path / str(self.config.get("custom_paths.vst3", "Plugins/VST3"))
         elif plugin.plugin_type == PluginType.AAX:
-            base_path = self.root_path / self.config.get("custom_paths.aax", "Plugins/AAX")
+            base_path = self.root_path / str(self.config.get("custom_paths.aax", "Plugins/AAX"))
         elif plugin.plugin_type == PluginType.CLAP:
-            base_path = self.root_path / self.config.get("custom_paths.clap", "Plugins/CLAP")
+            base_path = self.root_path / str(self.config.get("custom_paths.clap", "Plugins/CLAP"))
         else:
             base_path = self.root_path / "Plugins" / "Unknown"
 
         # For certain publishers (like Waves), group in vendor folder
-        if plugin.category.value in [
+        if plugin.publisher in [
             "Waves",
             "iZotope",
             "FabFilter",
@@ -175,7 +175,7 @@ class StructureBuilder:
             C:\\MusicProduction\\Libraries\\Serum\\Presets\\
             C:\\MusicProduction\\Libraries\\Kontakt\\Libraries\\
         """
-        base_path = self.root_path / self.config.get("custom_paths.libraries", "Libraries")
+        base_path = self.root_path / str(self.config.get("custom_paths.libraries", "Libraries"))
 
         # Create plugin folder under Libraries
         plugin_path = base_path / plugin_name
@@ -205,7 +205,7 @@ class StructureBuilder:
         Example:
             C:\\MusicProduction\\Licenses\\Serum\\
         """
-        base_path = self.root_path / self.config.get("custom_paths.licenses", "Licenses")
+        base_path = self.root_path / str(self.config.get("custom_paths.licenses", "Licenses"))
         return base_path / plugin_name
 
     def get_vendor_folder_path(self, vendor: str, plugin_type: PluginType) -> Path:
@@ -220,11 +220,11 @@ class StructureBuilder:
             Path to vendor folder
         """
         if plugin_type == PluginType.VST2:
-            base = self.root_path / self.config.get("custom_paths.vst2", "Plugins/VST2")
+            base = self.root_path / str(self.config.get("custom_paths.vst2", "Plugins/VST2"))
         elif plugin_type == PluginType.VST3:
-            base = self.root_path / self.config.get("custom_paths.vst3", "Plugins/VST3")
+            base = self.root_path / str(self.config.get("custom_paths.vst3", "Plugins/VST3"))
         elif plugin_type == PluginType.AAX:
-            base = self.root_path / self.config.get("custom_paths.aax", "Plugins/AAX")
+            base = self.root_path / str(self.config.get("custom_paths.aax", "Plugins/AAX"))
         else:
             base = self.root_path / "Plugins"
 
@@ -300,16 +300,17 @@ class StructureBuilder:
 
         return True
 
-    def get_structure_summary(self) -> Dict[str, any]:
+    def get_structure_summary(self) -> Dict[str, Any]:
         """
         Get summary of target structure.
 
         Returns:
             Dictionary with structure information
         """
-        summary = {
+        paths_info: Dict[str, Dict[str, Any]] = {}
+        summary: Dict[str, Any] = {
             "root_path": str(self.root_path),
-            "paths": {},
+            "paths": paths_info,
             "available_space_gb": round(self.get_available_space() / (1024**3), 2),
         }
 
@@ -319,7 +320,7 @@ class StructureBuilder:
             rel_path = self.config.get(path_key, "")
             if rel_path:
                 full_path = self.root_path / rel_path
-                summary["paths"][key] = {
+                paths_info[key] = {
                     "path": str(full_path),
                     "exists": full_path.exists(),
                 }

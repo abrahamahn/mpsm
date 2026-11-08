@@ -161,10 +161,6 @@ mpsm/
 ### Developer Documentation (`docs/dev/`)
 - **[Architecture](docs/dev/BASESCANNER_ARCHITECTURE.md)** - Scanner design patterns
 - **[Framework](docs/dev/FRAMEWORK.md)** - Overall system design
-- **[Testing](docs/dev/TESTING_SUMMARY.md)** - Test infrastructure (96 tests)
-- **[Refactoring History](docs/dev/REFACTORING_SUMMARY.md)** - Code evolution
-- **[Scalability](docs/dev/SCALABILITY_ANALYSIS.md)** - Performance analysis
-- **[Improvements](docs/dev/IMPROVEMENTS.md)** - Roadmap and ideas
 
 ### Community
 - **[Contributing](CONTRIBUTING.md)** - How to contribute

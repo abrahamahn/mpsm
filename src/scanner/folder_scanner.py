@@ -1,13 +1,10 @@
 """Data folder scanner for presets, samples, and libraries."""
 
 import platform
-from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from ..core.config import ConfigManager
-from ..core.logger import get_logger
 from ..data.vendor_registry import vendor_registry
 from ..models.folder import DataFolder, FolderType
 from .base_scanner import BaseScanner
@@ -92,7 +89,7 @@ class FolderScanner(BaseScanner[DataFolder]):
         return self.items
 
     @data_folders.setter
-    def data_folders(self, value: List[DataFolder]):
+    def data_folders(self, value: List[DataFolder]) -> None:
         """Set discovered data folders (backward compatibility)."""
         self.items = value
 
@@ -117,10 +114,9 @@ class FolderScanner(BaseScanner[DataFolder]):
         Returns:
             List of common data paths
         """
-        paths = []
+        paths: List[str] = []
 
         if IS_WINDOWS:
-            # Common Windows locations
             paths.extend(
                 [
                     str(Path.home() / "Documents"),
@@ -132,7 +128,6 @@ class FolderScanner(BaseScanner[DataFolder]):
                 ]
             )
         else:
-            # Mac/Linux locations
             paths.extend(
                 [
                     str(Path.home() / "Library" / "Application Support"),
@@ -188,13 +183,11 @@ class FolderScanner(BaseScanner[DataFolder]):
         # Check for known vendor folders using VendorRegistry
         vendor = vendor_registry.find_vendor_by_folder(folder_path.name)
         if vendor:
-            # Determine more specific type based on subfolder
             if "preset" in folder_name_lower or "user" in folder_name_lower:
                 return FolderType.PRESETS
-            elif "sample" in folder_name_lower:
+            if "sample" in folder_name_lower:
                 return FolderType.SAMPLES
-            else:
-                return FolderType.LIBRARY
+            return FolderType.LIBRARY
 
         return None
 
@@ -212,10 +205,7 @@ class FolderScanner(BaseScanner[DataFolder]):
             DataFolder object or None
         """
         try:
-            # Calculate folder size and file count
             total_size, file_count = self._calculate_folder_stats(folder_path)
-
-            # Determine owner/publisher
             owner = self._determine_owner(folder_path)
 
             data_folder = DataFolder(
@@ -234,7 +224,7 @@ class FolderScanner(BaseScanner[DataFolder]):
             self.logger.warning(f"Error creating data folder object for {folder_path}: {e}")
             return None
 
-    def _calculate_folder_stats(self, folder_path: Path) -> tuple:
+    def _calculate_folder_stats(self, folder_path: Path) -> Tuple[int, int]:
         """
         Calculate folder size and file count.
 
@@ -253,7 +243,7 @@ class FolderScanner(BaseScanner[DataFolder]):
                     try:
                         total_size += item.stat().st_size
                         file_count += 1
-                    except:
+                    except OSError:
                         pass
         except Exception as e:
             self.logger.debug(f"Error calculating stats for {folder_path}: {e}")
@@ -272,13 +262,11 @@ class FolderScanner(BaseScanner[DataFolder]):
         Returns:
             Owner name
         """
-        # Check path for vendor names using VendorRegistry
         path_str = str(folder_path)
         vendor = vendor_registry.find_vendor_by_pattern(path_str)
         if vendor:
             return vendor
 
-        # Try to extract from folder name or parent
         if len(folder_path.parts) > 1:
             parent = folder_path.parent.name
             if parent not in ["Documents", "AppData", "Local", "Roaming", "Application Support"]:
@@ -323,7 +311,11 @@ class FolderScanner(BaseScanner[DataFolder]):
         Returns:
             List of folders from owner
         """
-        return [folder for folder in self.data_folders if owner.lower() in folder.owner.lower()]
+        return [
+            folder
+            for folder in self.data_folders
+            if folder.owner and owner.lower() in folder.owner.lower()
+        ]
 
     def get_total_size_by_type(self) -> Dict[FolderType, int]:
         """
@@ -332,7 +324,7 @@ class FolderScanner(BaseScanner[DataFolder]):
         Returns:
             Dictionary mapping folder type to total size in bytes
         """
-        sizes = {}
+        sizes: Dict[FolderType, int] = {}
         for folder in self.data_folders:
             if folder.folder_type not in sizes:
                 sizes[folder.folder_type] = 0

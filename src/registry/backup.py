@@ -2,12 +2,11 @@
 
 import json
 import platform
-import shutil
 import subprocess
 import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from ..core.exceptions import RegistryException
 from ..core.logger import get_logger
@@ -40,12 +39,13 @@ class RegistryBackupManager:
         self.metadata_file = self.backup_dir / "backups.json"
         self.metadata: dict = self._load_metadata()
 
-    def _load_metadata(self) -> dict:
+    def _load_metadata(self) -> Dict[str, Any]:
         """Load backup metadata from file."""
         if self.metadata_file.exists():
             try:
                 with open(self.metadata_file, "r") as f:
-                    return json.load(f)
+                    data: Dict[str, Any] = json.load(f)
+                    return data
             except Exception as e:
                 self.logger.warning(f"Could not load backup metadata: {e}")
 
@@ -147,7 +147,7 @@ class RegistryBackupManager:
 
         except Exception as e:
             self.logger.error(f"Failed to create backup: {e}")
-            raise RegistryException(f"Backup failed", {"error": str(e)})
+            raise RegistryException("Backup failed", {"error": str(e)})
 
     def _create_mock_backup(self, keys: List[str], description: str = "") -> RegistryBackup:
         """Create a mock backup for testing on non-Windows systems."""
@@ -240,18 +240,19 @@ class RegistryBackupManager:
 
         except Exception as e:
             self.logger.error(f"Failed to restore backup: {e}")
-            raise RegistryException(f"Restore failed", {"error": str(e)})
+            raise RegistryException("Restore failed", {"error": str(e)})
 
-    def list_backups(self) -> List[dict]:
+    def list_backups(self) -> List[Dict[str, Any]]:
         """
         List all backups.
 
         Returns:
             List of backup information dictionaries
         """
-        return self.metadata.get("backups", [])
+        backups: List[Dict[str, Any]] = self.metadata.get("backups", [])
+        return backups
 
-    def get_backup_info(self, backup_id: str) -> Optional[dict]:
+    def get_backup_info(self, backup_id: str) -> Optional[Dict[str, Any]]:
         """
         Get information about a specific backup.
 
@@ -263,7 +264,8 @@ class RegistryBackupManager:
         """
         for backup in self.metadata["backups"]:
             if backup["backup_id"] == backup_id:
-                return backup
+                result: Dict[str, Any] = backup
+                return result
         return None
 
     def delete_backup(self, backup_id: str) -> bool:

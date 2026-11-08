@@ -1,10 +1,12 @@
 """Custom exceptions for MPSM."""
 
+from typing import Any, Dict, Optional
+
 
 class MPSMException(Exception):
     """Base exception for MPSM."""
 
-    def __init__(self, message: str, details: dict = None):
+    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
         """
         Initialize exception.
 

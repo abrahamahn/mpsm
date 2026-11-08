@@ -1,7 +1,6 @@
 """VST plugin signature detection and validation."""
 
 from pathlib import Path
-from typing import List
 
 # Blacklisted DLL patterns (NOT plugins - helper libs, installers, etc.)
 BLACKLISTED_PATTERNS = [

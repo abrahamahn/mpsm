@@ -6,8 +6,11 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
+dotenv_values: Any = None
 try:
-    from dotenv import dotenv_values
+    from dotenv import dotenv_values as _dotenv_values
+
+    dotenv_values = _dotenv_values
 except ImportError:
     dotenv_values = None
 
@@ -220,10 +223,10 @@ class ConfigManager:
 
         # If using new config structure
         if plugin_paths:
-            return plugin_paths + data_paths
+            return list(plugin_paths) + list(data_paths)
         # Backward compatibility
         elif legacy_paths:
-            return legacy_paths
+            return list(legacy_paths)
         else:
             return []
 
@@ -233,15 +236,15 @@ class ConfigManager:
 
         Includes custom paths from .env file if present.
         """
-        plugin_paths = self.get("scan.plugin_paths", [])
+        plugin_paths: List[str] = list(self.get("scan.plugin_paths", []))
         if not plugin_paths:
             # Fallback to scan_paths for backward compatibility
-            plugin_paths = self.get("scan.scan_paths", [])
+            plugin_paths = list(self.get("scan.scan_paths", []))
 
         # Load custom paths from .env file
         custom_paths = self._load_custom_paths_from_env()
         if custom_paths:
-            plugin_paths = list(plugin_paths) + custom_paths
+            plugin_paths = plugin_paths + custom_paths
 
         return plugin_paths
 
@@ -278,17 +281,17 @@ class ConfigManager:
 
             return custom_paths
 
-        except Exception as e:
+        except Exception:
             # Log error but don't fail - custom paths are optional
             return []
 
     def get_data_paths(self) -> List[str]:
         """Get list of paths containing presets, samples, licenses (vendor-filtered)."""
-        return self.get("scan.data_paths", [])
+        return list(self.get("scan.data_paths", []))
 
     def get_exclude_paths(self) -> List[str]:
         """Get list of paths to exclude from scanning."""
-        return self.get("scan.exclude_paths", [])
+        return list(self.get("scan.exclude_paths", []))
 
     def get_root_path(self) -> Path:
         """Get root path for music production files."""
@@ -297,7 +300,7 @@ class ConfigManager:
 
     def is_dry_run(self) -> bool:
         """Check if dry-run mode is enabled."""
-        return self.get("safety.dry_run", True)
+        return bool(self.get("safety.dry_run", True))
 
     def __repr__(self) -> str:
         """String representation."""
